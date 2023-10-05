@@ -1,0 +1,77 @@
+### C/C++ ###
+
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+
+### Other ###
+
+# Build and binary directories
+**/build/
+**/build*/
+**/bin/
+
+# R and RMarkdown output
+**/.RData
+**/.Rhistory
+**/rmd/
+
+# App metadata
+**/.vscode/
+**/.ipynb_checkpoints/
+
+# SLURM job outputs
+*.out
+*.err
+
+# Python cache
+*.pyc
+
+# Profiling
+*.map
+**/map*/*.html
+**/map*/*.json
+**/map*/*.zip
+
+# Core dumps
+**/core
+
+# Results output
+results/img/**
+results/out/**
+results/plt/**
+.Rproj.user
+
+# Temporary directories
+**/tmp/
+
