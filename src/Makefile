@@ -3,6 +3,10 @@ CXXFLAGS = -g -Og -Wall -Wextra -std=c++20
 LDFLAGS = 
 INCS = 
 
+ifeq ($(DEBUG), 1)
+CXXFLAGS += -DDEBUG
+endif
+
 DEPS = tensor.hpp
 
 ODIR = obj

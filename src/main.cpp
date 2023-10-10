@@ -24,9 +24,10 @@ int main() {
 
     TensorNetwork tn1(tn1_tensors, tn1_bonds);
 
-    Tensor result = tn1.contract();
+    tn1.contract();
+    Tensor result = tn1.getTensor(0);
 
-    std::vector<int> result_coords = { 0 };
+    std::vector<int> result_coords = { 0, 0, 0 };
 
     std::cout << "Tout[0] = " << result.getEl(result_coords) << std::endl;
 

@@ -12,4 +12,4 @@ make
 ../bin/gtnh.out
 ```
 
-At the moment, tensor contraction is not implemented yet, and will return a single-element zero tensor. 
+Use `make DEBUG=1` to print out more information. 
