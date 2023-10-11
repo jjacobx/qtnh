@@ -5,11 +5,16 @@ This project aims to create a generalised distributed software for performing co
 To build and run the code, execute the following commands: 
 
 ```bash
-mkdir bin
-cd src
+mkdir build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
 make
 
-../bin/gtnh.out
+examples/simple-tensor
 ```
 
-Use `make DEBUG=1` to print out more information. 
+Use `-DCMAKE_BUILD_TYPE=Debug` to print out more information at runtime. 
+
+
+## Dependencies
+
+ * [CMake](https://cmake.org/) -- at least version 3.10
