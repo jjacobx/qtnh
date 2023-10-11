@@ -32,12 +32,12 @@ find_library(MATH_LIBRARY m REQUIRED)
 add_subdirectory(src)
 
 ## Tests
-# find_package(Catch2 3.1.0 REQUIRED)
-# enable_testing()
-# include(CTest)
-# include(Catch)
+find_package(Catch2 3.1.0 REQUIRED)
+enable_testing()
+include(CTest)
+include(Catch)
 
-# add_subdirectory(tests)
+add_subdirectory(tests)
 
 ## Examples
 add_subdirectory(examples)

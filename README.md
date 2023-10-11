@@ -17,4 +17,11 @@ Use `-DCMAKE_BUILD_TYPE=Debug` to print out more information at runtime.
 
 ## Dependencies
 
- * [CMake](https://cmake.org/) -- at least version 3.10
+ * [CMake](https://cmake.org/) – at least version 3.10
+ * [Catch2](https://github.com/catchorg/Catch2) – at least version v3.10
+
+
+## Tests
+
+Use `make test` after building to run the tests. 
+
