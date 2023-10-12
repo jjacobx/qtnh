@@ -2,6 +2,120 @@
 
 #include "tensor.hpp"
 
+Coordinates::Coordinates(dim_tuple limits, std::size_t constant_dim) {
+    dim_flags flags(limits.size(), DimFlag::variable);
+    Coordinates(limits, flags);
+}
+
+Coordinates::Coordinates(dim_tuple limits, dim_flags flags) {
+    dim_tuple current(limits.size(), 0);
+    Coordinates(limits, flags, current);
+}
+
+Coordinates::Coordinates(dim_tuple limits, dim_flags flags, dim_tuple current) {
+    // TODO: bound checking
+    this->limits = limits;
+    this->flags = flags;
+    this->current = current;
+}
+
+const dim_tuple & Coordinates::getLimits() const { return limits; }
+const dim_flags & Coordinates::getFlags() const { return flags; }
+const dim_tuple & Coordinates::getCurrent() const { return current; }
+void Coordinates::setCurrent(const dim_tuple & value) {
+    // TODO: bound checking
+    this->current = value;
+}
+
+void Coordinates::next() {
+    for (std::size_t i = this->limits.size() - 1; i >= 0; i--) {
+        if (this->flags.at(i) == DimFlag::fixed) {
+            continue;
+        }
+
+        this->current.at(i)++;
+        if (this->current.at(i) == this->limits.at(i)) {
+            this->current.at(i) = 0;
+            continue;
+        } else {
+            return;
+        }
+    }
+
+    // Here should be an error/warning
+}
+
+void Coordinates::previous() {
+    for (std::size_t i = this->limits.size() - 1; i >= 0; i--) {
+        if (this->flags.at(i) == DimFlag::fixed) {
+            continue;
+        }
+
+        this->current.at(i)--;
+        if (this->current.at(i) == -1) {
+            this->current.at(i) = this->limits.at(i) - 1;
+            continue;
+        } else {
+            return;
+        }
+    }
+
+    // Here should be an error/warning
+}
+
+void Coordinates::reset() {
+    for (std::size_t i = 0; i < this->limits.size(); i++) {
+        if (this->flags.at(i) == DimFlag::fixed) {
+            continue;
+        }
+
+        this->current.at(i) = 0;
+    }
+}
+
+bool Coordinates::canIncrease() {
+    for (std::size_t i = 0; i < this->limits.size(); i++) {
+        if (this->flags.at(i) == DimFlag::fixed) {
+            continue;
+        }
+
+        if (this->current.at(i) < this->limits.at(i) - 1) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool Coordinates::canDecrease() {
+    for (std::size_t i = 0; i < this->limits.size(); i++) {
+        if (this->flags.at(i) == DimFlag::fixed) {
+            continue;
+        }
+
+        if (this->current.at(i) > 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+Coordinates Coordinates::complement() {
+    dim_flags new_flags(this->flags.size());
+    for (std::size_t i = 0; i < this->flags.size(); i++) {
+        if (this->flags.at(i) == DimFlag::variable) {
+            new_flags.at(i) = DimFlag::fixed;
+        } else {
+            new_flags.at(i) = DimFlag::variable;
+        }
+    }
+
+    Coordinates new_coordinates(this->limits, new_flags, this->current);
+    return new_coordinates;
+}
+
+
 Tensor::Tensor() {
     std::vector<complex> data = { 0.0 };
     std::vector<int> dims = { 1 };

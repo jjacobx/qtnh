@@ -2,7 +2,38 @@
 #include <vector>
 
 typedef std::complex<double> complex;
-typedef std::vector<int> indices;
+typedef std::vector<std::size_t> dim_tuple;
+
+enum class DimFlag { variable, fixed };
+typedef std::vector<DimFlag> dim_flags;
+
+class Coordinates {
+public:
+    Coordinates(dim_tuple limits, std::size_t constant_dim);
+    Coordinates(dim_tuple limits, dim_flags flags);
+    Coordinates(dim_tuple limits, dim_flags flags, dim_tuple current);
+
+    const dim_tuple & getLimits() const;
+    const dim_flags & getFlags() const;
+    const dim_tuple & getCurrent() const;
+    void setCurrent(const dim_tuple & value);
+
+    void next();
+    // void operator++(int);
+    void previous();
+    // void operator--(int);
+    void reset();
+
+    bool canIncrease();
+    bool canDecrease();
+
+    Coordinates complement();
+
+private:
+    dim_tuple limits;
+    dim_flags flags;
+    dim_tuple current;
+};
 
 class Tensor {
 public:
