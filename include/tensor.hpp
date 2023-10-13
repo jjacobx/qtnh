@@ -9,14 +9,15 @@ typedef std::vector<DimFlag> dim_flags;
 
 class Coordinates {
 public:
+    Coordinates(dim_tuple limits);
     Coordinates(dim_tuple limits, std::size_t constant_dim);
     Coordinates(dim_tuple limits, dim_flags flags);
     Coordinates(dim_tuple limits, dim_flags flags, dim_tuple current);
 
-    const dim_tuple & getLimits() const;
-    const dim_flags & getFlags() const;
-    const dim_tuple & getCurrent() const;
-    void setCurrent(const dim_tuple & value);
+    const dim_tuple& getLimits() const;
+    const dim_flags& getFlags() const;
+    const dim_tuple& getCurrent() const;
+    void setCurrent(const dim_tuple& value);
 
     void next();
     // void operator++(int);
@@ -28,6 +29,8 @@ public:
     bool canDecrease();
 
     Coordinates complement();
+    Coordinates dropFixed();
+    Coordinates operator&&(const Coordinates& rhs) const;
 
 private:
     dim_tuple limits;
@@ -35,25 +38,29 @@ private:
     dim_tuple current;
 };
 
+std::ostream& operator<<(std::ostream& out, const Coordinates& o);
+
+
 class Tensor {
 public:
     Tensor();
-    Tensor(std::vector<int> dims);
-    Tensor(std::vector<complex> data, std::vector<int> dims);
+    Tensor(dim_tuple dims);
+    Tensor(dim_tuple dims, std::vector<complex> data);
 
-    int getID();
+    const unsigned int& getID() const;
 
-    std::vector<int> getDims();
-    int getSize();
-    complex getEl(std::vector<int> coords);
-    void setEl(std::vector<int> coords, complex value);
+    const dim_tuple& getDims() const;
+    const complex& getEl(const dim_tuple& coords) const;
+    void setEl(const dim_tuple& coords, const complex& value);
+
+    std::size_t size();
 
 private:
     static unsigned int counter;
-    int unsigned id;
+    unsigned int id;
 
+    dim_tuple dims;
     std::vector<complex> data;
-    std::vector<int> dims;
 };
 
 class Bond {

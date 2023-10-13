@@ -4,43 +4,51 @@
 
 #include "tensor.hpp"
 
-Coordinates::Coordinates(dim_tuple limits, std::size_t constant_dim) {
-    dim_flags flags(limits.size(), DimFlag::variable);
-    Coordinates(limits, flags);
+dim_flags def_flags(std::size_t n) {
+    dim_flags flags(n, DimFlag::variable);
+    return flags;
 }
 
-Coordinates::Coordinates(dim_tuple limits, dim_flags flags) {
-    dim_tuple current(limits.size(), 0);
-    Coordinates(limits, flags, current);
+dim_tuple def_current(std::size_t n) {
+    dim_tuple current(n, 0);
+    return current;
 }
 
-Coordinates::Coordinates(dim_tuple limits, dim_flags flags, dim_tuple current) {
+Coordinates::Coordinates(dim_tuple limits) : Coordinates(limits, def_flags(limits.size()), def_current(limits.size())) {}
+
+Coordinates::Coordinates(dim_tuple limits, std::size_t constant_dim) : Coordinates(limits) {
+    if (constant_dim >= limits.size()) {
+        throw std::out_of_range("Constant dimension index must fit within limits.");
+    }
+
+    this->flags.at(constant_dim) = DimFlag::fixed;
+}
+
+Coordinates::Coordinates(dim_tuple limits, dim_flags flags) : Coordinates(limits, flags, def_current(limits.size())) {}
+
+Coordinates::Coordinates(dim_tuple limits, dim_flags flags, dim_tuple current) : limits(limits), flags(flags), current(current) {
     if ((limits.size() == 0) || (limits.size() != flags.size()) || (limits.size() != current.size())) {
         throw std::invalid_argument("Limits, flags and current coordinates must be of equal, non-zero size.");
     }
 
-    for (int i = 0; i < limits.size(); i++) {
+    for (std::size_t i = 0; i < limits.size(); i++) {
         if (limits.at(i) == 0) {
             throw std::invalid_argument("All limits should be greater than 0.");
         } else if (current.at(i) >= limits.at(i)) {
             throw std::out_of_range("All coordinates must be smaller than their limits.");
         }
     }
-
-    this->limits = limits;
-    this->flags = flags;
-    this->current = current;
 }
 
-const dim_tuple & Coordinates::getLimits() const { return limits; }
-const dim_flags & Coordinates::getFlags() const { return flags; }
-const dim_tuple & Coordinates::getCurrent() const { return current; }
+const dim_tuple& Coordinates::getLimits() const { return limits; }
+const dim_flags& Coordinates::getFlags() const { return flags; }
+const dim_tuple& Coordinates::getCurrent() const { return current; }
 void Coordinates::setCurrent(const dim_tuple & value) {
     if (this->limits.size() != value.size()) {
-        throw std::invalid_argument("Limits current coordinates must be of equal size.");
+        throw std::invalid_argument("Limits and current coordinates must be of equal size.");
     }
 
-    for (int i = 0; i < value.size(); i++) {
+    for (std::size_t i = 0; i < value.size(); i++) {
         if (value.at(i) >= this->limits.at(i)) {
             throw std::out_of_range("All coordinates must be smaller than their limits.");
         }
@@ -55,11 +63,11 @@ void Coordinates::next() {
             continue;
         }
 
-        this->current.at(i)++;
-        if (this->current.at(i) == this->limits.at(i)) {
+        if (this->current.at(i) == this->limits.at(i) - 1) {
             this->current.at(i) = 0;
             continue;
         } else {
+            this->current.at(i)++;
             return;
         }
     }
@@ -73,11 +81,11 @@ void Coordinates::previous() {
             continue;
         }
 
-        this->current.at(i)--;
-        if (this->current.at(i) == -1) {
+        if (this->current.at(i) == 0) {
             this->current.at(i) = this->limits.at(i) - 1;
             continue;
         } else {
+            this->current.at(i)--;
             return;
         }
     }
@@ -137,57 +145,78 @@ Coordinates Coordinates::complement() {
     return new_coordinates;
 }
 
+Coordinates Coordinates::dropFixed() {
+    dim_tuple new_limits = this->limits;
+    dim_flags new_flags = this->flags;
+    dim_tuple new_current = this->current;
 
-Tensor::Tensor() {
-    std::vector<complex> data = { 0.0 };
-    std::vector<int> dims = { 1 };
-    
-    this->id = ++(this->counter);
-    this->data = data;
-    this->dims = dims;
+    int rm_count = 0;
+    for(std::size_t i = 0; i < this->flags.size(); i++) {
+        if (this->flags.at(i) == DimFlag::fixed) {
+            new_limits.erase(new_limits.begin() + i - rm_count);
+            new_flags.erase(new_flags.begin() + i - rm_count);
+            new_current.erase(new_current.begin() + i - rm_count);
+            rm_count++;
+        }
+    }
+
+    return Coordinates(new_limits, new_flags, new_current);
 }
 
-Tensor::Tensor(std::vector<int> dims) {
+Coordinates Coordinates::operator&&(const Coordinates& rhs) const {
+    dim_tuple new_limits = this->limits;
+    dim_flags new_flags = this->flags;
+    dim_tuple new_current = this->current;
+
+    new_limits.insert(new_limits.end(), rhs.getLimits().begin(), rhs.getLimits().end());
+    new_flags.insert(new_flags.end(), rhs.getFlags().begin(), rhs.getFlags().end());
+    new_current.insert(new_current.end(), rhs.getCurrent().begin(), rhs.getCurrent().end());
+
+    return Coordinates(new_limits, new_flags, new_current);
+}
+
+
+std::ostream& operator<<(std::ostream& out, const Coordinates& o) {
+    dim_tuple current = o.getCurrent();
+
+    out << "(";
+    for (std::size_t i = 0; i < current.size(); i++) {
+        out << current.at(i);
+        if (i < current.size() - 1) {
+            out << ", ";
+        }
+    }
+    out << ")";
+
+    return out;
+}
+
+
+dim_tuple def_dims = { 1 };
+std::vector<complex> def_data(dim_tuple dims) {
     int tot_len = 1;
     for (auto d : dims) {
         tot_len *= d;
     }
-
-    std::vector<complex> data(tot_len, 0.0 );
-
-    this->id = ++(this->counter);
-    this->data = data;
-    this->dims = dims;
+    std::vector<complex> data(tot_len, 0.0);
+    return data;
 }
 
-Tensor::Tensor(std::vector<complex> data, std::vector<int> dims) {
-    this->id = ++(this->counter);
+Tensor::Tensor() : Tensor(def_dims, def_data(def_dims)) {}
 
-    this->data = data;
-    this->dims = dims;
+Tensor::Tensor(dim_tuple dims) : Tensor(dims, def_data(dims)) {}
+
+Tensor::Tensor(dim_tuple dims, std::vector<complex> data) : dims(dims), data(data) {
+    this->id = ++(this->counter);
 }
 
 unsigned int Tensor::counter = 0;
 
-int Tensor::getID() {
-    return this->id;
-}
+const unsigned int& Tensor::getID() const { return id; }
+const dim_tuple& Tensor::getDims() const { return dims; }
 
-std::vector<int> Tensor::getDims() {
-    return this->dims;
-}
-
-int Tensor::getSize() {
-    int size = 1;
-    for (auto d : this->getDims()) {
-        size *= d;
-    }
-
-    return size;
-}
-
-complex Tensor::getEl(std::vector<int> coords) {
-    std::vector<int> dims = this->getDims();
+const complex& Tensor::getEl(const dim_tuple& coords) const {
+    dim_tuple dims = this->getDims();
 
     int idx = 0;
     int base = 1;
@@ -199,8 +228,8 @@ complex Tensor::getEl(std::vector<int> coords) {
     return this->data.at(idx);
 }
 
-void Tensor::setEl(std::vector<int> coords, complex value) {
-    std::vector<int> dims = this->getDims();
+void Tensor::setEl(const dim_tuple& coords, const complex& value) {
+    dim_tuple dims = this->getDims();
 
     int idx = 0;
     int base = 1;
@@ -212,6 +241,15 @@ void Tensor::setEl(std::vector<int> coords, complex value) {
     this->data.at(idx) = value;
 
     return;
+}
+
+std::size_t Tensor::size() {
+    std::size_t size = 1;
+    for (auto d : this->getDims()) {
+        size *= d;
+    }
+
+    return size;
 }
 
 
@@ -250,57 +288,51 @@ Tensor TensorNetwork::getTensor(int n) {
     return this->tensors.at(n);
 }
 
+Tensor contract2(Tensor t1, Tensor t2, int id1, int id2) {
+    dim_tuple dim1 = t1.getDims();
+    dim_tuple dim2 = t2.getDims();
 
-std::vector<int> get_contracted_indices(std::vector<int> ids1, std::vector<int> ids2, std::pair<int, int> target_ids) {
-    std::vector<int> new_ids(ids1.size() + ids2.size() - 2, 0);
-    for (int i = 0, f = 0; i < (int)ids1.size(); i++) {
-        if (i != target_ids.first) {
-            new_ids.at(i - f) = ids1.at(i - f);
+    Coordinates c1(dim1, id1);
+    Coordinates c2(dim2, id2);
+    Coordinates c_new = c1.dropFixed() && c2.dropFixed();
+
+    Tensor t_new(c_new.getLimits());
+
+    while (true) {
+        Coordinates c1p = c1.complement();
+        Coordinates c2p = c2.complement();
+        complex el_new = 0.0;
+
+        while (true) {
+            el_new += t1.getEl(c1p.getCurrent()) * t2.getEl(c2p.getCurrent());
+            if (c1p.canIncrease() && c2p.canIncrease()) {
+                c1p.next();
+                c2p.next();
+            } else {
+                break;
+            }
+        }
+
+        #ifdef DEBUG
+        std::cout << c_new << " = " << el_new << std::endl;
+        #endif
+
+        t_new.setEl(c_new.getCurrent(), el_new);
+        if (c2.canIncrease()) {
+            c2.next();
+            c_new.next();
+        } else if (c1.canIncrease()) {
+            c1.next();
+            c2.reset();
+            c_new.next();
         } else {
-            f++;
+            break;
         }
-    }
-    for (int i = 0, f = 0; i < (int)ids2.size(); i++) {
-        if (i != target_ids.second) {
-            new_ids.at(ids1.size() - 1 + i - f) = ids2.at(i - f);
-        } else {
-            f++;
-        }
-    }
-
-    return new_ids;
-}
-
-int increment_indices(std::vector<int> &ids1, std::vector<int> &ids2, std::vector<int> dims1, std::vector<int> dims2, std::pair<int, int> target_ids) {
-    for (int i = (int)ids2.size() - 1; i >= 0; i--) {
-        if (i == target_ids.second) {
-            continue;
-        }
-
-        ids2.at(i)++;
-        if (ids2.at(i) == dims2.at(i)) {
-            ids2.at(i) = 0;
-            continue;
-        } else {
-            return 1;
-        }
-    }
-    for (int i = (int)ids1.size() - 1; i >= 0; i--) {
-        if (i == target_ids.first) {
-            continue;
-        }
-
-        ids1.at(i)++;
-        if (ids1.at(i) == dims1.at(i)) {
-            ids1.at(i) = 0;
-            continue;
-        } else {
-            return 1;
-        }
+        
     }
 
-    return 0;
-}
+    return t_new;
+} 
 
 void TensorNetwork::contract() {
     if (this->bonds.size() == 0) {
@@ -313,44 +345,10 @@ void TensorNetwork::contract() {
     std::pair<Tensor, Tensor> target_tensors = target_bond.getTensors();
     std::pair<int, int> target_dims = target_bond.getDims();
 
-    std::vector<int> dims1 = target_tensors.first.getDims();
-    std::vector<int> dims2 = target_tensors.second.getDims();
+    Tensor new_tensor = contract2(target_tensors.first, target_tensors.second, target_dims.first, target_dims.second);
 
-    std::vector<int> new_dims = get_contracted_indices(dims1, dims2, target_dims);
-
-    Tensor new_tensor(new_dims);
-
-    std::vector<int> coords1(dims1.size(), 0);
-    std::vector<int> coords2(dims2.size(), 0);
-    std::vector<int> new_coords(new_dims.size(), 0);
-
-    int len = dims1.at(target_dims.first);
-
-    int can_increment = 1;
-    while (can_increment) {
-        complex new_value = 0;
-        for (int i = 0; i < len; i++) {
-            coords1.at(target_dims.first) = i;
-            coords2.at(target_dims.second) = i;
-            new_value += target_tensors.first.getEl(coords1) * target_tensors.second.getEl(coords2);
-        }
-
-        #ifdef DEBUG
-        std::cout << "Calculated element: (";
-        for (int i = 0; i < (int)new_coords.size(); i++) {
-            std::cout << new_coords.at(i);
-            if (i < (int)new_coords.size() - 1) {
-                std::cout << ", ";
-            }
-        }
-        std::cout << ") = " << new_value << std::endl;
-        #endif
-
-        new_tensor.setEl(new_coords, new_value);
-
-        can_increment = increment_indices(coords1, coords2, dims1, dims2, target_dims);
-        new_coords = get_contracted_indices(coords1, coords2, target_dims);
-    }
+    dim_tuple dims1 = target_tensors.first.getDims();
+    dim_tuple dims2 = target_tensors.second.getDims();
     
     for (int i = 0; i < (int)this->bonds.size(); i++) {
         Bond bond = this->bonds.at(i);
