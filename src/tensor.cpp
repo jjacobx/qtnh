@@ -1,4 +1,6 @@
+#include <cassert>
 #include <iostream>
+#include <stdexcept>
 
 #include "tensor.hpp"
 
@@ -13,7 +15,18 @@ Coordinates::Coordinates(dim_tuple limits, dim_flags flags) {
 }
 
 Coordinates::Coordinates(dim_tuple limits, dim_flags flags, dim_tuple current) {
-    // TODO: bound checking
+    if ((limits.size() == 0) || (limits.size() != flags.size()) || (limits.size() != current.size())) {
+        throw std::invalid_argument("Limits, flags and current coordinates must be of equal, non-zero size.");
+    }
+
+    for (int i = 0; i < limits.size(); i++) {
+        if (limits.at(i) == 0) {
+            throw std::invalid_argument("All limits should be greater than 0.");
+        } else if (current.at(i) >= limits.at(i)) {
+            throw std::out_of_range("All coordinates must be smaller than their limits.");
+        }
+    }
+
     this->limits = limits;
     this->flags = flags;
     this->current = current;
@@ -23,7 +36,16 @@ const dim_tuple & Coordinates::getLimits() const { return limits; }
 const dim_flags & Coordinates::getFlags() const { return flags; }
 const dim_tuple & Coordinates::getCurrent() const { return current; }
 void Coordinates::setCurrent(const dim_tuple & value) {
-    // TODO: bound checking
+    if (this->limits.size() != value.size()) {
+        throw std::invalid_argument("Limits current coordinates must be of equal size.");
+    }
+
+    for (int i = 0; i < value.size(); i++) {
+        if (value.at(i) >= this->limits.at(i)) {
+            throw std::out_of_range("All coordinates must be smaller than their limits.");
+        }
+    }
+
     this->current = value;
 }
 
@@ -42,7 +64,7 @@ void Coordinates::next() {
         }
     }
 
-    // Here should be an error/warning
+    throw std::out_of_range("Already reached maximum possible coordinate.");
 }
 
 void Coordinates::previous() {
@@ -60,7 +82,7 @@ void Coordinates::previous() {
         }
     }
 
-    // Here should be an error/warning
+    throw std::out_of_range("Already reached minimum possible coordinate.");
 }
 
 void Coordinates::reset() {
