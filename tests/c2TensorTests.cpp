@@ -8,9 +8,9 @@ TEST_CASE("Tensor") {
     std::vector<complex> y_els = { 0.0, -1.0i, 1.0i, 0.0 };
     std::vector<complex> copy_els = { 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0 };
 
-    dim_tuple x_dims = { 2, 2 };
-    dim_tuple y_dims = { 2, 2 };
-    dim_tuple copy_dims = { 2, 2, 2 };
+    tidx_tuple x_dims = { 2, 2 };
+    tidx_tuple y_dims = { 2, 2 };
+    tidx_tuple copy_dims = { 2, 2, 2 };
 
     Tensor * x;
     Tensor * y;

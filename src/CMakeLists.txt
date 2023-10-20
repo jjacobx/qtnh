@@ -1,4 +1,5 @@
 add_library(gtnh
+  coords.cpp
   tensor.cpp
 )
 
