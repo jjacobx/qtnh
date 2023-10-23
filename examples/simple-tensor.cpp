@@ -56,5 +56,10 @@ int main() {
     std::cout << "ts.at(0) = " << ts.at(0) << std::endl;
     std::cout << "ts.at(1) = " << ts.at(1) << std::endl;
 
+    Tensor t1_cp(t1_dims, t1_els);
+    std::cout << "(t1 == t1_cp) = " << (t1 == t1_cp) << std::endl;
+    std::cout << "(t1 == t2) = " << (t1 == t2) << std::endl;
+    std::cout << "(t1 != t2) = " << (t1 != t2) << std::endl;
+
     return 0;
 }

@@ -81,6 +81,24 @@ const complex& Tensor::operator[](tidx_tuple coords) const {
     return this->data.at(idx);
 }
 
+bool Tensor::operator==(const Tensor& rhs) const {
+    if (this->dims != rhs.getDims()) {
+        return false;
+    }
+
+    TIndexing ti(this->dims);
+    for (auto i : ti) {
+        if ((*this)[i] != rhs[i]) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool Tensor::operator!=(const Tensor& rhs) const {
+    return !(*this == rhs);
+}
 
 std::size_t Tensor::size() {
     std::size_t size = 1;

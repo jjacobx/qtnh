@@ -21,6 +21,8 @@ public:
 
     complex& operator[](tidx_tuple idx);
     const complex& operator[](tidx_tuple idx) const;
+    bool operator==(const Tensor& rhs) const;
+    bool operator!=(const Tensor& rhs) const;
     std::size_t size();
 
     std::vector<Tensor> split(std::size_t along_dim);
