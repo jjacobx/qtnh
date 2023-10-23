@@ -29,8 +29,7 @@ int main() {
     tn1.contract();
     Tensor result = tn1.getTensor(0);
 
-    tidx_tuple result_coords = { 0, 0, 0 };
-    std::cout << "Tout[0] = " << result[result_coords] << std::endl;
+    std::cout << "Tout = " << result << std::endl;
 
     tidx_tuple dimss = { 2, 4, 3 };
     tidx_flags flagss = { TIFlag::open, TIFlag::closed, TIFlag::open};
@@ -42,7 +41,6 @@ int main() {
     std::cout << *(++it) << std::endl;
     std::cout << *(++it) << std::endl;
     tidx_tuple tup = *it;
-    std::cout << tup << std::endl;
     std::cout << *(ti.end()) << std::endl;
     std::cout << ti.isLast(tup) << std::endl;
 
@@ -54,6 +52,9 @@ int main() {
     TIndexing tic = ti.cut(TIFlag::closed);
     std::cout << *(tic.begin()) << std::endl;
 
+    auto ts = t1.split(1);
+    std::cout << "ts.at(0) = " << ts.at(0) << std::endl;
+    std::cout << "ts.at(1) = " << ts.at(1) << std::endl;
 
     return 0;
 }
