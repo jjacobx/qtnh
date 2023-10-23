@@ -5,12 +5,12 @@
 #include "tensor.hpp"
 
 tidx_tuple def_dims = { 1 };
-std::vector<complex> def_data(tidx_tuple dims) {
+tels_array def_data(tidx_tuple dims) {
     int tot_len = 1;
     for (auto d : dims) {
         tot_len *= d;
     }
-    std::vector<complex> data(tot_len, 0.0);
+    tels_array data(tot_len, 0.0);
     return data;
 }
 
@@ -18,7 +18,7 @@ Tensor::Tensor() : Tensor(def_dims, def_data(def_dims)) {}
 
 Tensor::Tensor(tidx_tuple dims) : Tensor(dims, def_data(dims)) {}
 
-Tensor::Tensor(tidx_tuple dims, std::vector<complex> data) : dims(dims), data(data) {
+Tensor::Tensor(tidx_tuple dims, tels_array data) : dims(dims), data(data) {
     this->id = ++(this->counter);
 }
 
@@ -68,6 +68,37 @@ complex& Tensor::operator[](tidx_tuple coords) {
     return this->data.at(idx);
 }
 
+const complex& Tensor::operator[](tidx_tuple coords) const {
+    tidx_tuple dims = this->getDims();
+
+    int idx = 0;
+    int base = 1;
+    for (int i = coords.size() - 1; i >= 0; --i) {
+        idx += coords.at(i) * base;
+        base *= dims.at(i);
+    }
+
+    return this->data.at(idx);
+}
+
+bool Tensor::operator==(const Tensor& rhs) const {
+    if (this->dims != rhs.getDims()) {
+        return false;
+    }
+
+    TIndexing ti(this->dims);
+    for (auto i : ti) {
+        if ((*this)[i] != rhs[i]) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool Tensor::operator!=(const Tensor& rhs) const {
+    return !(*this == rhs);
+}
 
 std::size_t Tensor::size() {
     std::size_t size = 1;
@@ -76,6 +107,66 @@ std::size_t Tensor::size() {
     }
 
     return size;
+}
+
+std::vector<Tensor> Tensor::split(std::size_t along_dim) {
+    TIndexing ti(this->dims, along_dim);
+    TIndexing ti_res = ti.cut(TIFlag::closed);
+
+    std::vector<Tensor> result;
+    for (std::size_t i = 0; i < this->dims.at(along_dim); i++) {
+        Tensor t(ti_res.getDims());
+        result.push_back(t);
+    }
+
+    auto it_res = ti_res.begin();
+    for (auto i : ti) {
+        for (std::size_t j = 0; j < this->dims.at(along_dim); j++) {
+            result.at(j)[*it_res] = (*this)[i];
+
+            if (ti.isLast(i, TIFlag::closed)) {
+                break;
+            }
+
+            ti.next(i, TIFlag::closed);
+        }
+
+        ++it_res;
+    }
+
+    return result;
+}
+
+std::ostream& operator<<(std::ostream& out, const Tensor& o) {
+    tidx_tuple dims = o.getDims();
+    TIndexing ti(dims);
+    for (auto i : ti) {
+        for (std::size_t j = dims.size(); j > 0; j--) {
+            if (i.at(j - 1) == 0) {
+                out << "(";
+            } else {
+                break;
+            }
+        }
+
+        out << o[i];
+
+        bool last_element = true;
+        for (std::size_t j = dims.size(); j > 0; j--) {
+            if (i.at(j - 1) == dims.at(j - 1) - 1) {
+                out << ")";
+            } else {
+                last_element = false;
+                break;
+            }
+        }
+
+        if (!last_element) {
+            out << ", ";
+        }
+    }
+
+    return out;
 }
 
 
@@ -126,7 +217,6 @@ Tensor contract2(Tensor t1, Tensor t2, int id1, int id2) {
     Tensor tres(ti_res.getDims());
 
     auto it_res = ti_res.begin();
-
     for (auto i1 : ti1) {
         for (auto i2 : ti2) {
             tres[*it_res] = 0;

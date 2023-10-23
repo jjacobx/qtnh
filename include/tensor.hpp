@@ -5,12 +5,13 @@
 #include "coords.hpp"
 
 typedef std::complex<double> complex;
+typedef std::vector<complex> tels_array;
 
 class Tensor {
 public:
     Tensor();
     Tensor(tidx_tuple dims);
-    Tensor(tidx_tuple dims, std::vector<complex> data);
+    Tensor(tidx_tuple dims, tels_array data);
 
     const unsigned int& getID() const;
 
@@ -19,16 +20,23 @@ public:
     void setEl(const tidx_tuple& coords, const complex& value);
 
     complex& operator[](tidx_tuple idx);
-
+    const complex& operator[](tidx_tuple idx) const;
+    bool operator==(const Tensor& rhs) const;
+    bool operator!=(const Tensor& rhs) const;
     std::size_t size();
+
+    std::vector<Tensor> split(std::size_t along_dim);
 
 private:
     static unsigned int counter;
     unsigned int id;
 
     tidx_tuple dims;
-    std::vector<complex> data;
+    tels_array data;
 };
+
+std::ostream& operator<<(std::ostream& out, const Tensor& o);
+
 
 class Bond {
 public:
