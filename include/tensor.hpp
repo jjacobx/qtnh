@@ -5,12 +5,13 @@
 #include "coords.hpp"
 
 typedef std::complex<double> complex;
+typedef std::vector<complex> tels_array;
 
 class Tensor {
 public:
     Tensor();
     Tensor(tidx_tuple dims);
-    Tensor(tidx_tuple dims, std::vector<complex> data);
+    Tensor(tidx_tuple dims, tels_array data);
 
     const unsigned int& getID() const;
 
@@ -29,7 +30,7 @@ private:
     unsigned int id;
 
     tidx_tuple dims;
-    std::vector<complex> data;
+    tels_array data;
 };
 
 std::ostream& operator<<(std::ostream& out, const Tensor& o);

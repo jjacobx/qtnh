@@ -5,12 +5,12 @@
 #include "tensor.hpp"
 
 tidx_tuple def_dims = { 1 };
-std::vector<complex> def_data(tidx_tuple dims) {
+tels_array def_data(tidx_tuple dims) {
     int tot_len = 1;
     for (auto d : dims) {
         tot_len *= d;
     }
-    std::vector<complex> data(tot_len, 0.0);
+    tels_array data(tot_len, 0.0);
     return data;
 }
 
@@ -18,7 +18,7 @@ Tensor::Tensor() : Tensor(def_dims, def_data(def_dims)) {}
 
 Tensor::Tensor(tidx_tuple dims) : Tensor(dims, def_data(dims)) {}
 
-Tensor::Tensor(tidx_tuple dims, std::vector<complex> data) : dims(dims), data(data) {
+Tensor::Tensor(tidx_tuple dims, tels_array data) : dims(dims), data(data) {
     this->id = ++(this->counter);
 }
 
