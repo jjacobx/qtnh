@@ -19,8 +19,9 @@ public:
     void setEl(const tidx_tuple& coords, const complex& value);
 
     complex& operator[](tidx_tuple idx);
-
     std::size_t size();
+
+    std::vector<Tensor> split(std::size_t along_dim);
 
 private:
     static unsigned int counter;

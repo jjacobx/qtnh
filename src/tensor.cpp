@@ -78,6 +78,34 @@ std::size_t Tensor::size() {
     return size;
 }
 
+std::vector<Tensor> Tensor::split(std::size_t along_dim) {
+    TIndexing ti(this->dims, along_dim);
+    TIndexing ti_res = ti.cut(TIFlag::closed);
+
+    std::vector<Tensor> result;
+    for (std::size_t i = 0; i < this->dims.at(along_dim); i++) {
+        Tensor t(ti_res.getDims());
+        result.push_back(t);
+    }
+
+    auto it_res = ti_res.begin();
+    for (auto i : ti) {
+        for (std::size_t j = 0; j < this->dims.at(along_dim); j++) {
+            result.at(j)[*it_res] = (*this)[i];
+
+            if (ti.isLast(i, TIFlag::closed)) {
+                break;
+            }
+
+            ti.next(i, TIFlag::closed);
+        }
+
+        ++it_res;
+    }
+
+    return result;
+}
+
 
 Bond::Bond(std::pair<Tensor, Tensor> tensors, std::pair<int, int> dims) {
     this->id = ++(this->counter);
@@ -126,7 +154,6 @@ Tensor contract2(Tensor t1, Tensor t2, int id1, int id2) {
     Tensor tres(ti_res.getDims());
 
     auto it_res = ti_res.begin();
-
     for (auto i1 : ti1) {
         for (auto i2 : ti2) {
             tres[*it_res] = 0;
