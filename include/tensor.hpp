@@ -19,6 +19,7 @@ public:
     void setEl(const tidx_tuple& coords, const complex& value);
 
     complex& operator[](tidx_tuple idx);
+    const complex& operator[](tidx_tuple idx) const;
     std::size_t size();
 
     std::vector<Tensor> split(std::size_t along_dim);
@@ -30,6 +31,9 @@ private:
     tidx_tuple dims;
     std::vector<complex> data;
 };
+
+std::ostream& operator<<(std::ostream& out, const Tensor& o);
+
 
 class Bond {
 public:

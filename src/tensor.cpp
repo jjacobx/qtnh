@@ -68,6 +68,19 @@ complex& Tensor::operator[](tidx_tuple coords) {
     return this->data.at(idx);
 }
 
+const complex& Tensor::operator[](tidx_tuple coords) const {
+    tidx_tuple dims = this->getDims();
+
+    int idx = 0;
+    int base = 1;
+    for (int i = coords.size() - 1; i >= 0; --i) {
+        idx += coords.at(i) * base;
+        base *= dims.at(i);
+    }
+
+    return this->data.at(idx);
+}
+
 
 std::size_t Tensor::size() {
     std::size_t size = 1;
@@ -104,6 +117,38 @@ std::vector<Tensor> Tensor::split(std::size_t along_dim) {
     }
 
     return result;
+}
+
+std::ostream& operator<<(std::ostream& out, const Tensor& o) {
+    tidx_tuple dims = o.getDims();
+    TIndexing ti(dims);
+    for (auto i : ti) {
+        for (std::size_t j = dims.size(); j > 0; j--) {
+            if (i.at(j - 1) == 0) {
+                out << "(";
+            } else {
+                break;
+            }
+        }
+
+        out << o[i];
+
+        bool last_element = true;
+        for (std::size_t j = dims.size(); j > 0; j--) {
+            if (i.at(j - 1) == dims.at(j - 1) - 1) {
+                out << ")";
+            } else {
+                last_element = false;
+                break;
+            }
+        }
+
+        if (!last_element) {
+            out << ", ";
+        }
+    }
+
+    return out;
 }
 
 
