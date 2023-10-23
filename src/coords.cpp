@@ -118,7 +118,7 @@ tidx_tuple& TIndexing::prev(tidx_tuple& tup, TIFlag fl) {
 }
 
 tidx_tuple& TIndexing::reset(tidx_tuple& tup, TIFlag fl) {
-    for (std::size_t i = 0; i < tup.size(); i--) {
+    for (std::size_t i = 0; i < tup.size(); i++) {
         if (this->flags.at(i) == fl) {
             tup.at(i) = 0;
         }
