@@ -11,6 +11,7 @@ std::ostream& operator<<(std::ostream& out, const tidx_tuple& o);
 
 class TIndexing {
 public:
+    TIndexing();
     TIndexing(const tidx_tuple&);
     TIndexing(const tidx_tuple&, std::size_t);
     TIndexing(const tidx_tuple&, const tidx_flags&);
