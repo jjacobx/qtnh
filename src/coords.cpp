@@ -106,7 +106,7 @@ tidx_tuple& TIndexing::prev(tidx_tuple& tup, TIFlag fl) {
         if (tup.at(i - 1) == 0) {
             tup.at(i - 1) = this->dims.at(i - 1) - 1;
             continue;
-        } else if (tup.at(i - 1) < this->dims.at(i - 1) - 1) {
+        } else if (tup.at(i - 1) < this->dims.at(i - 1)) {
             tup.at(i - 1)--;
             return tup;
         } else {
