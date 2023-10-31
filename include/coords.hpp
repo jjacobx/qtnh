@@ -29,6 +29,9 @@ public:
 
     TIndexing cut(TIFlag = TIFlag::open);
 
+    bool operator==(const TIndexing&);
+    bool operator!=(const TIndexing&);
+
     class iterator {
     public:
         iterator(const tidx_tuple&, const tidx_flags&, const tidx_tuple&, TIFlag = TIFlag::open);

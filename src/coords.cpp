@@ -141,6 +141,14 @@ TIndexing TIndexing::cut(TIFlag fl) {
     return result;
 }
 
+bool TIndexing::operator==(const TIndexing& rhs) {
+    return (this->dims == rhs.getDims()) && (this->flags == rhs.getFlags());
+}
+
+bool TIndexing::operator!=(const TIndexing& rhs) {
+    return (this->dims != rhs.getDims()) || (this->flags != rhs.getFlags());
+}
+
 TIndexing::iterator::iterator(const tidx_tuple& dims, const tidx_flags& flags, const tidx_tuple& current, TIFlag active_flag) : 
     dims(dims), flags(flags), current(current), active_flag(active_flag) {};
 
