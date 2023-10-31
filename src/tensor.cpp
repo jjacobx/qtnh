@@ -4,7 +4,6 @@
 
 #include "tensor.hpp"
 
-tidx_tuple def_dims = { 1 };
 tels_array def_data(tidx_tuple dims) {
     int tot_len = 1;
     for (auto d : dims) {
@@ -14,7 +13,7 @@ tels_array def_data(tidx_tuple dims) {
     return data;
 }
 
-Tensor::Tensor() : Tensor(def_dims, def_data(def_dims)) {}
+Tensor::Tensor() : Tensor(tidx_tuple{1}, def_data(tidx_tuple{1})) {}
 
 Tensor::Tensor(tidx_tuple dims) : Tensor(dims, def_data(dims)) {}
 

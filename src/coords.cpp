@@ -13,12 +13,9 @@ std::ostream& operator<<(std::ostream& out, const tidx_tuple& o) {
     return out;
 }
 
-tidx_flags def_flags(std::size_t n) {
-    tidx_flags flags(n, TIFlag::open);
-    return flags;
-}
+TIndexing::TIndexing()  : TIndexing(tidx_tuple{1}) {}
 
-TIndexing::TIndexing(const tidx_tuple& dims) : TIndexing(dims, tidx_flags(dims.size())) {}
+TIndexing::TIndexing(const tidx_tuple& dims) : TIndexing(dims, tidx_flags(dims.size(), TIFlag::open)) {}
 
 TIndexing::TIndexing(const tidx_tuple& dims, std::size_t closed_idx) : TIndexing(dims) {
     if (closed_idx >= dims.size()) {
@@ -106,7 +103,7 @@ tidx_tuple& TIndexing::prev(tidx_tuple& tup, TIFlag fl) {
         if (tup.at(i - 1) == 0) {
             tup.at(i - 1) = this->dims.at(i - 1) - 1;
             continue;
-        } else if (tup.at(i - 1) < this->dims.at(i - 1) - 1) {
+        } else if (tup.at(i - 1) < this->dims.at(i - 1)) {
             tup.at(i - 1)--;
             return tup;
         } else {
@@ -142,6 +139,14 @@ TIndexing TIndexing::cut(TIFlag fl) {
 
     TIndexing result(new_dims, new_flags);
     return result;
+}
+
+bool TIndexing::operator==(const TIndexing& rhs) {
+    return (this->dims == rhs.getDims()) && (this->flags == rhs.getFlags());
+}
+
+bool TIndexing::operator!=(const TIndexing& rhs) {
+    return (this->dims != rhs.getDims()) || (this->flags != rhs.getFlags());
 }
 
 TIndexing::iterator::iterator(const tidx_tuple& dims, const tidx_flags& flags, const tidx_tuple& current, TIFlag active_flag) : 
