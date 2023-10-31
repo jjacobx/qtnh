@@ -13,15 +13,9 @@ std::ostream& operator<<(std::ostream& out, const tidx_tuple& o) {
     return out;
 }
 
-tidx_tuple def_dims = { 1 };
-tidx_flags def_flags(std::size_t n) {
-    tidx_flags flags(n, TIFlag::open);
-    return flags;
-}
+TIndexing::TIndexing()  : TIndexing(tidx_tuple{1}) {}
 
-TIndexing::TIndexing()  : TIndexing(def_dims) {}
-
-TIndexing::TIndexing(const tidx_tuple& dims) : TIndexing(dims, tidx_flags(dims.size())) {}
+TIndexing::TIndexing(const tidx_tuple& dims) : TIndexing(dims, tidx_flags(dims.size(), TIFlag::open)) {}
 
 TIndexing::TIndexing(const tidx_tuple& dims, std::size_t closed_idx) : TIndexing(dims) {
     if (closed_idx >= dims.size()) {
