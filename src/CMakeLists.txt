@@ -1,6 +1,7 @@
 add_library(gtnh
   coords.cpp
   tensor.cpp
+  env.cpp
 )
 
 target_compile_features(gtnh
@@ -41,19 +42,19 @@ target_link_libraries(gtnh
   ${MATH_LIBRARY}
 )
 
-# if(OpenMP_FOUND)
-#   target_link_libraries(gtnh
-#     PUBLIC
-#     OpenMP::OpenMP_CXX
-#   )
-# endif()
+if(OpenMP_FOUND)
+  target_link_libraries(gtnh
+    PUBLIC
+    OpenMP::OpenMP_CXX
+  )
+endif()
 
-# if(MPI_FOUND)
-#   target_link_libraries(gtnh
-#     PUBLIC
-#     MPI::MPI_CXX
-#   )
-# endif()
+if(MPI_FOUND)
+  target_link_libraries(gtnh
+    PUBLIC
+    MPI::MPI_CXX
+  )
+endif()
 
 install(TARGETS gtnh
         EXPORT GTNH

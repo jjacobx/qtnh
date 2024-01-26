@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include "tensor.hpp"
+#include "env.hpp"
 
 using namespace std::complex_literals;
 
@@ -30,6 +31,9 @@ int main() {
     Tensor result = tn1.getTensor(0);
 
     std::cout << "Tout = " << result << std::endl;
+
+    qtnh::QTNHEnv qenv;
+    qenv.print();
 
     return 0;
 }
