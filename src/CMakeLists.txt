@@ -1,6 +1,7 @@
 add_library(gtnh
   coords.cpp
   tensor.cpp
+  dense-tensor.cpp
   env.cpp
 )
 
