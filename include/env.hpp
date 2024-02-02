@@ -1,3 +1,6 @@
+#ifndef ENV_HPP
+#define ENV_HPP
+
 namespace qtnh {
   struct QTNHEnv {
     int proc_id;
@@ -10,3 +13,5 @@ namespace qtnh {
     void print() const;
   };
 }
+
+#endif

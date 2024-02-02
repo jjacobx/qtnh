@@ -1,3 +1,6 @@
+#ifndef TYPEDEFS_HPP
+#define TYPEDEFS_HPP
+
 #include <complex>
 #include <vector>
 
@@ -13,3 +16,5 @@ namespace qtnh {
 
   typedef std::pair<tidx, tidx> wire;
 }
+
+#endif

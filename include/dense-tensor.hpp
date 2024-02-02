@@ -1,3 +1,6 @@
+#ifndef DENSE_TENSOR_HPP
+#define DENSE_TENSOR_HPP
+
 #include "tensor-new.hpp"
 
 namespace qtnh {
@@ -59,3 +62,5 @@ namespace qtnh {
       // void gather(tidx_tup_st nidx);
   };
 }
+
+#endif

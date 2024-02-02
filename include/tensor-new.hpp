@@ -1,3 +1,6 @@
+#ifndef TENSOR_NEW_HPP
+#define TENSOR_NEW_HPP
+
 #include <map>
 #include <optional>
 
@@ -37,3 +40,5 @@ namespace qtnh {
       // void distribute(std::vector<qtnh::tidx_tup_st> idx_locs, std::vector<int> proc_ids);
   };
 }
+
+#endif

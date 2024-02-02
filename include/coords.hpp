@@ -1,3 +1,6 @@
+#ifndef COORDS_HPP
+#define COORDS_HPP
+
 #include <complex>
 #include <memory>
 #include <vector>
@@ -60,3 +63,4 @@ private:
     tidx_flags flags;
 };
 
+#endif

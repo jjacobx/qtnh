@@ -1,3 +1,6 @@
+#ifndef TENSOR_HPP
+#define TENSOR_HPP
+
 #include <complex>
 #include <memory>
 #include <vector>
@@ -67,3 +70,5 @@ private:
     std::vector<Tensor> tensors;
     std::vector<Bond> bonds;
 };
+
+#endif

@@ -1,3 +1,6 @@
+#ifndef INDEXING_HPP
+#define INDEXING_HPP
+
 #include <memory>
 
 #include "typedefs.hpp"
@@ -56,3 +59,5 @@ namespace qtnh{
       static TIndexing app(const TIndexing&, const TIndexing&);
   };  
 }
+
+#endif
