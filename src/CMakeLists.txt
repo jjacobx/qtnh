@@ -3,6 +3,7 @@ add_library(gtnh
   tensor.cpp
   dense-tensor.cpp
   env.cpp
+  indexing.cpp
 )
 
 target_compile_features(gtnh

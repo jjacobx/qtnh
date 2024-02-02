@@ -5,6 +5,7 @@
 #include <stdexcept>
 
 #include "dense-tensor.hpp"
+#include "indexing.hpp"
 
 namespace qtnh {
   std::optional<qtnh::tel> DenseTensor::getLocEl(const qtnh::tidx_tup& loc_idxs) const {
@@ -106,9 +107,9 @@ namespace qtnh {
 
     int rank = 0;
     qtnh::tidx base = 1;
-    for (auto i = 0; i < n_dist_idxs; ++i) {
-        rank += glob_idxs.at(i) * base;
-        base *= dims.at(i);
+    for (int i = 0; i < n_dist_idxs; ++i) {
+      rank += glob_idxs.at(i) * base;
+      base *= dims.at(i);
     }
 
     if (env.proc_id == rank) {
@@ -124,9 +125,9 @@ namespace qtnh {
 
     int rank = 0;
     qtnh::tidx base = 1;
-    for (auto i = 0; i < n_dist_idxs; ++i) {
-        rank += glob_idxs.at(i) * base;
-        base *= dims.at(i);
+    for (int i = 0; i < n_dist_idxs; ++i) {
+      rank += glob_idxs.at(i) * base;
+      base *= dims.at(i);
     }
 
     if (env.proc_id == rank) {
