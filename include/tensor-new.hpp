@@ -3,6 +3,7 @@
 
 //#include "coords.hpp"
 #include "env.hpp"
+#include "typedefs.hpp"
 
 namespace qtnh {
 
