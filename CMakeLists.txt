@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(GTNH 
+project(QTNH 
   VERSION 0.0.1
   DESCRIPTION "A quantum computer simulator via generalised tensor network contraction"
   LANGUAGES CXX

@@ -3,11 +3,11 @@ add_executable(simple-tensor
 )
 
 add_dependencies(simple-tensor
-  gtnh
+  qtnh
 )
 
 target_link_libraries(simple-tensor
-  gtnh
+  qtnh
 )
 
 target_compile_options(simple-tensor
@@ -20,11 +20,11 @@ add_executable(new-tensor
 )
 
 add_dependencies(new-tensor
-  gtnh
+  qtnh
 )
 
 target_link_libraries(new-tensor
-  gtnh
+  qtnh
 )
 
 target_compile_options(new-tensor

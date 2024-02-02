@@ -9,7 +9,7 @@ target_compile_features(c2-coords-tests
 
 target_link_libraries(c2-coords-tests
   Catch2::Catch2WithMain
-  gtnh
+  qtnh
 )
 
 catch_discover_tests(c2-coords-tests)
@@ -25,7 +25,7 @@ target_compile_features(c2-coords-validation
 
 target_link_libraries(c2-coords-validation
   Catch2::Catch2WithMain
-  gtnh
+  qtnh
 )
 
 catch_discover_tests(c2-coords-validation)
@@ -41,7 +41,7 @@ target_compile_features(c2-tensor-tests
 
 target_link_libraries(c2-tensor-tests
   Catch2::Catch2WithMain
-  gtnh
+  qtnh
 )
 
 catch_discover_tests(c2-tensor-tests)
@@ -58,7 +58,7 @@ target_compile_features(c2-tensor-validation
 
 target_link_libraries(c2-tensor-validation
   Catch2::Catch2WithMain
-  gtnh
+  qtnh
 )
 
 catch_discover_tests(c2-tensor-validation)
