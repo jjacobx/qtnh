@@ -57,8 +57,18 @@ namespace qtnh {
     throw "Unimplemented funciton!";
   }
 
-  Tensor& SDenseTensor::contract(const Tensor& t, const std::vector<qtnh::wire>& wires) const {
-    throw "Unimplemented funciton!";
+  Tensor* SDenseTensor::contract_disp(Tensor* t, const std::vector<qtnh::wire>& wires) {
+    return t->contract(this, wires);
+  }
+
+  Tensor* SDenseTensor::contract(SDenseTensor* t, const std::vector<qtnh::wire>& wires) {
+    std::cout << "Contracting SDense with SDense" << std::endl;
+    return nullptr;
+  }
+
+  Tensor* SDenseTensor::contract(DDenseTensor* t, const std::vector<qtnh::wire>& wires) {
+    std::cout << "Contracting SDense with DDense" << std::endl;
+    return nullptr;
   }
 
   DDenseTensor SDenseTensor::distribute(tidx_tup_st nidx) {
@@ -141,8 +151,18 @@ namespace qtnh {
     throw "Unimplemented funciton!";
   }
 
-  Tensor& DDenseTensor::contract(const Tensor& t, const std::vector<qtnh::wire>& wires) const {
-    throw "Unimplemented funciton!";
+  Tensor* DDenseTensor::contract_disp(Tensor* t, const std::vector<qtnh::wire>& wires) {
+    return t->contract(this, wires);
+  }
+
+  Tensor* DDenseTensor::contract(SDenseTensor* t, const std::vector<qtnh::wire>& wires) {
+    std::cout << "Contracting DDense with SDense" << std::endl;
+    return nullptr;
+  }
+
+  Tensor* DDenseTensor::contract(DDenseTensor* t, const std::vector<qtnh::wire>& wires) {
+    std::cout << "Contracting DDense with DDense" << std::endl;
+    return nullptr;
   }
 }
 
