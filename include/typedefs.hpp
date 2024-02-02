@@ -15,6 +15,8 @@ namespace qtnh {
   typedef std::complex<double> tel;
 
   typedef std::pair<tidx, tidx> wire;
+
+  inline void throw_unimplemented() { throw std::runtime_error("Unimplemented funciton!"); }
 }
 
 #endif
