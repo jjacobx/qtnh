@@ -62,8 +62,60 @@ namespace qtnh {
   }
 
   Tensor* SDenseTensor::contract(SDenseTensor* t, const std::vector<qtnh::wire>& wires) {
-    std::cout << "Contracting SDense with SDense" << std::endl;
-    return nullptr;
+    #ifdef DEBUG
+      std::cout << "Contracting SDense with SDense" << std::endl;
+    #endif
+
+    qtnh::tidx_tup dims1 = this->getDims();
+    qtnh::tidx_tup dims2 = t->getDims();
+
+    std::vector<TIdxFlag> flags1(dims1.size(), TIdxFlag::open);
+    std::vector<TIdxFlag> flags2(dims2.size(), TIdxFlag::open);
+
+    for (auto w : wires) {
+      flags1.at(w.first) = TIdxFlag::closed;
+      flags2.at(w.second) = TIdxFlag::closed;
+    }
+
+    TIndexing ti1(dims1, flags1);
+    TIndexing ti2(dims2, flags2);
+    TIndexing ti3 = TIndexing::app(ti1.cut(TIdxFlag::closed), ti2.cut(TIdxFlag::closed));
+
+    qtnh::tidx_tup dims3 = ti3.getDims();
+    std::size_t n = std::accumulate(dims3.begin(), dims3.end(), 1, std::multiplies<qtnh::tidx>());
+    std::vector<qtnh::tel> els3(n, 0.0);
+
+    auto t3 = new SDenseTensor(this->env, dims3, els3);
+
+    auto it = ti3.begin();
+    for (auto idxs1 : ti1) {
+      for (auto idxs2 : ti2) {
+        qtnh::tel el3 = 0.0;
+
+        while(true) {
+          auto el1 = this->getLocEl(idxs1).value();
+          auto el2 = t->getLocEl(idxs2).value();
+          el3 += el1 * el2;
+
+          if (ti1.isLast(idxs1, TIdxFlag::closed) && ti2.isLast(idxs2, TIdxFlag::closed)) {
+            t3->setLocEl(*it, el3);
+            break;
+          }
+
+          ti1.next(idxs1, TIdxFlag::closed);
+          ti2.next(idxs2, TIdxFlag::closed);
+        }
+
+        #ifdef DEBUG
+          std::cout << "t3[" << *it << "] = " << t3.getLocEl(*it).value() << std::endl;
+        #endif
+
+        ti1.reset(idxs1, TIdxFlag::closed);
+        ++it;
+      }
+    }
+
+    return t3;
   }
 
   Tensor* SDenseTensor::contract(DDenseTensor* t, const std::vector<qtnh::wire>& wires) {
