@@ -53,6 +53,8 @@ namespace qtnh {
       DDenseTensor(const QTNHEnv&, const qtnh::tidx_tup&, std::vector<qtnh::tel>, qtnh::tidx_tup_st);
       ~DDenseTensor() = default;
 
+      qtnh::tidx_tup_st getDistIdxs() const { return n_dist_idxs; }
+
       virtual std::optional<qtnh::tel> getGlobEl(const qtnh::tidx_tup&) const override;
       virtual void setGlobEl(const qtnh::tidx_tup&, qtnh::tel) override;
       virtual void swap(qtnh::tidx_tup_st, qtnh::tidx_tup_st) override;

@@ -41,7 +41,7 @@ namespace qtnh {
       unsigned int getID() const { return id; }
       const qtnh::tidx_tup& getLocDims() const { return dims; }
       const qtnh::tidx_tup& getDims() const { return dims; }
-      const bool& isActive() const { return active; };
+      bool isActive() const { return active; };
 
       virtual std::optional<qtnh::tel> getLocEl(const qtnh::tidx_tup&) const = 0;
       virtual std::optional<qtnh::tel> getGlobEl(const qtnh::tidx_tup&) const = 0;
