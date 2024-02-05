@@ -41,10 +41,15 @@ int main() {
 
   qtnh::tidx_tup idxs4 = { 0, 0, 0 };
   std::cout << my_env.proc_id << ": t4[0, 0, 0] = " << t4.getLocEl(idxs4).value() << std::endl;
-  std::cout << my_env.proc_id << ": t4.id = " << t4.getID() << std::endl;
+
+  qtnh::wire w2 = std::pair<qtnh::tidx, qtnh::tidx>(1, 1);
+  auto t5r = qtnh::Tensor::contract(&t3, &t1, std::vector<qtnh::wire>(1, w2));
+  auto& t5 = *t5r;
+
+  qtnh::tidx_tup idxs5 = { 0, 0, 0 };
+  std::cout << my_env.proc_id << ": t5[r, 0, 0, 0] = " << t5.getLocEl(idxs5).value() << std::endl;
 
   qtnh::Tensor::contract(&t1, &t3, std::vector<qtnh::wire>(1, w1));
-  qtnh::Tensor::contract(&t3, &t1, std::vector<qtnh::wire>(1, w1));
   qtnh::Tensor::contract(&t3, &t3, std::vector<qtnh::wire>(1, w1));
 
   return 0;
