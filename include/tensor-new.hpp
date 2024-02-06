@@ -20,7 +20,10 @@ namespace qtnh {
 
       unsigned int id;
       const QTNHEnv& env;
-      const qtnh::tidx_tup& dims;
+
+      qtnh::tidx_tup dims;
+      qtnh::tidx_tup loc_dims;
+      qtnh::tidx_tup dist_dims;
 
       bool active;
 
@@ -35,17 +38,24 @@ namespace qtnh {
       Tensor() = delete;
       Tensor(const Tensor&) = delete;
       Tensor(const QTNHEnv& env, const qtnh::tidx_tup& dims)
-        : id(++counter), env(env), dims(dims), active(true) {};
+        : id(++counter), env(env), dims(dims), loc_dims(dims), dist_dims(qtnh::tidx_tup()), active(true) {};
       ~Tensor() = default;
 
       unsigned int getID() const { return id; }
-      const qtnh::tidx_tup& getLocDims() const { return dims; }
+
       const qtnh::tidx_tup& getDims() const { return dims; }
+      const qtnh::tidx_tup& getLocDims() const { return loc_dims; }
+      const qtnh::tidx_tup& getDistDims() const { return dist_dims; }
+
+      std::size_t getSize() const { return dims_to_size(getDims()); }
+      std::size_t getLocSize() const { return dims_to_size(getLocDims()); }
+      std::size_t getDistSize() const { return dims_to_size(getDistDims()); }
+
       bool isActive() const { return active; };
 
+      virtual std::optional<qtnh::tel> getEl(const qtnh::tidx_tup&) const = 0;
       virtual std::optional<qtnh::tel> getLocEl(const qtnh::tidx_tup&) const = 0;
-      virtual std::optional<qtnh::tel> getGlobEl(const qtnh::tidx_tup&) const = 0;
-      // virtual qtnh::tel operator[](const tidx_tup& loc_idxs) const = 0;
+      virtual qtnh::tel operator[](const qtnh::tidx_tup& loc_idxs) const = 0;
 
       virtual void swap(qtnh::tidx_tup_st, qtnh::tidx_tup_st) = 0;
 
