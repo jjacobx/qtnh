@@ -27,8 +27,8 @@ namespace qtnh {
   }
 
   TIndexing::TIndexing(const qtnh::tidx_tup& dims, const tidx_flags& flags) : dims(dims), flags(flags) {
-    if ((dims.size() == 0) || (dims.size() != flags.size())) {
-      throw std::invalid_argument("Dimensions and flags must be of equal, non-zero length.");
+    if (dims.size() != flags.size()) {
+      throw std::invalid_argument("Dimensions and flags must be of equal length.");
     }
 
     for (std::size_t i = 0; i < dims.size(); i++) {
