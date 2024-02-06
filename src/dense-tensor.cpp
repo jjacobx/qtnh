@@ -176,12 +176,12 @@ namespace qtnh {
     loc_dims = qtnh::tidx_tup(dims.begin() + n_dist_idxs, dims.end());
     dist_dims = qtnh::tidx_tup(dims.begin(), dims.begin() + n_dist_idxs);
 
-    if (els.size() != getLocSize()) {
-      throw std::invalid_argument("Invalid length of elements.");
-    }
-
     if (env.proc_id >= getDistSize()) {
       active = false;
+    }
+
+    if (active && els.size() != getLocSize()) {
+      throw std::invalid_argument("Invalid length of elements.");
     }
   }
 
@@ -255,11 +255,122 @@ namespace qtnh {
     return nullptr;
   }
 
+  // Tensor* DDenseTensor::contract(DDenseTensor* t, const std::vector<qtnh::wire>& wires) {
+  //   #ifdef DEBUG
+  //     std::cout << "Contracting DDense with DDense" << std::endl;
+  //   #endif
+
+  //   auto n_dist_idxs1 = n_dist_idxs;
+  //   auto n_dist_idxs2 = t->getDistDims().size();
+
+  //   auto dims1 = this->getDims();
+  //   auto ddims1 = this->getDims();
+  //   dims1.erase(dims1.begin(), dims1.begin() + n_dist_idxs1);
+  //   ddims1.erase(ddims1.begin() + n_dist_idxs1, ddims1.end());
+  //   auto dims2 = t->getDims();
+  //   auto ddims2 = t->getDims();
+  //   dims2.erase(dims2.begin(), dims2.begin() + n_dist_idxs2);
+  //   ddims2.erase(ddims2.begin() + n_dist_idxs2, ddims2.end());
+
+  //   std::vector<TIdxFlag> flags1(dims1.size(), TIdxFlag::open);
+  //   std::vector<TIdxFlag> flags2(dims2.size(), TIdxFlag::open);
+
+  //   for (auto w : wires) {
+  //     flags1.at(w.first - n_dist_idxs1) = TIdxFlag::closed;
+  //     flags2.at(w.second - n_dist_idxs2) = TIdxFlag::closed;
+  //   }
+
+  //   TIndexing ti1(dims1, flags1);
+  //   TIndexing ti2(dims2, flags2);
+  //   TIndexing ti3 = TIndexing::app(ti1.cut(TIdxFlag::closed), ti2.cut(TIdxFlag::closed));
+
+  //   auto dims3 = ti3.getDims();
+  //   std::size_t n = std::accumulate(dims3.begin(), dims3.end(), 1, std::multiplies<qtnh::tidx>());
+  //   std::vector<qtnh::tel> els3(n, 0.0);
+
+  //   auto els1_send = this->getLocEls();
+  //   auto els1_recv = std::vector<qtnh::tel>(els1_send.size());
+  //   auto els2_send = t->getLocEls();
+  //   auto els2_recv = std::vector<qtnh::tel>(els2_send.size());
+
+  //   std::size_t n1 = std::accumulate(ddims1.begin(), ddims1.end(), 1, std::multiplies<qtnh::tidx>());
+  //   std::size_t n2 = std::accumulate(ddims2.begin(), ddims2.end(), 1, std::multiplies<qtnh::tidx>());
+  //   std::size_t len1 = std::accumulate(dims1.begin(), dims1.end(), 1, std::multiplies<qtnh::tidx>());
+  //   std::size_t len2 = std::accumulate(dims2.begin(), dims2.end(), 1, std::multiplies<qtnh::tidx>());
+
+  //   std::vector<MPI_Request> reqs1(n2);
+  //   std::vector<MPI_Request> reqs2(n1);
+  //   for (int i = 0; i < n2 && this->isActive(); ++i) {
+  //     MPI_Isend(els1_send.data(), len1, MPI_2DOUBLE_COMPLEX, env.proc_id * n2 + i, 0, MPI_COMM_WORLD, &reqs1.at(i));
+  //   } 
+  //   for (int i = 0; i < n1 && t->isActive(); i++) {
+  //     MPI_Isend(els2_send.data(), len2, MPI_2DOUBLE_COMPLEX, i * n2 + env.proc_id, 0, MPI_COMM_WORLD, &reqs1.at(i));
+  //   }
+
+  //   std::vector<MPI_Status> stats(2);
+  //   if (env.proc_id < n1 * n2) {
+  //     MPI_Recv(els1_recv.data(), len1, MPI_2DOUBLE_COMPLEX, env.proc_id % n2, 0, MPI_COMM_WORLD, &stats.at(1));
+  //     MPI_Recv(els2_recv.data(), len2, MPI_2DOUBLE_COMPLEX, env.proc_id / n2, 0, MPI_COMM_WORLD, &stats.at(2));
+  //   } 
+
+  //   SDenseTensor loc1(this->env, dims1, els1_recv);
+  //   SDenseTensor loc2(this->env, dims2, els2_recv);
+
+  //   dims3.insert(dims3.begin(), ddims2.begin(), ddims2.end());
+  //   dims3.insert(dims3.begin(), ddims1.begin(), ddims1.end());
+  //   auto t3 = new DDenseTensor(this->env, dims3, els3, n_dist_idxs1 + n_dist_idxs2);
+
+  //   _set_els(&loc1, &loc2, t3, ti1, ti2, ti3);
+
+  //   return t3;
+  // }
+
   void DDenseTensor::rep_all(std::size_t n) {
+    std::vector<MPI_Request> send_reqs(n, MPI_REQUEST_NULL);
+    for (int i = 1; active && (i < n); ++i) {
+      MPI_Isend(loc_els.data(), getLocSize(), MPI_C_DOUBLE_COMPLEX, env.proc_id + i * getDistSize(), 0, MPI_COMM_WORLD, &send_reqs.at(i));
+    }
+
+    MPI_Request recv_req = MPI_REQUEST_NULL;
+    if (!active && env.proc_id < n * getDistSize()) {
+      loc_els.reserve(getLocSize());
+      MPI_Irecv(loc_els.data(), getLocSize(), MPI_C_DOUBLE_COMPLEX, env.proc_id % getDistSize(), 0, MPI_COMM_WORLD, &recv_req);
+      active = true;
+    }
+
+    dims.insert(dims.begin(), n);
+    dist_dims.insert(dist_dims.begin(), n);
+    ++n_dist_idxs;
+
+    MPI_Waitall(n, send_reqs.data(), MPI_STATUS_IGNORE);
+    MPI_Wait(&recv_req, MPI_STATUS_IGNORE);
+
     return;
   }
 
   void DDenseTensor::rep_each(std::size_t n) {
+    std::vector<MPI_Request> send_reqs(n, MPI_REQUEST_NULL);
+    for (int i = 0; active && (i < n); ++i) {
+      // Rank 0 sending data to itself is a deadlock
+      if (i == 0 && env.proc_id == 0) continue;
+      MPI_Isend(loc_els.data(), getLocSize(), MPI_C_DOUBLE_COMPLEX, n * env.proc_id + i, 0, MPI_COMM_WORLD, &send_reqs.at(i));
+    }
+
+    MPI_Waitall(n, send_reqs.data(), MPI_STATUS_IGNORE);
+
+    MPI_Request recv_req = MPI_REQUEST_NULL;
+    if (env.proc_id != 0 && env.proc_id < n * getDistSize()) {
+      loc_els.reserve(getLocSize());
+      MPI_Irecv(loc_els.data(), getLocSize(), MPI_C_DOUBLE_COMPLEX, env.proc_id / n, 0, MPI_COMM_WORLD, &recv_req);
+      active = true;
+    }
+
+    dims.insert(dims.begin() + getDistSize(), n);
+    dist_dims.insert(dist_dims.begin() + getDistSize(), n);
+    ++n_dist_idxs;
+
+    MPI_Wait(&recv_req, MPI_STATUS_IGNORE);
+
     return;
   }
 }

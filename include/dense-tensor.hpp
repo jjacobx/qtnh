@@ -55,9 +55,6 @@ namespace qtnh {
       virtual Tensor* contract(SDenseTensor*, const std::vector<qtnh::wire>&) override;
       virtual Tensor* contract(DDenseTensor*, const std::vector<qtnh::wire>&) override;
 
-      void rep_all(std::size_t);
-      void rep_each(std::size_t);
-      
     public:
       DDenseTensor() = delete;
       DDenseTensor(const SDenseTensor&) = delete;
@@ -76,6 +73,9 @@ namespace qtnh {
 
       // void scatter(tidx_tup_st nidx);
       // void gather(tidx_tup_st nidx);
+
+      void rep_all(std::size_t);
+      void rep_each(std::size_t);
   };
 }
 

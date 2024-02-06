@@ -18,17 +18,17 @@ int main() {
 
 
   qtnh::tidx_tup idxs1 = { 0, 1, 0 };
-  std::cout << my_env.proc_id << ": t1[0, 1, 0] = " << dt1.getLocEl(idxs1).value() << std::endl;
+  std::cout << my_env.proc_id << ": t1[0, 1, 0] = " << dt1.getLocEl(idxs1).value_or(std::nan("1")) << std::endl;
   std::cout << my_env.proc_id << ": t1.id = " << dt1.getID() << std::endl;
 
   qtnh::tidx_tup idxs2 = { 1, 0 };
-  std::cout << my_env.proc_id << ": t2[1, 0] = " << dt2.getLocEl(idxs2).value() << std::endl;
+  std::cout << my_env.proc_id << ": t2[1, 0] = " << dt2.getLocEl(idxs2).value_or(std::nan("1")) << std::endl;
   std::cout << my_env.proc_id << ": t2.id = " << dt2.getID() << std::endl;
 
   auto dt3 = dt1.distribute(1);
 
   qtnh::tidx_tup idxs3 = { 0, 1 };
-  std::cout << my_env.proc_id << ": t3[r, 0, 1] = " << dt3.getLocEl(idxs3).value() << std::endl;
+  std::cout << my_env.proc_id << ": t3[r, 0, 1] = " << dt3.getLocEl(idxs3).value_or(std::nan("1")) << std::endl;
   std::cout << my_env.proc_id << ": t3.id = " << dt3.getID() << std::endl;
 
   qtnh::Tensor& t1 = dt1;
@@ -40,21 +40,27 @@ int main() {
   auto& t4 = *t4r;
 
   qtnh::tidx_tup idxs4 = { 0, 0, 0 };
-  std::cout << my_env.proc_id << ": t4[0, 0, 0] = " << t4.getLocEl(idxs4).value() << std::endl;
+  std::cout << my_env.proc_id << ": t4[0, 0, 0] = " << t4.getLocEl(idxs4).value_or(std::nan("1")) << std::endl;
 
   qtnh::wire w2 = std::pair<qtnh::tidx, qtnh::tidx>(1, 1);
   auto t5r = qtnh::Tensor::contract(&t3, &t1, std::vector<qtnh::wire>(1, w2));
   auto& t5 = *t5r;
 
   qtnh::tidx_tup idxs5 = { 0, 0, 0 };
-  std::cout << my_env.proc_id << ": t5[r, 0, 0, 0] = " << t5.getLocEl(idxs5).value() << std::endl;
+  std::cout << my_env.proc_id << ": t5[r, 0, 0, 0] = " << t5.getLocEl(idxs5).value_or(std::nan("1")) << std::endl;
 
   qtnh::wire w3 = std::pair<qtnh::tidx, qtnh::tidx>(1, 1);
   auto t6r = qtnh::Tensor::contract(&t1, &t3, std::vector<qtnh::wire>(1, w3));
   auto& t6 = *t6r;
 
   qtnh::tidx_tup idxs6 = { 0, 0, 0 };
-  std::cout << my_env.proc_id << ": t6[r, 0, 0, 0] = " << t6.getLocEl(idxs6).value() << std::endl;
+  std::cout << my_env.proc_id << ": t6[r, 0, 0, 0] = " << t6.getLocEl(idxs6).value_or(std::nan("1")) << std::endl;
+
+  auto& dt7 = dynamic_cast<qtnh::DDenseTensor&>(t6);
+  dt7.rep_each(2);
+
+  qtnh::tidx_tup idxs7 = { 0, 0, 0 };
+  std::cout << my_env.proc_id << ": dt7[r1, r2, 0, 0, 0] = " << dt7.getLocEl(idxs7).value_or(std::nan("1")) << std::endl;
 
   qtnh::Tensor::contract(&t3, &t3, std::vector<qtnh::wire>(1, w1));
 
