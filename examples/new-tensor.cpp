@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include "dense-tensor.hpp"
+#include "indexing.hpp"
 
 using namespace std::complex_literals;
 
@@ -56,13 +57,18 @@ int main() {
   qtnh::tidx_tup idxs6 = { 0, 0, 0 };
   std::cout << my_env.proc_id << ": t6[r, 0, 0, 0] = " << t6.getLocEl(idxs6).value_or(std::nan("1")) << std::endl;
 
-  auto& dt7 = dynamic_cast<qtnh::DDenseTensor&>(t6);
-  dt7.rep_each(2);
+  auto dt7 = dt2.distribute(1);
+  qtnh::Tensor& t7 = dt7;
 
-  qtnh::tidx_tup idxs7 = { 0, 0, 0 };
-  std::cout << my_env.proc_id << ": dt7[r1, r2, 0, 0, 0] = " << dt7.getLocEl(idxs7).value_or(std::nan("1")) << std::endl;
+  qtnh::tidx_tup idxs7 = { 0 };
+  std::cout << my_env.proc_id << ": t7[r, 0] = " << t7.getLocEl(idxs7).value_or(std::nan("1")) << std::endl;
 
-  qtnh::Tensor::contract(&t3, &t3, std::vector<qtnh::wire>(1, w1));
+  qtnh::wire w4 = std::pair<qtnh::tidx, qtnh::tidx>(1, 1);
+  auto t8r = qtnh::Tensor::contract(&t3, &t7, std::vector<qtnh::wire>(1, w4));
+  auto& t8 = *t8r;
+
+  qtnh::tidx_tup idxs8 = { 0 };
+  std::cout << my_env.proc_id << ": t8[r1, r2, 0] = " << t8.getLocEl(idxs8).value_or(std::nan("1")) << std::endl;
 
   return 0;
 }
