@@ -100,7 +100,7 @@ namespace qtnh {
   }
 
   qtnh::tel& SDenseTensor::operator[](const qtnh::tidx_tup& loc_idxs) {
-    auto i = idxs_to_i(loc_idxs, dims);
+    auto i = idxs_to_i(loc_idxs, loc_dims);
     return loc_els.at(i);
   }
 
@@ -217,7 +217,7 @@ namespace qtnh {
   }
 
   qtnh::tel& DDenseTensor::operator[](const qtnh::tidx_tup& loc_idxs) {
-    auto i = idxs_to_i(loc_idxs, dims);
+    auto i = idxs_to_i(loc_idxs, loc_dims);
     return loc_els.at(i);
   }
 
