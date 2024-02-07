@@ -16,8 +16,8 @@ namespace qtnh {
     friend class DDenseTensor;
 
     private:
-      inline static unsigned int counter = 0;
-      const unsigned int id;
+      inline static qtnh::uint counter = 0;
+      const qtnh::uint id;
 
     protected:
       const QTNHEnv& env;
@@ -41,7 +41,7 @@ namespace qtnh {
         : id(++counter), env(env), active(true), dims(dims), loc_dims(dims), dist_dims(qtnh::tidx_tup()) {};
       ~Tensor() = default;
 
-      unsigned int getID() const { return id; }
+      qtnh::uint getID() const { return id; }
       bool isActive() const { return active; };
 
       const qtnh::tidx_tup& getDims() const { return dims; }
