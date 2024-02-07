@@ -17,7 +17,7 @@ namespace qtnh {
 
     private:
       inline static unsigned int counter = 0;
-      unsigned int id;
+      const unsigned int id;
 
     protected:
       const QTNHEnv& env;
