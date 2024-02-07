@@ -15,17 +15,17 @@ namespace qtnh {
     friend class SDenseTensor;
     friend class DDenseTensor;
 
-    protected:
+    private:
       inline static unsigned int counter = 0;
-
       unsigned int id;
+
+    protected:
       const QTNHEnv& env;
+      bool active;
 
       qtnh::tidx_tup dims;
       qtnh::tidx_tup loc_dims;
       qtnh::tidx_tup dist_dims;
-
-      bool active;
 
       virtual Tensor* contract_disp(Tensor*, const std::vector<qtnh::wire>&) {
         throw_unimplemented(); return nullptr; }
@@ -38,10 +38,11 @@ namespace qtnh {
       Tensor() = delete;
       Tensor(const Tensor&) = delete;
       Tensor(const QTNHEnv& env, const qtnh::tidx_tup& dims)
-        : id(++counter), env(env), dims(dims), loc_dims(dims), dist_dims(qtnh::tidx_tup()), active(true) {};
+        : id(++counter), env(env), active(true), dims(dims), loc_dims(dims), dist_dims(qtnh::tidx_tup()) {};
       ~Tensor() = default;
 
       unsigned int getID() const { return id; }
+      bool isActive() const { return active; };
 
       const qtnh::tidx_tup& getDims() const { return dims; }
       const qtnh::tidx_tup& getLocDims() const { return loc_dims; }
@@ -50,8 +51,6 @@ namespace qtnh {
       std::size_t getSize() const { return dims_to_size(getDims()); }
       std::size_t getLocSize() const { return dims_to_size(getLocDims()); }
       std::size_t getDistSize() const { return dims_to_size(getDistDims()); }
-
-      bool isActive() const { return active; };
 
       virtual std::optional<qtnh::tel> getEl(const qtnh::tidx_tup&) const = 0;
       virtual std::optional<qtnh::tel> getLocEl(const qtnh::tidx_tup&) const = 0;
