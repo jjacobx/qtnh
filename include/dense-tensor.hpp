@@ -72,7 +72,7 @@ namespace qtnh {
       // SDenseTensor share();
 
       void scatter(tidx_tup_st);
-      // void gather(tidx_tup_st nidx);
+      void gather(tidx_tup_st);
 
       void rep_all(std::size_t);
       void rep_each(std::size_t);

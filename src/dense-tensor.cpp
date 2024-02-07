@@ -289,7 +289,7 @@ namespace qtnh {
     }
 
     if (env.proc_id % shift == 0 && env.proc_id < shift * getDistSize() && env.proc_id != 0) {
-      loc_els.assign(getLocSize(), 0.0);
+      loc_els.resize(getLocSize());
       MPI_Recv(loc_els.data(), getLocSize(), MPI_C_DOUBLE_COMPLEX, env.proc_id / shift, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
       active = true;
     }
@@ -311,6 +311,40 @@ namespace qtnh {
 
     loc_dims.erase(loc_dims.begin(), loc_dims.begin() + n);
     dist_dims.insert(dist_dims.end(), dist_dims2.begin(), dist_dims2.end());
+
+    return;
+  }
+
+  void DDenseTensor::gather(tidx_tup_st n) {
+    auto loc_dims2 = qtnh::tidx_tup(dist_dims.end() - n, dist_dims.end());
+    auto shift = dims_to_size(loc_dims2);
+    auto nnew = getLocSize() * shift;
+
+    MPI_Comm gath_comm;
+    MPI_Comm_split(MPI_COMM_WORLD, env.proc_id / shift, env.proc_id, &gath_comm);
+    if (env.proc_id < getDistSize()) {
+      int gath_rank;
+      MPI_Comm_rank(gath_comm, &gath_rank);
+
+      if (gath_rank == 0) loc_els.resize(nnew);
+      MPI_Gather(loc_els.data(), getLocSize(), MPI_C_DOUBLE_COMPLEX, loc_els.data(), getLocSize(), MPI_C_DOUBLE_COMPLEX, 0, gath_comm);
+    }
+
+    if (env.proc_id < getDistSize() && env.proc_id % shift == 0 && env.proc_id != 0) {
+      MPI_Ssend(loc_els.data(), nnew, MPI_C_DOUBLE_COMPLEX, env.proc_id / shift, 0, MPI_COMM_WORLD);
+    }
+
+    if (env.proc_id < getDistSize() / shift && env.proc_id != 0) {
+      loc_els.resize(nnew);
+      MPI_Recv(loc_els.data(), nnew, MPI_C_DOUBLE_COMPLEX, env.proc_id * shift, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      active = true;
+    } else if (env.proc_id != 0) {
+      loc_els.clear();
+      active = false;
+    }
+
+    loc_dims.insert(loc_dims.begin(), loc_dims2.begin(), loc_dims2.end());
+    dist_dims.erase(dist_dims.end() - n, dist_dims.end());
 
     return;
   }
