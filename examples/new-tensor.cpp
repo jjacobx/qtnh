@@ -1,7 +1,6 @@
 #include <iostream>
 
-#include "dense-tensor.hpp"
-#include "indexing.hpp"
+#include "tensor-network.hpp"
 
 using namespace std::complex_literals;
 

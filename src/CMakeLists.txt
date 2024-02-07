@@ -2,6 +2,7 @@ add_library(qtnh
   coords.cpp
   tensor.cpp
   dense-tensor.cpp
+  tensor-network.cpp
   env.cpp
   indexing.cpp
 )
