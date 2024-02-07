@@ -71,7 +71,7 @@ namespace qtnh {
       virtual void swap(qtnh::tidx_tup_st, qtnh::tidx_tup_st) override;
       // SDenseTensor share();
 
-      // void scatter(tidx_tup_st nidx);
+      void scatter(tidx_tup_st);
       // void gather(tidx_tup_st nidx);
 
       void rep_all(std::size_t);

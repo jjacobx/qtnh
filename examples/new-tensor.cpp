@@ -70,5 +70,12 @@ int main() {
   qtnh::tidx_tup idxs8 = { 0 };
   std::cout << my_env.proc_id << ": t8[r1, r2, 0] = " << t8.getLocEl(idxs8).value_or(std::nan("1")) << std::endl;
 
+  auto dt9 = qtnh::SDenseTensor(my_env, dt1_dims, dt1_els);
+  auto dt10 = dt9.distribute(1);
+  dt10.scatter(1);
+
+  qtnh::tidx_tup idxs10 = { 0 };
+  std::cout << my_env.proc_id << ": dt10[r1, r2, 0] = " << dt10.getLocEl(idxs10).value_or(std::nan("1")) << std::endl;
+
   return 0;
 }

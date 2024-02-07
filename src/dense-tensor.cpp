@@ -280,6 +280,41 @@ namespace qtnh {
     return t3;
   }
 
+  void DDenseTensor::scatter(tidx_tup_st n) {
+    auto dist_dims2 = qtnh::tidx_tup(loc_dims.begin(), loc_dims.begin() + n);
+    auto shift = dims_to_size(dist_dims2);
+
+    if (active && env.proc_id != 0) {
+      MPI_Ssend(loc_els.data(), getLocSize(), MPI_C_DOUBLE_COMPLEX, env.proc_id * shift, 0, MPI_COMM_WORLD);
+    }
+
+    if (env.proc_id % shift == 0 && env.proc_id < shift * getDistSize() && env.proc_id != 0) {
+      loc_els.assign(getLocSize(), 0.0);
+      MPI_Recv(loc_els.data(), getLocSize(), MPI_C_DOUBLE_COMPLEX, env.proc_id / shift, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      active = true;
+    }
+
+    MPI_Comm scatt_comm;
+    MPI_Comm_split(MPI_COMM_WORLD, env.proc_id / shift, env.proc_id, &scatt_comm);
+    if (env.proc_id < shift * getDistSize()) {
+      auto nnew = getLocSize() / shift;
+
+      // Resize only receiving buffers
+      if (!active) loc_els.resize(nnew);
+
+      MPI_Scatter(loc_els.data(), nnew, MPI_C_DOUBLE_COMPLEX, loc_els.data(), nnew, MPI_C_DOUBLE_COMPLEX, 0, scatt_comm);
+
+      // Resize everything
+      loc_els.resize(nnew);
+      active = true;
+    }
+
+    loc_dims.erase(loc_dims.begin(), loc_dims.begin() + n);
+    dist_dims.insert(dist_dims.end(), dist_dims2.begin(), dist_dims2.end());
+
+    return;
+  }
+
   void DDenseTensor::rep_all(std::size_t n) {
     std::vector<MPI_Request> send_reqs(n, MPI_REQUEST_NULL);
     for (int i = 1; active && (i < n); ++i) {
@@ -288,7 +323,7 @@ namespace qtnh {
 
     MPI_Request recv_req = MPI_REQUEST_NULL;
     if (!active && env.proc_id < n * getDistSize()) {
-      loc_els.assign(getLocSize(), 0.0);
+      loc_els.resize(getLocSize());
       MPI_Irecv(loc_els.data(), getLocSize(), MPI_C_DOUBLE_COMPLEX, env.proc_id % getDistSize(), 0, MPI_COMM_WORLD, &recv_req);
       active = true;
     }
@@ -315,7 +350,7 @@ namespace qtnh {
 
     MPI_Request recv_req = MPI_REQUEST_NULL;
     if (env.proc_id != 0 && env.proc_id < n * getDistSize()) {
-      loc_els.assign(getLocSize(), 0.0);
+      loc_els.resize(getLocSize());
       MPI_Irecv(loc_els.data(), getLocSize(), MPI_C_DOUBLE_COMPLEX, env.proc_id / n, 0, MPI_COMM_WORLD, &recv_req);
       active = true;
     }
