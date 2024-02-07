@@ -349,6 +349,14 @@ namespace qtnh {
     return;
   }
 
+  SDenseTensor DDenseTensor::share() {
+    gather(dist_dims.size());
+    loc_els.resize(getSize());
+    MPI_Bcast(loc_els.data(), getSize(), MPI_C_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
+
+    return SDenseTensor(env, dims, loc_els);
+  }
+
   void DDenseTensor::rep_all(std::size_t n) {
     std::vector<MPI_Request> send_reqs(n, MPI_REQUEST_NULL);
     for (int i = 1; active && (i < n); ++i) {

@@ -69,10 +69,10 @@ namespace qtnh {
       virtual qtnh::tel& operator[](const qtnh::tidx_tup&) override;
 
       virtual void swap(qtnh::tidx_tup_st, qtnh::tidx_tup_st) override;
-      // SDenseTensor share();
 
       void scatter(tidx_tup_st);
       void gather(tidx_tup_st);
+      SDenseTensor share();
 
       void rep_all(std::size_t);
       void rep_each(std::size_t);

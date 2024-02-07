@@ -77,14 +77,14 @@ int main() {
   qtnh::tidx_tup idxs10 = { 0 };
   std::cout << my_env.proc_id << ": dt10[r1, r2, 0] = " << dt10.getLocEl(idxs10).value_or(std::nan("1")) << std::endl;
 
-  dt10.gather(1);
+  dt10.gather(2);
   auto& dt11 = dt10;
 
-  qtnh::tidx_tup idxs11 = { 0, 0 };
+  qtnh::tidx_tup idxs11 = { 0, 0, 0 };
   std::cout << my_env.proc_id << ": dt11[r1, 0, 0] = " << dt11.getLocEl(idxs11).value_or(std::nan("1")) << std::endl;
 
-  dt11.gather(1);
-  auto& dt12 = dt11;
+  dt11.scatter(2);
+  auto dt12 = dt11.share();
 
   qtnh::tidx_tup idxs12 = { 0, 0, 0 };
   std::cout << my_env.proc_id << ": dt12[0, 0, 0] = " << dt12.getLocEl(idxs12).value_or(std::nan("1")) << std::endl;
