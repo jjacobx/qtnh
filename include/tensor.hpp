@@ -1,74 +1,66 @@
-#ifndef TENSOR_HPP
-#define TENSOR_HPP
+#ifndef TENSOR_NEW_HPP
+#define TENSOR_NEW_HPP
 
-#include <complex>
-#include <memory>
-#include <vector>
+#include <map>
+#include <optional>
 
-#include "coords.hpp"
+#include "env.hpp"
+#include "typedefs.hpp"
 
-typedef std::complex<double> complex;
-typedef std::vector<complex> tels_array;
+namespace qtnh {
+  class SDenseTensor;
+  class DDenseTensor;
 
-class Tensor {
-public:
-    Tensor();
-    Tensor(tidx_tuple dims);
-    Tensor(tidx_tuple dims, tels_array data);
+  class Tensor {
+    friend class SDenseTensor;
+    friend class DDenseTensor;
 
-    const unsigned int& getID() const;
+    private:
+      inline static qtnh::uint counter = 0;
+      const qtnh::uint id;
 
-    const tidx_tuple& getDims() const;
-    const complex& getEl(const tidx_tuple& coords) const;
-    void setEl(const tidx_tuple& coords, const complex& value);
+    protected:
+      const QTNHEnv& env;
+      bool active;
 
-    complex& operator[](tidx_tuple idx);
-    const complex& operator[](tidx_tuple idx) const;
-    bool operator==(const Tensor& rhs) const;
-    bool operator!=(const Tensor& rhs) const;
-    std::size_t size();
+      qtnh::tidx_tup dims;
+      qtnh::tidx_tup loc_dims;
+      qtnh::tidx_tup dist_dims;
 
-    std::vector<Tensor> split(std::size_t along_dim);
+      virtual Tensor* contract_disp(Tensor*, const std::vector<qtnh::wire>&) {
+        throw_unimplemented(); return nullptr; }
+      virtual Tensor* contract(SDenseTensor*, const std::vector<qtnh::wire>&) {
+        throw_unimplemented(); return nullptr; }
+      virtual Tensor* contract(DDenseTensor*, const std::vector<qtnh::wire>&) {
+        throw_unimplemented(); return nullptr; }
 
-private:
-    static unsigned int counter;
-    unsigned int id;
+    public:
+      Tensor() = delete;
+      Tensor(const Tensor&) = delete;
+      Tensor(const QTNHEnv& env, const qtnh::tidx_tup& dims)
+        : id(++counter), env(env), active(true), dims(dims), loc_dims(dims), dist_dims(qtnh::tidx_tup()) {};
+      ~Tensor() = default;
 
-    tidx_tuple dims;
-    tels_array data;
-};
+      qtnh::uint getID() const { return id; }
+      bool isActive() const { return active; };
 
-std::ostream& operator<<(std::ostream& out, const Tensor& o);
+      const qtnh::tidx_tup& getDims() const { return dims; }
+      const qtnh::tidx_tup& getLocDims() const { return loc_dims; }
+      const qtnh::tidx_tup& getDistDims() const { return dist_dims; }
 
+      std::size_t getSize() const { return dims_to_size(getDims()); }
+      std::size_t getLocSize() const { return dims_to_size(getLocDims()); }
+      std::size_t getDistSize() const { return dims_to_size(getDistDims()); }
 
-class Bond {
-public:
-    Bond(std::pair<Tensor, Tensor> tensors, std::pair<int, int> dims);
+      virtual std::optional<qtnh::tel> getEl(const qtnh::tidx_tup&) const = 0;
+      virtual std::optional<qtnh::tel> getLocEl(const qtnh::tidx_tup&) const = 0;
+      virtual qtnh::tel operator[](const qtnh::tidx_tup& loc_idxs) const = 0;
 
-    int getID();
+      virtual void swap(qtnh::tidx_tup_st, qtnh::tidx_tup_st) = 0;
 
-    std::pair<Tensor, Tensor> getTensors();
-    std::pair<int, int> getDims();
-    int getSize();
-
-private:
-    static unsigned int counter;
-    int unsigned id;
-
-    std::pair<Tensor, Tensor> tensors;
-    std::pair<int, int> dims;
-};
-
-class TensorNetwork {
-public:
-    TensorNetwork(std::vector<Tensor> tensors, std::vector<Bond> bonds);
-
-    Tensor getTensor(int n);
-    void contract();
-
-private:
-    std::vector<Tensor> tensors;
-    std::vector<Bond> bonds;
-};
+      static Tensor* contract(Tensor* t1, Tensor* t2, const std::vector<qtnh::wire>& wires) { 
+        return t2->contract_disp(t1, wires); }
+  };
+}
 
 #endif

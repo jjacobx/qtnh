@@ -1,10 +1,8 @@
 add_library(qtnh
-  coords.cpp
-  tensor.cpp
-  dense-tensor.cpp
-  tensor-network.cpp
   env.cpp
   indexing.cpp
+  dense-tensor.cpp
+  tensor-network.cpp
 )
 
 target_compile_features(qtnh

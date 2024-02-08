@@ -1,7 +1,7 @@
 #ifndef DENSE_TENSOR_HPP
 #define DENSE_TENSOR_HPP
 
-#include "tensor-new.hpp"
+#include "tensor.hpp"
 
 namespace qtnh {
 
@@ -22,8 +22,6 @@ namespace qtnh {
       virtual void setEl(const qtnh::tidx_tup&, qtnh::tel) = 0;
       virtual void setLocEl(const qtnh::tidx_tup&, qtnh::tel) = 0;
       virtual qtnh::tel& operator[](const qtnh::tidx_tup&) = 0;
-
-      // const std::vector<qtnh::tel>& getLocEls() const { return loc_els; }
   };
 
   class SDenseTensor : public DenseTensor {

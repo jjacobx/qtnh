@@ -77,7 +77,8 @@ namespace qtnh {
 
   qtnh::uint TensorNetwork::contractAll() {
     auto id = (*tensors.begin()).first;
-    for (auto kv : bonds) {
+    auto temp_bonds = bonds;
+    for (auto kv : temp_bonds) {
       id = contractBond(kv.first);
     }
 

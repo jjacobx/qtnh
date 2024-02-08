@@ -1,7 +1,6 @@
 #include <iostream>
 
 #include "tensor-network.hpp"
-// #include "env.hpp"
 
 using namespace std::complex_literals;
 
