@@ -1,4 +1,4 @@
-# Generalised Tensor Network Hub
+# Qeneralised Tensor Network Hub
 
 This project aims to create a generalised distributed software for performing contractions of tensor networks, for the purpose of simulating quantum circuits. 
 
@@ -28,31 +28,31 @@ Use `make test` after building to run the tests.
 
 ## Usage
 
-The library uses two main custom types – `tidx_tuple` for tensor indices, and `tels_array` for tensor elements. The former is implemented by a vector of non-negative integers, while the latter is a vector of complex numbers. In addition, there is a custom tensor index flag `TIFlag`, which usually takes one of the two values `TIFlag::open` or `TIFlag::closed` for open and closed indices respectively. To describe multiple dimensions, a vector of flags `tidx_flags` is used. 
+The library uses two main custom types – `qtnh::tidx` for tensor indices (grouped into `qtnh::tidx_tup`), and `qtnh::tel` for tensor elements (collected in a vector `std::vector<qtnh::tel>`). Currently, the former is a wrapper around `std::size_t`, while the latter representes `std::complex<double>`. In addition, there is a custom tensor index flag `qtnh::TIdxFlag`, which usually takes one of the two values `qtnh::TIdxFlag::open` or `qtnh::TIdxFlag::closed` for open and closed indices respectively. To describe multiple dimensions, a vector of flags `qtnh::tidx_flags` is used. 
 
 ### Indexing
 
-Indexing defines a coordinate system that can be used to iterate through tensor elements, and is implemented in `class TIndexing`. It consists of `tidx_tuple dims` to specify limits in each dimension, and `tidx_flags flags` to indicate whether each of the dimensions is open or closed. `TIndexing` can be used to increment a `tidx_tuple` to address the next tensor element, while keeping either open or closed dimensions fixed: 
+Indexing defines a coordinate system that can be used to iterate through tensor elements, and is implemented in a class `qtnh::TIndexing`. It consists of `qtnh::tidx_tup dims` to specify limits in each dimension, and `qtnh::tidx_flags flags` to indicate whether each of the dimensions is open or closed. `qtnh::TIndexing` can be used to increment a `qtnh::tidx_tup` to address the next tensor element, while keeping either open or closed dimensions fixed: 
 
 ```c++
-tidx_tuple dims = { 2, 3 };
-tidx_flags flags = { TIFlag::closed, TIFlag::open };
-TIndexing ti(dims, flags);
+qqtnh::tidx_tup dims = { 2, 3 };
+qtnh::tidx_flags flags = { qtnh::TIdxFlag::closed, 1tnh::TIdxFlag::open };
+qtnh::TIndexing ti(dims, flags);
 
 tidx_tuple idx = { 0, 0 };           // idx = { 0, 0 }
-idx = ti.next(idx, TIFlag::open);    // idx = { 0, 1 }
-idx = ti.next(idx, TIFlag::closed);  // idx = { 1, 1 }
-idx = ti.next(idx, TIFlag::closed);  // error, idx[0] > (dims[0] - 1)
+idx = ti.next(idx, qtnh::TIdxFlag::open);    // idx = { 0, 1 }
+idx = ti.next(idx, qtnh::TIFlag::closed);  // idx = { 1, 1 }
+idx = ti.next(idx, qtnh::TIFlag::closed);  // error, idx[0] > (dims[0] - 1)
 ```
 
-The value of the incremented `tidx_tuple idx` must be such that `idx[i] < dims[i]` for a given `TIndexing`, otherwise an error is thrown. 
+The value of the incremented `qtnh::tidx_tup idx` must be such that `idx[i] < dims[i]` for a given `qtnh::TIndexing`, otherwise an error is thrown. 
 
-`TIndexing` also has a default iterator, which iterates through all the combinations of of open indices, while keeping the closed one fixed: 
+`qtnh::TIndexing` also has a default iterator, which iterates through all the combinations of of open indices, while keeping the closed one fixed: 
 
 ```c++
-tidx_tuple dims = { 2, 3, 2 };
-tidx_flags flags = { TIFlag::open, TIFlag::closed, TIFlag::open };
-TIndexing ti(dims, flags);
+qtnh::tidx_tup dims = { 2, 3, 2 };
+qtnh::tidx_flags flags = { qtnh::TIdxFlag::open, qtnh::TIdxFlag::closed, qtnh::TIdxFlag::open };
+qtnh::TIndexing ti(dims, flags);
 
 for (auto idx : ti) {
     std::cout << idx << " "; // { 0, 0, 0 } { 0, 0, 1 } { 1, 0, 0 } { 1, 0, 1 },
@@ -61,20 +61,26 @@ for (auto idx : ti) {
 
 ### Tensor
 
-Tensors are multi-dimensional arrays of numbers defined in `class Tensor`. Their dimensions are specified in `tidx_tuple dims`, and complex elements in `tels_array data`. Tensors can be addressed and modified using a `tidx_tuple idx` which corresponds to the index of the target element: 
+Tensors are multi-dimensional arrays of numbers defined in a base class `qtnh::Tensor`. Their dimensions are specified in `qtnh::tidx_tup dims`. A derived abstract class `qtnh::DenseTensor` generalises data storage to a vector of dense complex elements `std::vector<qtnh::tels> data`, and allows to rewrite all elements. Further distinction is made in classes `qtnh::SDenseTensor` and `qtnh::DDenseTensor`, where the former shares the same elements across all MPI ranks, while the latter distributes the first few dimensions to a necessary number of processes starting from rank 0 (ranks beyond maximum required contain empty data). To enable MPI, tensors need to be assigned a `qtnh::QTNHEnv`, which contains communication-related information. Finally, all tensors can be addressed using a `qtnh::tidx_tup idx` which corresponds to the index of the target element, while dense tensors can also be modified that way: 
 
 ```c++
-tidx_tuple dims = { 2, 2 };
-tels_array data = { 0.0, 1.0, 1.0, 0.0 };
-Tensor X(dims, data); // X quantum gate
+qtnh::QTNHEnv env;
+qtnh::tidx_tup dims = { 2, 2 };
+std::vector<qtnh::tel> data = { 0.0, 1.0, 1.0, 0.0 };
+qtnh::SDenseTensor X(env, dims, data); // X quantum gate
 
-tidx_tuple idx1 = { 0, 0 };
-tidx_tuple idx2 = { 0, 1 };
-X[idx1] = X[idx2]; // { 1.0, 1.0, 1.0, 0.0 };
+X.setLocEl({0, 0}, X.getLocEl({0, 1}).value()); // { 1.0, 1.0, 1.0, 0.0 };
 
 // Print all tensor elements
 TIndexing ti(dims); // by default all dimensions are open
-for (auto idx : ti) {
-    std::cout << X[idx] << " ";
+for (auto idxs : ti) {
+    std::cout << X.getLocEl(idxs).value() << " ";
 }
 ```
+
+There are three types of accessors with different behaviour when running on multiple processes: 
+- global getters (`getDims()`, `getSize()`, `getEl(...)`) – read the tensor in its entirety
+- local getters (`getLocDims()`, `getLocSize()`, `getLocEl(...)`) – read only local portion of the tensor
+- distributed getters (`getDistDims()`, `getDistSize()`) – relate to how different local portions are distributed
+
+The element accessors `getEl(...)` and `getLocEl(...)` are safe to use on all ranks, as their return type is optional. On the other hand, there is also an unsafe square bracket accessor `operator[...]`, which returns an error if the element is not available locally. The situation is similar for dense tensor setters – `setEL(...)` and `setLocEl(...)`, while the square bracket operator can be used to return reference to the local element.  
