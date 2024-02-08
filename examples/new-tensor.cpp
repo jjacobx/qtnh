@@ -88,5 +88,12 @@ int main() {
   qtnh::tidx_tup idxs12 = { 0, 0, 0 };
   std::cout << my_env.proc_id << ": dt12[0, 0, 0] = " << dt12.getLocEl(idxs12).value_or(std::nan("1")) << std::endl;
 
+  qtnh::SDenseTensor dt13(my_env, dt1_dims, dt1_els);
+  qtnh::SDenseTensor dt14(my_env, dt2_dims, dt2_els);
+
+  auto t15r = qtnh::Tensor::contract(&dt13, &dt14, std::vector<qtnh::wire>(0));
+  auto& t15 = *t15r;
+  std::cout << my_env.proc_id << ": dt15[1, 1, 1, 3, 1] = " << t15.getLocEl({1, 1, 1, 3, 1}).value_or(std::nan("1")) << std::endl;
+
   return 0;
 }
