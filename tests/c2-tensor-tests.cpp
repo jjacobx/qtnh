@@ -1,65 +1,60 @@
 #include <catch2/catch_test_macros.hpp>
-#include "tensor.hpp"
+#include "tensor-network.hpp"
 
 using namespace std::complex_literals;
 
 TEST_CASE("create-tensor-test") {
-    tels_array x_els = { 0.0, 1.0, 1.0, 0.0 };
-    tels_array y_els = { 0.0, -1.0i, 1.0i, 0.0 };
-    tels_array copy_els = { 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0 };
+  qtnh::QTNHEnv env;
 
-    tidx_tuple x_dims = { 2, 2 };
-    tidx_tuple y_dims = { 2, 2 };
-    tidx_tuple copy_dims = { 2, 2, 2 };
+  std::vector<qtnh::tel> x_els = { 0.0, 1.0, 1.0, 0.0 };
+  std::vector<qtnh::tel> y_els = { 0.0, -1.0i, 1.0i, 0.0 };
+  std::vector<qtnh::tel> copy_els = { 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0 };
 
-    Tensor* x;
-    Tensor* y;
-    Tensor* copy;
+  qtnh::tidx_tup x_dims = { 2, 2 };
+  qtnh::tidx_tup y_dims = { 2, 2 };
+  qtnh::tidx_tup copy_dims = { 2, 2, 2 };
 
-    REQUIRE_NOTHROW(x = new Tensor(x_dims, x_els));
-    REQUIRE_NOTHROW(y = new Tensor(y_dims, y_els));
-    REQUIRE_NOTHROW(copy = new Tensor(copy_dims, copy_els));
+  qtnh::SDenseTensor* x;
+  qtnh::SDenseTensor* y;
+  qtnh::SDenseTensor* copy;
+
+  REQUIRE_NOTHROW(x = new qtnh::SDenseTensor(env, x_dims, x_els));
+  REQUIRE_NOTHROW(y = new qtnh::SDenseTensor(env, y_dims, y_els));
+  REQUIRE_NOTHROW(copy = new qtnh::SDenseTensor(env, copy_dims, copy_els));
 }
 
 TEST_CASE("access-tensor-test") {
-    tels_array t_els = { 0.0, 1.0, 2.0, 3.0 };
-    tidx_tuple t_dims = { 2, 2 };
-    Tensor t(t_dims, t_els);
+  qtnh::QTNHEnv env;
+  std::vector<qtnh::tel> t_els = { 0.0, 1.0, 2.0, 3.0 };
+  qtnh::tidx_tup t_dims = { 2, 2 };
+  qtnh::SDenseTensor t(env, t_dims, t_els);
 
-    tidx_tuple i1 = { 0, 1 };
-    tidx_tuple i2 = { 1, 0 };
-    complex c;
+  qtnh::tidx_tup i1 = { 0, 1 };
+  qtnh::tidx_tup i2 = { 1, 0 };
+  qtnh::tel c;
 
-    REQUIRE_NOTHROW(c = t[i1]);
-    REQUIRE_NOTHROW(t[i2] = c);
-}
-
-TEST_CASE("split-tensor-test") {
-    tels_array copy_els = { 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0 };
-    tidx_tuple copy_dims = { 2, 2, 2 };
-
-    Tensor copy(copy_dims, copy_els);
-    std::vector<Tensor> ts;
-
-    REQUIRE_NOTHROW(ts = copy.split(1));
+  REQUIRE_NOTHROW(c = t[i1]);
+  REQUIRE_NOTHROW(t[i2] = c);
 }
 
 TEST_CASE("contract-tensor-network-test") {
-    tidx_tuple t1_dims = { 2, 2, 2 };
-    tels_array t1_els = { 0.0 + 1.0i, 1.0 + 0.0i, 1.0 + 0.0i, 0.0 + 1.0i, 1.0 + 0.0i, 0.0 + 1.0i, 0.0 + 1.0i, 1.0 + 0.0i };
-    Tensor t1(t1_dims, t1_els);
+  qtnh::QTNHEnv env;
 
-    tidx_tuple t2_dims = { 2, 4 };
-    tels_array t2_els = { 1.0 + 1.0i, 2.0 + 2.0i, 3.0 + 3.0i, 4.0 + 4.0i, 1.0 - 1.0i, 2.0 - 2.0i, 3.0 - 3.0i, 4.0 - 4.0i };
-    Tensor t2(t2_dims, t2_els);
+  qtnh::tidx_tup t1_dims = { 2, 2, 2 };
+  std::vector<qtnh::tel> t1_els = { 0.0 + 1.0i, 1.0 + 0.0i, 1.0 + 0.0i, 0.0 + 1.0i, 1.0 + 0.0i, 0.0 + 1.0i, 0.0 + 1.0i, 1.0 + 0.0i };
+  qtnh::SDenseTensor t1(env, t1_dims, t1_els);
 
-    std::pair<Tensor, Tensor> b_tensors(t1, t2);
-    std::pair<int, int> b_dims(1, 0);
-    Bond b(b_tensors, b_dims);
+  qtnh::tidx_tup t2_dims = { 2, 4 };
+  std::vector<qtnh::tel> t2_els = { 1.0 + 1.0i, 2.0 + 2.0i, 3.0 + 3.0i, 4.0 + 4.0i, 1.0 - 1.0i, 2.0 - 2.0i, 3.0 - 3.0i, 4.0 - 4.0i };
+  qtnh::SDenseTensor t2(env, t2_dims, t2_els);
 
-    std::vector<Tensor> tn_tensors = { t1, t2 };
-    std::vector<Bond> tn_bonds = { b };
-    TensorNetwork tn(tn_tensors, tn_bonds);
+  std::vector<qtnh::wire> wires1(1, {1, 0});
+  qtnh::Bond b1({t1.getID(), t2.getID()}, wires1);
 
-    REQUIRE_NOTHROW(tn.contract());
+  qtnh::TensorNetwork tn;
+  tn.insertTensor(t1);
+  tn.insertTensor(t2);
+  tn.insertBond(b1);
+
+  REQUIRE_NOTHROW(tn.contractAll());
 }
