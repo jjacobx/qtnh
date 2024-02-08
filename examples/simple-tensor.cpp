@@ -1,35 +1,33 @@
 #include <iostream>
 
-#include "tensor.hpp"
+#include "tensor-network.hpp"
 
 using namespace std::complex_literals;
 
 int main() {
-    std::vector<complex> t1_els = { 1.0 + 1.0i, 2.0 + 2.0i, 3.0 + 3.0i, 4.0 + 4.0i, 5.0 + 5.0i, 6.0 + 6.0i, 7.0 + 7.0i, 8.0 + 8.0i };
-    std::vector<complex> t2_els = { 5.0 + 5.0i, 6.0 + 6.0i, 7.0 + 7.0i, 8.0 + 8.0i, 1.0 + 1.0i, 2.0 + 2.0i, 3.0 + 3.0i, 4.0 + 4.0i };
+  qtnh::QTNHEnv my_env;
 
-    tidx_tuple t1_dims = { 2, 2, 2 };
-    tidx_tuple t2_dims = { 4, 2 };
+  qtnh::tidx_tup t1_dims = { 2, 2, 2 };
+  qtnh::tidx_tup t2_dims = { 4, 2 };
 
-    Tensor t1(t1_dims, t1_els);
-    Tensor t2(t2_dims, t2_els);
+  std::vector<qtnh::tel> t1_els = { 1.0 + 1.0i, 2.0 + 2.0i, 3.0 + 3.0i, 4.0 + 4.0i, 5.0 + 5.0i, 6.0 + 6.0i, 7.0 + 7.0i, 8.0 + 8.0i };
+  std::vector<qtnh::tel> t2_els = { 5.0 + 5.0i, 6.0 + 6.0i, 7.0 + 7.0i, 8.0 + 8.0i, 1.0 + 1.0i, 2.0 + 2.0i, 3.0 + 3.0i, 4.0 + 4.0i };
 
-    tidx_tuple dims = t1.getDims();
+  qtnh::SDenseTensor t1(my_env, t1_dims, t1_els);
+  qtnh::SDenseTensor t2(my_env, t2_dims, t2_els);
+  auto t3 = t1.distribute(1);
 
-    std::pair<Tensor, Tensor> b1_tensors(t1, t2);
-    std::pair<int, int> b1_dims(2, 1);
+  std::vector<qtnh::wire> wires1(1, {1, 2});
+  qtnh::Bond b1({t2.getID(), t3.getID()}, wires1);
 
-    Bond b1(b1_tensors, b1_dims);
+  qtnh::TensorNetwork tn;
+  tn.insertTensor(t2);
+  tn.insertTensor(t3);
+  tn.insertBond(b1);
 
-    std::vector<Tensor> tn1_tensors = { t1, t2 };
-    std::vector<Bond> tn1_bonds = { b1 };
+  auto t4id = tn.contractBond(b1.getID());
 
-    TensorNetwork tn1(tn1_tensors, tn1_bonds);
+  std::cout << my_env.proc_id << " | Tout[0, 0, 0] = " << tn.getTensor(t4id).getLocEl({0, 0, 0}).value_or(std::nan("1")) << std::endl;
 
-    tn1.contract();
-    Tensor result = tn1.getTensor(0);
-
-    std::cout << "Tout = " << result << std::endl;
-
-    return 0;
+  return 0;
 }
