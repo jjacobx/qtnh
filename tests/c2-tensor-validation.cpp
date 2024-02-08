@@ -1,92 +1,91 @@
 #include <catch2/catch_test_macros.hpp>
-#include "tensor.hpp"
+#include "tensor-network.hpp"
+#include "indexing.hpp"
 
 using namespace std::complex_literals;
 
+bool equal(const qtnh::Tensor& t1, const qtnh::Tensor& t2) {
+  if (t1.getLocDims() != t2.getLocDims()) { 
+    return false; 
+  }
+
+  qtnh::TIndexing ti(t1.getLocDims());
+  for (auto idxs : ti) {
+    if (t1.getLocEl(idxs) != t2.getLocEl(idxs)) { 
+      return false; 
+    }
+  }
+
+  return true;
+}
+
 TEST_CASE("create-tensor-validation") {
-    tidx_tuple t1_dims = { 2, 2 };
-    tels_array t1_els = { 0.0, 0.0, 0.0, 0.0 };
-    Tensor t11(t1_dims);
-    Tensor t12(t1_dims, t1_els);
+  qtnh::QTNHEnv env;
+  qtnh::tidx_tup t1_dims = { 2, 2 };
+  std::vector<qtnh::tel> t1_els = { 0.0, 0.0, 0.0, 0.0 };
+  qtnh::SDenseTensor t11(env, t1_dims, std::vector<qtnh::tel>(4, 0.0));
+  qtnh::SDenseTensor t12(env, t1_dims, t1_els);
 
-    tidx_tuple t2_dims = { 1 };
-    tels_array t2_els = { 0.0 };
-    Tensor t21;
-    Tensor t22(t2_dims, t2_els);
+  qtnh::tidx_tup t2_dims = { 1 };
+  std::vector<qtnh::tel> t2_els = { 1.0 };
+  qtnh::SDenseTensor t21(env, t2_dims, std::vector<qtnh::tel>(1, 1.0));
+  qtnh::SDenseTensor t22(env, t2_dims, t2_els);
 
-    REQUIRE(t11 == t12);
-    REQUIRE(t21 == t22);
-    REQUIRE(t11 != t21);
-    REQUIRE(t12 != t22);
+  REQUIRE(equal(t11, t12));
+  REQUIRE(equal(t21, t22));
+  REQUIRE(!equal(t11, t21));
+  REQUIRE(!equal(t12, t22));
 
-    REQUIRE(t11.getID() == 1);
-    REQUIRE(t12.getID() == 2);
-    REQUIRE(t21.getID() == 3);
-    REQUIRE(t22.getID() == 4);
+  REQUIRE(t11.getID() == 1);
+  REQUIRE(t12.getID() == 2);
+  REQUIRE(t21.getID() == 3);
+  REQUIRE(t22.getID() == 4);
 }
 
 TEST_CASE("access-tensor-validation") {
-    tels_array t1_els = { 0.0, 1.0, 2.0, 3.0 };
-    tidx_tuple t1_dims = { 2, 2 };
-    Tensor t1(t1_dims, t1_els);
+  qtnh::QTNHEnv env;
 
-    tels_array t2_els = { 0.0, 2.0, 1.0, 3.0 };
-    tidx_tuple t2_dims = { 2, 2 };
-    Tensor t2(t2_dims, t2_els);
+  qtnh::tidx_tup t1_dims = { 2, 2 };
+  std::vector<qtnh::tel> t1_els = { 0.0, 1.0, 2.0, 3.0 };
+  qtnh::SDenseTensor t1(env, t1_dims, t1_els);
 
-    tidx_tuple i1 = { 0, 1 };
-    tidx_tuple i2 = { 1, 0 };
-    complex c = t1[i2];
-    t1[i2] = t1[i1];
-    t1[i1] = c;
+  std::vector<qtnh::tel> t2_els = { 0.0, 2.0, 1.0, 3.0 };
+  qtnh::tidx_tup t2_dims = { 2, 2 };
+  qtnh::SDenseTensor t2(env, t2_dims, t2_els);
 
-    REQUIRE(t1 == t2);
-}
+  auto el = t1[{1, 0}];
+  t1[{1, 0}] = t1[{0, 1}];
+  t1[{0, 1}] = el;
 
-TEST_CASE("split-tensor-validation") {
-    tidx_tuple t0_dims = { 3, 2, 2 };
-    tels_array t0_els = { 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0 };
-
-    Tensor copy(t0_dims, t0_els);
-    auto ts = copy.split(1);
-    Tensor t1 = ts.at(0);
-    Tensor t2 = ts.at(1);
-    
-    tidx_tuple t1_dims = { 3, 2 };
-    tidx_tuple t2_dims = { 3, 2 };
-    tels_array t1_els = { 0.0, 1.0, 4.0, 5.0, 8.0, 9.0 };
-    tels_array t2_els = { 2.0, 3.0, 6.0, 7.0, 10.0, 11.0 };
-
-    Tensor t1_res(t1_dims, t1_els);
-    Tensor t2_res(t2_dims, t2_els);
-
-    REQUIRE(t1 == t1_res);
-    REQUIRE(t2 == t2_res);
+  REQUIRE(equal(t1, t2));
 }
 
 
 TEST_CASE("contract-tensor-network-validation") {
-    tidx_tuple t1_dims = { 2, 2, 2 };
-    tels_array t1_els = { 0.0 + 1.0i, 1.0 + 0.0i, 1.0 + 0.0i, 0.0 + 1.0i, 1.0 + 0.0i, 0.0 + 1.0i, 0.0 + 1.0i, 1.0 + 0.0i };
-    Tensor t1(t1_dims, t1_els);
+  qtnh::QTNHEnv env;
 
-    tidx_tuple t2_dims = { 2, 4 };
-    tels_array t2_els = { 1.0 + 1.0i, 2.0 + 2.0i, 3.0 + 3.0i, 4.0 + 4.0i, 1.0 - 1.0i, 2.0 - 2.0i, 3.0 - 3.0i, 4.0 - 4.0i };
-    Tensor t2(t2_dims, t2_els);
+  qtnh::tidx_tup t1_dims = { 2, 2, 2 };
+  std::vector<qtnh::tel> t1_els = { 0.0 + 1.0i, 1.0 + 0.0i, 1.0 + 0.0i, 0.0 + 1.0i, 1.0 + 0.0i, 0.0 + 1.0i, 0.0 + 1.0i, 1.0 + 0.0i };
+  qtnh::SDenseTensor t1(env, t1_dims, t1_els);
 
-    tidx_tuple tr_dims = { 2, 2, 4 };
-    tels_array tr_els = { 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 2.0 + 2.0i, 4.0 + 4.0i, 6.0 + 6.0i, 8.0 + 8.0i, 
-                          2.0 + 2.0i, 4.0 + 4.0i, 6.0 + 6.0i, 8.0 + 8.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i };
-    Tensor tr(tr_dims, tr_els);
+  qtnh::tidx_tup t2_dims = { 2, 4 };
+  std::vector<qtnh::tel> t2_els = { 1.0 + 1.0i, 2.0 + 2.0i, 3.0 + 3.0i, 4.0 + 4.0i, 1.0 - 1.0i, 2.0 - 2.0i, 3.0 - 3.0i, 4.0 - 4.0i };
+  qtnh::SDenseTensor t2(env, t2_dims, t2_els);
 
-    std::pair<Tensor, Tensor> b_tensors(t1, t2);
-    std::pair<int, int> b_dims(1, 0);
-    Bond b(b_tensors, b_dims);
+  qtnh::tidx_tup tr_dims = { 2, 2, 4 };
+  std::vector<qtnh::tel> tr_els = { 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 2.0 + 2.0i, 4.0 + 4.0i, 6.0 + 6.0i, 8.0 + 8.0i, 
+                                    2.0 + 2.0i, 4.0 + 4.0i, 6.0 + 6.0i, 8.0 + 8.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i };
+  qtnh::SDenseTensor tr(env, tr_dims, tr_els);
 
-    std::vector<Tensor> tn_tensors = { t1, t2 };
-    std::vector<Bond> tn_bonds = { b };
-    TensorNetwork tn(tn_tensors, tn_bonds);
-    tn.contract();
+  std::vector<qtnh::wire> wires1(1, {1, 0});
+  qtnh::Bond b1({t1.getID(), t2.getID()}, wires1);
 
-    REQUIRE(tr == tn.getTensor(0));
+  qtnh::TensorNetwork tn;
+  tn.insertTensor(t1);
+  tn.insertTensor(t2);
+  tn.insertBond(b1);
+
+  auto res_id = tn.contractAll();
+
+  REQUIRE(equal(tr, tn.getTensor(res_id)));
 }

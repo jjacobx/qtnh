@@ -75,3 +75,5 @@ results/plt/**
 # Temporary directories
 **/tmp/
 
+# Backups
+*.bkp

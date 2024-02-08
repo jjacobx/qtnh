@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(GTNH 
+project(QTNH 
   VERSION 0.0.1
   DESCRIPTION "A quantum computer simulator via generalised tensor network contraction"
   LANGUAGES CXX
@@ -23,10 +23,10 @@ option(BUILD_SHARED_LIBS "Build shared library" ON)
 find_library(MATH_LIBRARY m REQUIRED)
 
 # OpenMP
-# find_package(OpenMP)
+find_package(OpenMP)
 
 # MPI
-# find_package(MPI COMPONENTS CXX REQUIRED)
+find_package(MPI COMPONENTS CXX REQUIRED)
 
 ## GTNH
 add_subdirectory(src)
