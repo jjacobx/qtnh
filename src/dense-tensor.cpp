@@ -78,10 +78,12 @@ namespace qtnh {
 
   SDenseTensor::SDenseTensor(const QTNHEnv& env, const qtnh::tidx_tup& dims, std::vector<qtnh::tel> els)
     : DenseTensor(env, dims, els) {
-    // TODO: Broadcast from rank 0
-    if (els.size() != getLocSize()) {
+    if (loc_els.size() != getSize()) {
       throw std::invalid_argument("Invalid length of elements.");
     }
+
+    loc_els.resize(getSize());
+    MPI_Bcast(loc_els.data(), getSize(), MPI_C_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
   }
 
   std::optional<qtnh::tel> SDenseTensor::getEl(const qtnh::tidx_tup& glob_idxs) const {
@@ -352,8 +354,8 @@ namespace qtnh {
   SDenseTensor DDenseTensor::share() {
     gather(dist_dims.size());
     loc_els.resize(getSize());
-    MPI_Bcast(loc_els.data(), getSize(), MPI_C_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
 
+    // Elements will be broadcasted by the constructor
     return SDenseTensor(env, dims, loc_els);
   }
 
