@@ -8,6 +8,8 @@
 #include "dense-tensor.hpp"
 #include "indexing.hpp"
 
+using namespace qtnh::ops;
+
 namespace qtnh {
   TIndexing _get_indexing(Tensor* t, const std::vector<qtnh::wire>& wires, bool second) {
     auto loc_dims = t->getLocDims();

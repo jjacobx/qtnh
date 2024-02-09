@@ -1,8 +1,10 @@
 #include <iostream>
 
+#include "indexing.hpp"
 #include "tensor-network.hpp"
 
 using namespace std::complex_literals;
+using namespace qtnh::ops;
 
 int main() {
   qtnh::QTNHEnv my_env;
@@ -12,6 +14,8 @@ int main() {
 
   qtnh::tidx_tup dt1_dims = { 2, 2, 2 };
   qtnh::tidx_tup dt2_dims = { 4, 2 };
+
+  if (my_env.proc_id == 0) std::cout << "Dims: " << dt1_dims << std::endl;
 
   qtnh::SDenseTensor dt1(my_env, dt1_dims, dt1_els);
   qtnh::SDenseTensor dt2(my_env, dt2_dims, dt2_els);

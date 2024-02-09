@@ -6,7 +6,9 @@
 #include "typedefs.hpp"
 
 namespace qtnh{
-  std::ostream& operator<<(std::ostream& out, const qtnh::tidx_tup& o);
+  namespace ops {
+    std::ostream& operator<<(std::ostream& out, const qtnh::tidx_tup& o);
+  }
 
   class TIndexing {
     private:
