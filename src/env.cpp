@@ -7,11 +7,16 @@
 
 namespace qtnh {
   QTNHEnv::QTNHEnv() {
-    this->num_threads = omp_get_max_threads();
+    num_threads = omp_get_max_threads();
+
+    int _proc_id, _num_processes;
 
     MPI_Init(NULL, NULL);
-    MPI_Comm_rank(MPI_COMM_WORLD, &this->proc_id);
-    MPI_Comm_size(MPI_COMM_WORLD, &this->num_processes);
+    MPI_Comm_rank(MPI_COMM_WORLD, &_proc_id);
+    MPI_Comm_size(MPI_COMM_WORLD, &_num_processes);
+
+    proc_id = _proc_id;
+    num_processes = _num_processes;
 
     #ifdef DEBUG
       ROOT_COUT << "DEF_STENSOR_BCAST is " << (DEF_STENSOR_BCAST ? "on" : "off") << std::endl;
@@ -23,8 +28,8 @@ namespace qtnh {
   }
 
   void QTNHEnv::print() const {
-    std::cout << "Process ID: " << this->proc_id << std::endl;
-    std::cout << "Process count: " << this->num_processes << std::endl;
-    std::cout << "Thread count: " << this-> num_threads << std::endl;
+    std::cout << "Process ID: " << proc_id << std::endl;
+    std::cout << "Process count: " << num_processes << std::endl;
+    std::cout << "Thread count: " << num_threads << std::endl;
   }
 }

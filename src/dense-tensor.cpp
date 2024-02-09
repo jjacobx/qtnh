@@ -132,9 +132,9 @@ namespace qtnh {
       auto idxs1 = idxs;
       auto idxs2 = idxs;
 
-      for (auto i = 0; i < dims.at(idx1) - 1; ++i) {
+      for (qtnh::tidx i = 0; i < dims.at(idx1) - 1; ++i) {
         idxs1.at(idx1) = idxs2.at(idx1) = i;
-        for (auto j = i + 1; j < dims.at(idx2); ++j) {
+        for (qtnh::tidx j = i + 1; j < dims.at(idx2); ++j) {
           idxs1.at(idx2) = idxs2.at(idx1) = j;
           std::swap((*this)[idxs1], (*this)[idxs2]);
         }
@@ -403,7 +403,7 @@ namespace qtnh {
 
   void DDenseTensor::rep_all(std::size_t n) {
     std::vector<MPI_Request> send_reqs(n, MPI_REQUEST_NULL);
-    for (int i = 1; active && (i < n); ++i) {
+    for (std::size_t i = 1; active && (i < n); ++i) {
       MPI_Isend(loc_els.data(), getLocSize(), MPI_C_DOUBLE_COMPLEX, env.proc_id + i * getDistSize(), 0, MPI_COMM_WORLD, &send_reqs.at(i));
     }
 
@@ -425,7 +425,7 @@ namespace qtnh {
 
   void DDenseTensor::rep_each(std::size_t n) {
     std::vector<MPI_Request> send_reqs(n, MPI_REQUEST_NULL);
-    for (int i = 0; active && (i < n); ++i) {
+    for (std::size_t i = 0; active && (i < n); ++i) {
       // Rank 0 sending data to itself causes a deadlock
       if (i == 0 && env.proc_id == 0) continue;
       MPI_Isend(loc_els.data(), getLocSize(), MPI_C_DOUBLE_COMPLEX, n * env.proc_id + i, 0, MPI_COMM_WORLD, &send_reqs.at(i));

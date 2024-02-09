@@ -3,9 +3,9 @@
 
 namespace qtnh {
   struct QTNHEnv {
-    int proc_id;
-    int num_processes;
-    int num_threads;
+    unsigned int proc_id;
+    unsigned int num_processes;
+    unsigned int num_threads;
 
     QTNHEnv();
     ~QTNHEnv();
