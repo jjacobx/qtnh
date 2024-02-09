@@ -47,8 +47,6 @@ namespace qtnh {
 
   class DDenseTensor : public DenseTensor {
     private:
-      qtnh::tidx_tup_st n_dist_idxs;
-
       virtual Tensor* contract_disp(Tensor*, const std::vector<qtnh::wire>&) override;
       virtual Tensor* contract(SDenseTensor*, const std::vector<qtnh::wire>&) override;
       virtual Tensor* contract(DDenseTensor*, const std::vector<qtnh::wire>&) override;
@@ -58,8 +56,6 @@ namespace qtnh {
       DDenseTensor(const SDenseTensor&) = delete;
       DDenseTensor(const QTNHEnv&, const qtnh::tidx_tup&, std::vector<qtnh::tel>, qtnh::tidx_tup_st);
       ~DDenseTensor() = default;
-
-      // qtnh::tidx_tup_st getDistIdxs() const { return n_dist_idxs; }
 
       virtual std::optional<qtnh::tel> getEl(const qtnh::tidx_tup&) const override;
       virtual void setEl(const qtnh::tidx_tup&, qtnh::tel) override;

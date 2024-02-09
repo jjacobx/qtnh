@@ -173,7 +173,7 @@ namespace qtnh {
   }
 
   DDenseTensor::DDenseTensor(const QTNHEnv& env, const qtnh::tidx_tup& dims, std::vector<qtnh::tel> els, qtnh::tidx_tup_st n_dist_idxs)
-    : DenseTensor(env, dims, els), n_dist_idxs(n_dist_idxs) {
+    : DenseTensor(env, dims, els) {
     loc_dims = qtnh::tidx_tup(dims.begin() + n_dist_idxs, dims.end());
     dist_dims = qtnh::tidx_tup(dims.begin(), dims.begin() + n_dist_idxs);
 
@@ -187,8 +187,8 @@ namespace qtnh {
   }
 
   std::optional<qtnh::tel> DDenseTensor::getEl(const qtnh::tidx_tup& glob_idxs) const {
-    qtnh::tidx_tup loc_idxs(glob_idxs.begin(), glob_idxs.begin() + n_dist_idxs);
-    qtnh::tidx_tup dist_idxs(glob_idxs.begin() + n_dist_idxs, glob_idxs.end());
+    qtnh::tidx_tup loc_idxs(glob_idxs.begin(), glob_idxs.begin() + dist_dims.size());
+    qtnh::tidx_tup dist_idxs(glob_idxs.begin() + dist_dims.size(), glob_idxs.end());
     auto rank = idxs_to_i(dist_idxs, getDistDims());
 
     if (env.proc_id == rank) {
@@ -199,8 +199,8 @@ namespace qtnh {
   }
 
   void DDenseTensor::setEl(const qtnh::tidx_tup& glob_idxs, qtnh::tel el) {
-    qtnh::tidx_tup loc_idxs(glob_idxs.begin(), glob_idxs.begin() + n_dist_idxs);
-    qtnh::tidx_tup dist_idxs(glob_idxs.begin() + n_dist_idxs, glob_idxs.end());
+    qtnh::tidx_tup loc_idxs(glob_idxs.begin(), glob_idxs.begin() + dist_dims.size());
+    qtnh::tidx_tup dist_idxs(glob_idxs.begin() + dist_dims.size(), glob_idxs.end());
     auto rank = idxs_to_i(dist_idxs, getDistDims());
 
     if (env.proc_id == rank) {
@@ -372,7 +372,6 @@ namespace qtnh {
 
     dims.insert(dims.begin(), n);
     dist_dims.insert(dist_dims.begin(), n);
-    ++n_dist_idxs;
 
     MPI_Waitall(n, send_reqs.data(), MPI_STATUS_IGNORE);
     MPI_Wait(&recv_req, MPI_STATUS_IGNORE);
@@ -399,7 +398,6 @@ namespace qtnh {
 
     dims.insert(dims.begin() + getDistDims().size(), n);
     dist_dims.insert(dist_dims.end(), n);
-    ++n_dist_idxs;
 
     MPI_Wait(&recv_req, MPI_STATUS_IGNORE);
 
