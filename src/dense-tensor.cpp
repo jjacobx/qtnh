@@ -107,7 +107,28 @@ namespace qtnh {
   }
 
   void SDenseTensor::swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) {
-    throw "Unimplemented funciton!";
+    if (dims.at(idx1) != dims.at(idx2)) {
+      throw std::runtime_error("Asymmetric swaps are not allowed");
+    }
+
+    tidx_flags flags(dims.size(), TIdxFlag::open);
+    flags.at(idx1) = flags.at(idx2) = TIdxFlag::closed;
+    TIndexing ti(dims, flags);
+
+    for (auto idxs : ti) {
+      auto idxs1 = idxs;
+      auto idxs2 = idxs;
+
+      for (auto i = 0; i < dims.at(idx1) - 1; ++i) {
+        idxs1.at(idx1) = idxs2.at(idx1) = i;
+        for (auto j = i + 1; j < dims.at(idx2); ++j) {
+          idxs1.at(idx2) = idxs2.at(idx1) = j;
+          std::swap((*this)[idxs1], (*this)[idxs2]);
+        }
+      }
+    }
+
+    return;
   }
 
   Tensor* SDenseTensor::contract_disp(Tensor* t, const std::vector<qtnh::wire>& wires) {
@@ -224,7 +245,15 @@ namespace qtnh {
   }
 
   void DDenseTensor::swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) {
-    throw "Unimplemented funciton!";
+    if (dims.at(idx1) != dims.at(idx2)) {
+      throw std::runtime_error("Asymmetric swaps are not allowed");
+    }
+
+    if (idx1 < dist_dims.size() || idx2 < dist_dims.size()) {
+      throw std::runtime_error("Swaps with distributed indices are not implemented");
+    }
+
+    throw_unimplemented();
   }
 
   Tensor* DDenseTensor::contract_disp(Tensor* t, const std::vector<qtnh::wire>& wires) {

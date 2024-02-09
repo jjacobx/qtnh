@@ -95,5 +95,11 @@ int main() {
   auto& t15 = *t15r;
   std::cout << my_env.proc_id << ": dt15[1, 1, 1, 3, 1] = " << t15.getLocEl({1, 1, 1, 3, 1}).value_or(std::nan("1")) << std::endl;
 
+  qtnh::SDenseTensor dt16(my_env, dt1_dims, dt1_els);
+  std::cout << my_env.proc_id << ": dt16[0, 0, 1] = " << dt16.getLocEl({0, 0, 1}).value_or(std::nan("1")) << std::endl;
+
+  dt16.swap(1, 2);
+  std::cout << my_env.proc_id << ": dt16[0, 0, 1] = " << dt16.getLocEl({0, 0, 1}).value_or(std::nan("1")) << std::endl;
+
   return 0;
 }
