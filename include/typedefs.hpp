@@ -6,6 +6,16 @@
 #include <numeric>
 #include <vector>
 
+#define ROOT_COUT \
+int _r; MPI_Comm_rank(MPI_COMM_WORLD, &_r); \
+if (!_r) std::cout
+
+// By default broadcast shared tensors
+// Can be switched off for performance reasons
+#ifndef DEF_STENSOR_BCAST
+#define DEF_STENSOR_BCAST 1
+#endif
+
 namespace qtnh {
   typedef std::size_t tidx;
   typedef std::vector<qtnh::tidx> tidx_tup;

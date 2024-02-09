@@ -14,6 +14,8 @@ examples/simple-tensor
 
 Use `-DCMAKE_BUILD_TYPE=Debug` to print out more information at runtime. 
 
+Use `-DDEF_STENSOR_BCAST=0` to disable default shared tensor broadcasting. This can make the initialisation faster, but extra care needs to be taken when declaring shared objects. 
+
 
 ## Dependencies
 

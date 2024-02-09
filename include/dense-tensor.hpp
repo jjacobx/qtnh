@@ -34,6 +34,7 @@ namespace qtnh {
       SDenseTensor() = delete;
       SDenseTensor(const SDenseTensor&) = delete;
       SDenseTensor(const QTNHEnv&, const qtnh::tidx_tup&, std::vector<qtnh::tel>);
+      SDenseTensor(const QTNHEnv&, const qtnh::tidx_tup&, std::vector<qtnh::tel>, bool);
       ~SDenseTensor() = default;
 
       virtual std::optional<qtnh::tel> getEl(const qtnh::tidx_tup&) const override;

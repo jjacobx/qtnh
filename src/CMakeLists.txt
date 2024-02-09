@@ -31,6 +31,14 @@ if (CMAKE_BUILD_TYPE MATCHES Debug)
   )
 endif()
 
+option(DEF_STENSOR_BCAST "Broadcast shared tensors from root." 1)
+if (NOT DEF_STENSOR_BCAST)
+  target_compile_options(qtnh
+    PRIVATE
+    -DDEF_STENSOR_BCAST=0
+  )
+endif()
+
 target_include_directories(qtnh
   PUBLIC
   "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>"

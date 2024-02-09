@@ -3,6 +3,7 @@
 #include <omp.h>
 
 #include "env.hpp"
+#include "typedefs.hpp"
 
 namespace qtnh {
   QTNHEnv::QTNHEnv() {
@@ -11,6 +12,10 @@ namespace qtnh {
     MPI_Init(NULL, NULL);
     MPI_Comm_rank(MPI_COMM_WORLD, &this->proc_id);
     MPI_Comm_size(MPI_COMM_WORLD, &this->num_processes);
+
+    #ifdef DEBUG
+      ROOT_COUT << "DEF_STENSOR_BCAST is " << (DEF_STENSOR_BCAST ? "on" : "off") << std::endl;
+    #endif
   }
 
   QTNHEnv::~QTNHEnv() {

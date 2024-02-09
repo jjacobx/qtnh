@@ -77,13 +77,24 @@ namespace qtnh {
   }
 
   SDenseTensor::SDenseTensor(const QTNHEnv& env, const qtnh::tidx_tup& dims, std::vector<qtnh::tel> els)
+    : SDenseTensor(env, dims, els, DEF_STENSOR_BCAST) {}
+
+  SDenseTensor::SDenseTensor(const QTNHEnv& env, const qtnh::tidx_tup& dims, std::vector<qtnh::tel> els, bool bcast)
     : DenseTensor(env, dims, els) {
     if (loc_els.size() != getSize()) {
       throw std::invalid_argument("Invalid length of elements.");
     }
 
-    loc_els.resize(getSize());
-    MPI_Bcast(loc_els.data(), getSize(), MPI_C_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
+    #ifdef DEBUG
+      MPI_Barrier(MPI_COMM_WORLD);
+    #endif
+
+    // Use broadcast flag to ensure elements are the same on all ranks
+    if (bcast) {
+      loc_els.resize(getSize());
+      MPI_Bcast(loc_els.data(), getSize(), MPI_C_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
+    }
+    
   }
 
   std::optional<qtnh::tel> SDenseTensor::getEl(const qtnh::tidx_tup& glob_idxs) const {
@@ -385,7 +396,7 @@ namespace qtnh {
     loc_els.resize(getSize());
 
     // Elements will be broadcasted by the constructor
-    return SDenseTensor(env, dims, loc_els);
+    return SDenseTensor(env, dims, loc_els, true);
   }
 
   void DDenseTensor::rep_all(std::size_t n) {
