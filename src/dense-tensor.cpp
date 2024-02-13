@@ -74,7 +74,7 @@ namespace qtnh {
   }
 
   qtnh::tel DenseTensor::operator[](const qtnh::tidx_tup& loc_idxs) const {
-    auto i = idxs_to_i(loc_idxs, dims);
+    auto i = idxs_to_i(loc_idxs, loc_dims);
     return loc_els.at(i);
   }
 
