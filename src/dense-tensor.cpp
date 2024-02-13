@@ -262,8 +262,57 @@ namespace qtnh {
       throw std::runtime_error("Asymmetric swaps are not allowed");
     }
 
-    if (idx1 < dist_dims.size() || idx2 < dist_dims.size()) {
-      throw std::runtime_error("Swaps with distributed indices are not implemented");
+    if (idx1 > idx2) std::swap(idx1, idx2);
+
+    if (idx1 < dist_dims.size() && idx2 > dist_dims.size()) {
+      qtnh::tidx_tup trail_dims(dims.begin() + idx2 + 1, dims.end());
+      auto block_length = dims_to_size(trail_dims);
+      auto stride = dims.at(idx2) * block_length;
+
+      qtnh::tidx_tup mid_loc_dims(dims.begin() + dist_dims.size(), dims.begin() + idx2);
+      auto num_blocks = dims_to_size(mid_loc_dims);
+
+      qtnh::tidx_tup mid_dist_dims(dist_dims.begin() + idx1 + 1, dist_dims.end());
+      auto dist_stride = dims_to_size(mid_dist_dims);
+
+      // qtnh::tidx_tup front_dims(dist_dims.begin(), dist_dims.begin() + idx1);
+      // auto dist_offset = dims_to_size(front_dims);
+
+      auto dist_idxs = i_to_idxs(env.proc_id, dist_dims);
+      auto rank_idx = dist_idxs.at(idx1);
+
+      MPI_Datatype strided, restrided;
+      MPI_Type_vector(num_blocks, block_length, stride, MPI_C_DOUBLE_COMPLEX, &strided);
+      MPI_Type_create_resized(strided, 0, block_length * sizeof(qtnh::tel), &restrided);
+      MPI_Type_commit(&restrided);
+
+      MPI_Comm swap_group;
+      MPI_Comm_split(MPI_COMM_WORLD, env.proc_id - rank_idx * dist_stride, env.proc_id, &swap_group);
+
+      // New data buffer
+      std::vector<qtnh::tel> new_els(loc_els.size());
+      for (int i = 0; i < dims.at(idx1); ++i) {
+        // This doesn't consider MPI message size limit
+        MPI_Scatter(loc_els.data(), 1, restrided, new_els.data() + i * block_length, 1, restrided, i, swap_group);
+        
+        // if (i == rank_idx) continue;
+
+        // auto offset = i * block_length;
+        // auto target_idxs = dist_idxs;
+        // target_idxs.at(idx1) = i;
+
+        // auto target = idxs_to_i(target_idxs, dist_dims);
+        // MPI_Request send_req;
+        // MPI_Isend(loc_els.data() + offset, 1, restrided, target, 0, MPI_COMM_WORLD, &send_req);
+      }
+
+      loc_els = new_els;
+      MPI_Type_free(&restrided);
+      return;
+    }
+
+    if (idx2 < dist_dims.size()) {
+
     }
 
     throw_unimplemented();
