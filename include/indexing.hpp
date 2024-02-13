@@ -7,7 +7,7 @@
 
 namespace qtnh{
   namespace ops {
-    std::ostream& operator<<(std::ostream& out, const qtnh::tidx_tup& o);
+    std::ostream& operator<<(std::ostream&, const qtnh::tidx_tup&);
   }
 
   class TIndexing {
