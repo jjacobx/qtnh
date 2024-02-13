@@ -45,6 +45,16 @@ namespace qtnh {
 
     return i;
   }
+
+  inline qtnh::tidx_tup i_to_idxs(std::size_t i, qtnh::tidx_tup dims) {
+    auto idxs = dims;
+    for (int j = dims.size() - 1; j >= 0; --j) {
+      idxs.at(j) = i % dims.at(j);
+      i /= dims.at(j);
+    }
+
+    return idxs;
+  }
 }
 
 #endif
