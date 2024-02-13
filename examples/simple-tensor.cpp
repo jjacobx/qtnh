@@ -1,8 +1,10 @@
 #include <iostream>
 
 #include "tensor-network.hpp"
+#include "indexing.hpp"
 
 using namespace std::complex_literals;
+using namespace qtnh::ops;
 
 int main() {
   qtnh::QTNHEnv my_env;
@@ -26,8 +28,12 @@ int main() {
   tn.insertBond(b1);
 
   auto t4id = tn.contractBond(b1.getID());
+  auto& t_out = tn.getTensor(t4id);
 
-  std::cout << my_env.proc_id << " | Tout[0, 0, 0] = " << tn.getTensor(t4id).getLocEl({0, 0, 0}).value_or(std::nan("1")) << std::endl;
+  std::cout << my_env.proc_id << " | Tout = " << t_out << std::endl;
+  t_out.swap(0, 2);
+  std::cout << my_env.proc_id << " | Tout_s1 = " << t_out << std::endl;
+
 
   return 0;
 }
