@@ -306,13 +306,23 @@ namespace qtnh {
         // MPI_Isend(loc_els.data() + offset, 1, restrided, target, 0, MPI_COMM_WORLD, &send_req);
       }
 
-      loc_els = new_els;
+      // new_els should not be copied, and original loc_els should be destroyed
+      loc_els = std::move(new_els);
       MPI_Type_free(&restrided);
       return;
     }
 
     if (idx2 < dist_dims.size()) {
+      auto target_idxs = i_to_idxs(env.proc_id, dist_dims);
+      std::swap(target_idxs.at(idx1), target_idxs.at(idx2));
+      auto target = idxs_to_i(target_idxs, dist_dims);
 
+      std::vector<qtnh::tel> new_els(loc_els.size());
+      // This doesn't consider MPI message size limit
+      MPI_Sendrecv(loc_els.data(), loc_els.size(), MPI_C_DOUBLE_COMPLEX, target, 0, 
+                   new_els.data(), new_els.size(), MPI_C_DOUBLE_COMPLEX, target, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      
+      loc_els = std::move(new_els);
     }
 
     throw_unimplemented();
