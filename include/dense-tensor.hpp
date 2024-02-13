@@ -5,6 +5,10 @@
 
 namespace qtnh {
 
+  namespace ops {
+    std::ostream& operator<<(std::ostream&, const Tensor&);
+  }
+
   class DenseTensor : public Tensor {
     protected:
       std::vector<qtnh::tel> loc_els;

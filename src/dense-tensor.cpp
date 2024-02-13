@@ -65,6 +65,25 @@ namespace qtnh {
     }
   }
 
+  namespace ops {
+    std::ostream& operator<<(std::ostream& out, const Tensor& o) {
+      if (!o.isActive()) {
+        out << "Inactive";
+        return out;
+      }
+
+      TIndexing ti(o.getLocDims());
+      for (auto idxs : ti) {
+        out << o.getLocEl(idxs).value();
+        if (idxs_to_i(idxs, o.getLocDims()) < o.getLocSize() - 1) {
+          out << ", ";
+        }
+      }
+
+      return out;
+    }
+  }
+
   std::optional<qtnh::tel> DenseTensor::getLocEl(const qtnh::tidx_tup& loc_idxs) const {
     if (!active) {
       return {};
