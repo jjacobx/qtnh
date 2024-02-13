@@ -31,3 +31,20 @@ target_compile_options(new-tensor
   PRIVATE
   -Wall
 )
+
+add_executable(mpi-tests
+  mpi-tests.cpp
+)
+
+add_dependencies(mpi-tests
+  qtnh
+)
+
+target_link_libraries(mpi-tests
+  qtnh
+)
+
+target_compile_options(mpi-tests
+  PRIVATE
+  -Wall
+)
