@@ -76,6 +76,7 @@ namespace qtnh {
       auto idxs1 = idxs;
       auto idxs2 = idxs;
 
+      // Swaps only invoked n * (n - 1) / 2 times, instead of n * n
       for (qtnh::tidx i = 0; i < loc_dims.at(loc_idx1) - 1; ++i) {
         idxs1.at(loc_idx1) = idxs2.at(loc_idx1) = i;
         for (qtnh::tidx j = i + 1; j < loc_dims.at(loc_idx2); ++j) {
@@ -324,6 +325,7 @@ namespace qtnh {
       std::vector<qtnh::tel> new_els(loc_els.size());
       for (int i = 0; i < dims.at(idx1); ++i) {
         // TODO: Consider MPI message size limit
+        // * A scatter might already take it into account
         MPI_Scatter(loc_els.data(), 1, restrided, new_els.data() + i * block_length, 1, restrided, i, swap_group);
       }
 
@@ -339,7 +341,7 @@ namespace qtnh {
       auto target = utils::idxs_to_i(target_idxs, dist_dims);
 
       std::vector<qtnh::tel> new_els(loc_els.size());
-      // TODO: Consider MPI message size limit
+      // TODO: Consider MPI message size limit – not a scatter
       MPI_Sendrecv(loc_els.data(), loc_els.size(), MPI_C_DOUBLE_COMPLEX, target, 0, 
                    new_els.data(), new_els.size(), MPI_C_DOUBLE_COMPLEX, target, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
       
