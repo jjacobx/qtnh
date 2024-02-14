@@ -7,6 +7,7 @@
 
 #include "dense-tensor.hpp"
 #include "indexing.hpp"
+#include "utils.hpp"
 
 using namespace qtnh::ops;
 
@@ -97,7 +98,7 @@ namespace qtnh {
       TIndexing ti(o.getLocDims());
       for (auto idxs : ti) {
         out << o.getLocEl(idxs).value();
-        if (idxs_to_i(idxs, o.getLocDims()) < o.getLocSize() - 1) {
+        if (utils::idxs_to_i(idxs, o.getLocDims()) < o.getLocSize() - 1) {
           out << ", ";
         }
       }
@@ -115,7 +116,7 @@ namespace qtnh {
   }
 
   qtnh::tel DenseTensor::operator[](const qtnh::tidx_tup& loc_idxs) const {
-    auto i = idxs_to_i(loc_idxs, loc_dims);
+    auto i = utils::idxs_to_i(loc_idxs, loc_dims);
     return loc_els.at(i);
   }
 
@@ -156,7 +157,7 @@ namespace qtnh {
   }
 
   qtnh::tel& SDenseTensor::operator[](const qtnh::tidx_tup& loc_idxs) {
-    auto i = idxs_to_i(loc_idxs, loc_dims);
+    auto i = utils::idxs_to_i(loc_idxs, loc_dims);
     return loc_els.at(i);
   }
 
@@ -185,7 +186,7 @@ namespace qtnh {
     TIndexing ti3 = TIndexing::app(ti1.cut(TIdxFlag::closed), ti2.cut(TIdxFlag::closed));
 
     auto dims3 = ti3.getDims();
-    auto nloc = dims_to_size(dims3);
+    auto nloc = utils::dims_to_size(dims3);
     std::vector<qtnh::tel> els3(nloc, 0.0);
 
     auto t3 = new SDenseTensor(this->env, dims3, els3);
@@ -204,7 +205,7 @@ namespace qtnh {
     auto ti2 = _get_indexing(t, wires, 1);
     auto ti3 = TIndexing::app(ti1.cut(TIdxFlag::closed), ti2.cut(TIdxFlag::closed));
 
-    std::size_t nloc = dims_to_size(ti3.getDims());
+    std::size_t nloc = utils::dims_to_size(ti3.getDims());
     std::vector<qtnh::tel> els3(nloc, 0.0);
 
     auto dims3 = _concat_dims(dist_dims, t->getDistDims(), ti3.getDims());
@@ -221,8 +222,8 @@ namespace qtnh {
     qtnh::tidx_tup loc_dims(dims.begin() + nidx, dims.end());
     qtnh::tidx_tup dist_dims(dims.begin(), dims.begin() + nidx);
 
-    auto nloc = dims_to_size(loc_dims);
-    auto ndist = dims_to_size(dist_dims);
+    auto nloc = utils::dims_to_size(loc_dims);
+    auto ndist = utils::dims_to_size(dist_dims);
 
     auto els = loc_els;
     if (env.proc_id < ndist) {
@@ -252,7 +253,7 @@ namespace qtnh {
   std::optional<qtnh::tel> DDenseTensor::getEl(const qtnh::tidx_tup& glob_idxs) const {
     qtnh::tidx_tup loc_idxs(glob_idxs.begin(), glob_idxs.begin() + dist_dims.size());
     qtnh::tidx_tup dist_idxs(glob_idxs.begin() + dist_dims.size(), glob_idxs.end());
-    auto rank = idxs_to_i(dist_idxs, getDistDims());
+    auto rank = utils::idxs_to_i(dist_idxs, getDistDims());
 
     if (env.proc_id == rank) {
       return getLocEl(loc_idxs);
@@ -264,7 +265,7 @@ namespace qtnh {
   void DDenseTensor::setEl(const qtnh::tidx_tup& glob_idxs, qtnh::tel el) {
     qtnh::tidx_tup loc_idxs(glob_idxs.begin(), glob_idxs.begin() + dist_dims.size());
     qtnh::tidx_tup dist_idxs(glob_idxs.begin() + dist_dims.size(), glob_idxs.end());
-    auto rank = idxs_to_i(dist_idxs, getDistDims());
+    auto rank = utils::idxs_to_i(dist_idxs, getDistDims());
 
     if (env.proc_id == rank) {
       setLocEl(loc_idxs, el);
@@ -280,7 +281,7 @@ namespace qtnh {
   }
 
   qtnh::tel& DDenseTensor::operator[](const qtnh::tidx_tup& loc_idxs) {
-    auto i = idxs_to_i(loc_idxs, loc_dims);
+    auto i = utils::idxs_to_i(loc_idxs, loc_dims);
     return loc_els.at(i);
   }
 
@@ -300,16 +301,16 @@ namespace qtnh {
 
     if (idx1 < dist_dims.size() && idx2 > dist_dims.size()) {
       qtnh::tidx_tup trail_dims(dims.begin() + idx2 + 1, dims.end());
-      auto block_length = dims_to_size(trail_dims);
+      auto block_length = utils::dims_to_size(trail_dims);
       auto stride = dims.at(idx2) * block_length;
 
       qtnh::tidx_tup mid_loc_dims(dims.begin() + dist_dims.size(), dims.begin() + idx2);
-      auto num_blocks = dims_to_size(mid_loc_dims);
+      auto num_blocks = utils::dims_to_size(mid_loc_dims);
 
       qtnh::tidx_tup mid_dist_dims(dist_dims.begin() + idx1 + 1, dist_dims.end());
-      auto dist_stride = dims_to_size(mid_dist_dims);
+      auto dist_stride = utils::dims_to_size(mid_dist_dims);
 
-      auto dist_idxs = i_to_idxs(env.proc_id, dist_dims);
+      auto dist_idxs = utils::i_to_idxs(env.proc_id, dist_dims);
       auto rank_idx = dist_idxs.at(idx1);
 
       MPI_Datatype strided, restrided;
@@ -333,9 +334,9 @@ namespace qtnh {
     }
 
     if (idx2 < dist_dims.size()) {
-      auto target_idxs = i_to_idxs(env.proc_id, dist_dims);
+      auto target_idxs = utils::i_to_idxs(env.proc_id, dist_dims);
       std::swap(target_idxs.at(idx1), target_idxs.at(idx2));
-      auto target = idxs_to_i(target_idxs, dist_dims);
+      auto target = utils::idxs_to_i(target_idxs, dist_dims);
 
       std::vector<qtnh::tel> new_els(loc_els.size());
       // TODO: Consider MPI message size limit
@@ -348,7 +349,7 @@ namespace qtnh {
     }
 
     // This should not be reached
-    throw_unimplemented();
+    utils::throw_unimplemented();
     return;
   }
 
@@ -365,7 +366,7 @@ namespace qtnh {
     auto ti2 = _get_indexing(t, wires, 1);
     auto ti3 = TIndexing::app(ti1.cut(TIdxFlag::closed), ti2.cut(TIdxFlag::closed));
 
-    auto nloc = dims_to_size(ti3.getDims());
+    auto nloc = utils::dims_to_size(ti3.getDims());
     std::vector<qtnh::tel> els3(nloc, 0.0);
 
     auto dims3 = _concat_dims(dist_dims, t->getDistDims(), ti3.getDims());
@@ -387,14 +388,14 @@ namespace qtnh {
     auto ti2 = _get_indexing(t, wires, 1);
     auto ti3 = TIndexing::app(ti1.cut(TIdxFlag::closed), ti2.cut(TIdxFlag::closed));
 
-    auto nloc = dims_to_size(ti3.getDims());
+    auto nloc = utils::dims_to_size(ti3.getDims());
     std::vector<qtnh::tel> els3(0);
 
     auto dims3 = _concat_dims(dist_dims, t->getDistDims(), ti3.getDims());
     auto nidx = dist_dims.size() + t->getDistDims().size();
 
-    auto n1 = dims_to_size(dist_dims);
-    auto n2 = dims_to_size(t->getDistDims());
+    auto n1 = utils::dims_to_size(dist_dims);
+    auto n2 = utils::dims_to_size(t->getDistDims());
 
     if (env.proc_id < n1 * n2) els3.assign(nloc, 0.0);
     auto t3 = new DDenseTensor(this->env, dims3, els3, nidx);
@@ -409,7 +410,7 @@ namespace qtnh {
 
   void DDenseTensor::scatter(tidx_tup_st n) {
     auto dist_dims2 = qtnh::tidx_tup(loc_dims.begin(), loc_dims.begin() + n);
-    auto shift = dims_to_size(dist_dims2);
+    auto shift = utils::dims_to_size(dist_dims2);
 
     if (active && env.proc_id != 0) {
       MPI_Ssend(loc_els.data(), getLocSize(), MPI_C_DOUBLE_COMPLEX, env.proc_id * shift, 0, MPI_COMM_WORLD);
@@ -444,7 +445,7 @@ namespace qtnh {
 
   void DDenseTensor::gather(tidx_tup_st n) {
     auto loc_dims2 = qtnh::tidx_tup(dist_dims.end() - n, dist_dims.end());
-    auto shift = dims_to_size(loc_dims2);
+    auto shift = utils::dims_to_size(loc_dims2);
     auto nnew = getLocSize() * shift;
 
     MPI_Comm gath_comm;
