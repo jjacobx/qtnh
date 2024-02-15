@@ -59,5 +59,16 @@ int main() {
   t8.swap(3, 2);
   std::cout << my_env.proc_id << " | T8 = " << t8 << std::endl;
 
+  qtnh::SwapTensor st(my_env, 2, 2);
+  std::cout << my_env.proc_id << " | SWAP = " << st << std::endl;
+
+  auto t9r = qtnh::Tensor::contract(&t8, &st, {{ 2, 3 }});
+  auto& t9 = *t9r;
+
+  std::cout << my_env.proc_id << " | T9 = " << t9 << std::endl;
+
+  qtnh::IdentityTensor id(my_env, { 2, 2 });
+  std::cout << my_env.proc_id << " | ID = " << id << std::endl;
+
   return 0;
 }
