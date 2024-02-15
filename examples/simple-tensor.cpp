@@ -43,5 +43,21 @@ int main() {
   t6.swap(0, 1);
   std::cout << my_env.proc_id << " | T6_s1 = " << t6 << std::endl;
 
+  std::vector<qtnh::tel> t7_els = { 1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8 };
+  qtnh::SDenseTensor t7(my_env, { 2, 2, 2, 2 }, t7_els);
+  auto t8 = t7.distribute(2);
+
+  std::cout << my_env.proc_id << " | T8 = " << t8 << std::endl;
+
+  t8.swap(0, 1);
+  std::cout << my_env.proc_id << " | T8_s1 = " << t8 << std::endl;
+
+  t8.swap(1, 0);
+  t8.swap(2, 3);
+  std::cout << my_env.proc_id << " | T8_s2 = " << t8 << std::endl;
+
+  t8.swap(3, 2);
+  std::cout << my_env.proc_id << " | T8 = " << t8 << std::endl;
+
   return 0;
 }

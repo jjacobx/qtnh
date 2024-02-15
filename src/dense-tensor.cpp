@@ -299,8 +299,8 @@ namespace qtnh {
 
     if (idx1 > idx2) std::swap(idx1, idx2);
 
-    if (active && idx1 >= dist_dims.size()) {
-      _local_swap(this, idx1 - dist_dims.size(), idx2 - dist_dims.size());
+    if (idx1 >= dist_dims.size()) {
+      if (active) _local_swap(this, idx1 - dist_dims.size(), idx2 - dist_dims.size());
       return;
     }
 
