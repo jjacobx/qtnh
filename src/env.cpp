@@ -44,7 +44,9 @@ namespace qtnh {
       // Safeguard as type_vector only accepts int arguments
       // TODO: use chained datatypes to overcome that limit
       if (stride <= std::numeric_limits<int>::max()) {
-        MPI_Type_vector(1, block_length, stride, MPI_C_DOUBLE_COMPLEX, &swap_p2_types[i]);
+        MPI_Datatype non_resized;
+        MPI_Type_vector(1, block_length, stride, MPI_C_DOUBLE_COMPLEX, &non_resized);
+        MPI_Type_create_resized(non_resized, 0, block_length * sizeof(qtnh::tel), &swap_p2_types[i]);
       }
 
       swap_p2_types_committed[i] = false;
