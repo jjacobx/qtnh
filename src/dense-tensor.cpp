@@ -7,6 +7,9 @@
 
 #include "dense-tensor.hpp"
 #include "indexing.hpp"
+#include "utils.hpp"
+
+using namespace qtnh::ops;
 
 namespace qtnh {
   TIndexing _get_indexing(Tensor* t, const std::vector<qtnh::wire>& wires, bool second) {
@@ -63,6 +66,48 @@ namespace qtnh {
     }
   }
 
+  void _local_swap(DenseTensor* t, qtnh::tidx_tup_st loc_idx1, qtnh::tidx_tup_st loc_idx2) {
+    auto loc_dims = t->getLocDims();
+    tidx_flags flags(loc_dims.size(), TIdxFlag::open);
+    flags.at(loc_idx1) = flags.at(loc_idx2) = TIdxFlag::closed;
+    TIndexing ti(loc_dims, flags);
+
+    for (auto idxs : ti) {
+      auto idxs1 = idxs;
+      auto idxs2 = idxs;
+
+      // Swaps only invoked n * (n - 1) / 2 times, instead of n * n
+      for (qtnh::tidx i = 0; i < loc_dims.at(loc_idx1) - 1; ++i) {
+        idxs1.at(loc_idx1) = idxs2.at(loc_idx1) = i;
+        for (qtnh::tidx j = i + 1; j < loc_dims.at(loc_idx2); ++j) {
+          idxs1.at(loc_idx2) = idxs2.at(loc_idx1) = j;
+          std::swap((*t)[idxs1], (*t)[idxs2]);
+        }
+      }
+    }
+
+    return;
+  }
+
+  namespace ops {
+    std::ostream& operator<<(std::ostream& out, const Tensor& o) {
+      if (!o.isActive()) {
+        out << "Inactive";
+        return out;
+      }
+
+      TIndexing ti(o.getLocDims());
+      for (auto idxs : ti) {
+        out << o.getLocEl(idxs).value();
+        if (utils::idxs_to_i(idxs, o.getLocDims()) < o.getLocSize() - 1) {
+          out << ", ";
+        }
+      }
+
+      return out;
+    }
+  }
+
   std::optional<qtnh::tel> DenseTensor::getLocEl(const qtnh::tidx_tup& loc_idxs) const {
     if (!active) {
       return {};
@@ -72,16 +117,29 @@ namespace qtnh {
   }
 
   qtnh::tel DenseTensor::operator[](const qtnh::tidx_tup& loc_idxs) const {
-    auto i = idxs_to_i(loc_idxs, dims);
+    auto i = utils::idxs_to_i(loc_idxs, loc_dims);
     return loc_els.at(i);
   }
 
   SDenseTensor::SDenseTensor(const QTNHEnv& env, const qtnh::tidx_tup& dims, std::vector<qtnh::tel> els)
+    : SDenseTensor(env, dims, els, DEF_STENSOR_BCAST) {}
+
+  SDenseTensor::SDenseTensor(const QTNHEnv& env, const qtnh::tidx_tup& dims, std::vector<qtnh::tel> els, bool bcast)
     : DenseTensor(env, dims, els) {
-    // TODO: Broadcast from rank 0
-    if (els.size() != getLocSize()) {
+    if (loc_els.size() != getSize()) {
       throw std::invalid_argument("Invalid length of elements.");
     }
+
+    #ifdef DEBUG
+      MPI_Barrier(MPI_COMM_WORLD);
+    #endif
+
+    // Use broadcast flag to ensure elements are the same on all ranks
+    if (bcast) {
+      loc_els.resize(getSize());
+      MPI_Bcast(loc_els.data(), getSize(), MPI_C_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
+    }
+    
   }
 
   std::optional<qtnh::tel> SDenseTensor::getEl(const qtnh::tidx_tup& glob_idxs) const {
@@ -100,12 +158,19 @@ namespace qtnh {
   }
 
   qtnh::tel& SDenseTensor::operator[](const qtnh::tidx_tup& loc_idxs) {
-    auto i = idxs_to_i(loc_idxs, loc_dims);
+    auto i = utils::idxs_to_i(loc_idxs, loc_dims);
     return loc_els.at(i);
   }
 
   void SDenseTensor::swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) {
-    throw "Unimplemented funciton!";
+    if (dims.at(idx1) != dims.at(idx2)) {
+      throw std::runtime_error("Asymmetric swaps are not allowed");
+    }
+
+    if (idx1 == idx2) return;
+
+    _local_swap(this, idx1, idx2);
+    return;
   }
 
   Tensor* SDenseTensor::contract_disp(Tensor* t, const std::vector<qtnh::wire>& wires) {
@@ -122,7 +187,7 @@ namespace qtnh {
     TIndexing ti3 = TIndexing::app(ti1.cut(TIdxFlag::closed), ti2.cut(TIdxFlag::closed));
 
     auto dims3 = ti3.getDims();
-    auto nloc = dims_to_size(dims3);
+    auto nloc = utils::dims_to_size(dims3);
     std::vector<qtnh::tel> els3(nloc, 0.0);
 
     auto t3 = new SDenseTensor(this->env, dims3, els3);
@@ -141,7 +206,7 @@ namespace qtnh {
     auto ti2 = _get_indexing(t, wires, 1);
     auto ti3 = TIndexing::app(ti1.cut(TIdxFlag::closed), ti2.cut(TIdxFlag::closed));
 
-    std::size_t nloc = dims_to_size(ti3.getDims());
+    std::size_t nloc = utils::dims_to_size(ti3.getDims());
     std::vector<qtnh::tel> els3(nloc, 0.0);
 
     auto dims3 = _concat_dims(dist_dims, t->getDistDims(), ti3.getDims());
@@ -158,8 +223,12 @@ namespace qtnh {
     qtnh::tidx_tup loc_dims(dims.begin() + nidx, dims.end());
     qtnh::tidx_tup dist_dims(dims.begin(), dims.begin() + nidx);
 
-    auto nloc = dims_to_size(loc_dims);
-    auto ndist = dims_to_size(dist_dims);
+    auto nloc = utils::dims_to_size(loc_dims);
+    auto ndist = utils::dims_to_size(dist_dims);
+
+    if (env.num_processes < ndist) {
+      throw std::runtime_error("Not enough ranks to distribute provided indices");
+    }
 
     auto els = loc_els;
     if (env.proc_id < ndist) {
@@ -173,7 +242,7 @@ namespace qtnh {
   }
 
   DDenseTensor::DDenseTensor(const QTNHEnv& env, const qtnh::tidx_tup& dims, std::vector<qtnh::tel> els, qtnh::tidx_tup_st n_dist_idxs)
-    : DenseTensor(env, dims, els), n_dist_idxs(n_dist_idxs) {
+    : DenseTensor(env, dims, els) {
     loc_dims = qtnh::tidx_tup(dims.begin() + n_dist_idxs, dims.end());
     dist_dims = qtnh::tidx_tup(dims.begin(), dims.begin() + n_dist_idxs);
 
@@ -187,9 +256,9 @@ namespace qtnh {
   }
 
   std::optional<qtnh::tel> DDenseTensor::getEl(const qtnh::tidx_tup& glob_idxs) const {
-    qtnh::tidx_tup loc_idxs(glob_idxs.begin(), glob_idxs.begin() + n_dist_idxs);
-    qtnh::tidx_tup dist_idxs(glob_idxs.begin() + n_dist_idxs, glob_idxs.end());
-    auto rank = idxs_to_i(dist_idxs, getDistDims());
+    qtnh::tidx_tup loc_idxs(glob_idxs.begin(), glob_idxs.begin() + dist_dims.size());
+    qtnh::tidx_tup dist_idxs(glob_idxs.begin() + dist_dims.size(), glob_idxs.end());
+    auto rank = utils::idxs_to_i(dist_idxs, getDistDims());
 
     if (env.proc_id == rank) {
       return getLocEl(loc_idxs);
@@ -199,9 +268,9 @@ namespace qtnh {
   }
 
   void DDenseTensor::setEl(const qtnh::tidx_tup& glob_idxs, qtnh::tel el) {
-    qtnh::tidx_tup loc_idxs(glob_idxs.begin(), glob_idxs.begin() + n_dist_idxs);
-    qtnh::tidx_tup dist_idxs(glob_idxs.begin() + n_dist_idxs, glob_idxs.end());
-    auto rank = idxs_to_i(dist_idxs, getDistDims());
+    qtnh::tidx_tup loc_idxs(glob_idxs.begin(), glob_idxs.begin() + dist_dims.size());
+    qtnh::tidx_tup dist_idxs(glob_idxs.begin() + dist_dims.size(), glob_idxs.end());
+    auto rank = utils::idxs_to_i(dist_idxs, getDistDims());
 
     if (env.proc_id == rank) {
       setLocEl(loc_idxs, el);
@@ -217,12 +286,94 @@ namespace qtnh {
   }
 
   qtnh::tel& DDenseTensor::operator[](const qtnh::tidx_tup& loc_idxs) {
-    auto i = idxs_to_i(loc_idxs, loc_dims);
+    auto i = utils::idxs_to_i(loc_idxs, loc_dims);
     return loc_els.at(i);
   }
 
   void DDenseTensor::swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) {
-    throw "Unimplemented funciton!";
+    if (idx1 > idx2) std::swap(idx1, idx2);
+
+    // Case: asymmetric swap
+    if (dims.at(idx1) != dims.at(idx2)) {
+      throw std::runtime_error("Asymmetric swaps are not allowed");
+    }
+
+    // Case: same-index swap
+    if (idx1 == idx2) return;
+
+    // Case: local swap
+    if (idx1 >= dist_dims.size()) {
+      if (active) _local_swap(this, idx1 - dist_dims.size(), idx2 - dist_dims.size());
+      return;
+    }
+
+    // Case: mixed local/distributed swap
+    if (idx1 < dist_dims.size() && idx2 >= dist_dims.size()) {
+      // Splitting communication causes global synchronisation
+      // Need to split active and inactive processes before quitting
+      MPI_Comm active_group;
+      MPI_Comm_split(MPI_COMM_WORLD, active, env.proc_id, &active_group);
+      if (!active) return;
+
+      qtnh::tidx_tup trail_dims(dims.begin() + idx2 + 1, dims.end());
+      auto block_length = utils::dims_to_size(trail_dims);
+      auto stride = dims.at(idx2) * block_length;
+
+      qtnh::tidx_tup mid_loc_dims(dims.begin() + dist_dims.size(), dims.begin() + idx2);
+      auto num_blocks = utils::dims_to_size(mid_loc_dims);
+
+      qtnh::tidx_tup mid_dist_dims(dist_dims.begin() + idx1 + 1, dist_dims.end());
+      auto dist_stride = utils::dims_to_size(mid_dist_dims);
+
+      auto dist_idxs = utils::i_to_idxs(env.proc_id, dist_dims);
+      auto rank_idx = dist_idxs.at(idx1);
+
+      MPI_Datatype strided, restrided;
+      MPI_Type_vector(num_blocks, block_length, stride, MPI_C_DOUBLE_COMPLEX, &strided);
+      MPI_Type_create_resized(strided, 0, block_length * sizeof(qtnh::tel), &restrided);
+      MPI_Type_commit(&restrided);
+
+      MPI_Comm swap_group;
+      MPI_Comm_split(active_group, env.proc_id - rank_idx * dist_stride, env.proc_id, &swap_group);
+
+      int swap_rank, swap_size;
+      MPI_Comm_rank(swap_group, &swap_rank);
+      MPI_Comm_size(swap_group, &swap_size);
+
+      std::vector<qtnh::tel> new_els(loc_els.size());
+      for (int i = 0; i < dims.at(idx1); ++i) {
+        // TODO: Consider MPI message size limit
+        // * A scatter might already take it into account
+        MPI_Scatter(loc_els.data(), 1, restrided, new_els.data() + i * block_length, 1, restrided, i, swap_group);
+      }
+
+      // ! new_els should not be copied, and original loc_els should be destroyed
+      loc_els = std::move(new_els);
+      MPI_Type_free(&restrided);
+      return;
+    }
+
+    // Case: distributed swap
+    if (idx2 < dist_dims.size()) {
+      if (!active) return;
+
+      auto target_idxs = utils::i_to_idxs(env.proc_id, dist_dims);
+      std::swap(target_idxs.at(idx1), target_idxs.at(idx2));
+      auto target = utils::idxs_to_i(target_idxs, dist_dims);
+
+      std::vector<qtnh::tel> new_els(loc_els.size());
+      // TODO: Consider MPI message size limit – not a scatter
+      MPI_Sendrecv(loc_els.data(), loc_els.size(), MPI_C_DOUBLE_COMPLEX, target, 0, 
+                   new_els.data(), new_els.size(), MPI_C_DOUBLE_COMPLEX, target, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      
+      // ! new_els should not be copied, and original loc_els should be destroyed
+      loc_els = std::move(new_els);
+      return;
+    }
+
+    // * This should not be reached
+    utils::throw_unimplemented();
+    return;
   }
 
   Tensor* DDenseTensor::contract_disp(Tensor* t, const std::vector<qtnh::wire>& wires) {
@@ -238,7 +389,7 @@ namespace qtnh {
     auto ti2 = _get_indexing(t, wires, 1);
     auto ti3 = TIndexing::app(ti1.cut(TIdxFlag::closed), ti2.cut(TIdxFlag::closed));
 
-    auto nloc = dims_to_size(ti3.getDims());
+    auto nloc = utils::dims_to_size(ti3.getDims());
     std::vector<qtnh::tel> els3(nloc, 0.0);
 
     auto dims3 = _concat_dims(dist_dims, t->getDistDims(), ti3.getDims());
@@ -260,14 +411,14 @@ namespace qtnh {
     auto ti2 = _get_indexing(t, wires, 1);
     auto ti3 = TIndexing::app(ti1.cut(TIdxFlag::closed), ti2.cut(TIdxFlag::closed));
 
-    auto nloc = dims_to_size(ti3.getDims());
+    auto nloc = utils::dims_to_size(ti3.getDims());
     std::vector<qtnh::tel> els3(0);
 
     auto dims3 = _concat_dims(dist_dims, t->getDistDims(), ti3.getDims());
     auto nidx = dist_dims.size() + t->getDistDims().size();
 
-    auto n1 = dims_to_size(dist_dims);
-    auto n2 = dims_to_size(t->getDistDims());
+    auto n1 = utils::dims_to_size(dist_dims);
+    auto n2 = utils::dims_to_size(t->getDistDims());
 
     if (env.proc_id < n1 * n2) els3.assign(nloc, 0.0);
     auto t3 = new DDenseTensor(this->env, dims3, els3, nidx);
@@ -282,7 +433,7 @@ namespace qtnh {
 
   void DDenseTensor::scatter(tidx_tup_st n) {
     auto dist_dims2 = qtnh::tidx_tup(loc_dims.begin(), loc_dims.begin() + n);
-    auto shift = dims_to_size(dist_dims2);
+    auto shift = utils::dims_to_size(dist_dims2);
 
     if (active && env.proc_id != 0) {
       MPI_Ssend(loc_els.data(), getLocSize(), MPI_C_DOUBLE_COMPLEX, env.proc_id * shift, 0, MPI_COMM_WORLD);
@@ -317,7 +468,7 @@ namespace qtnh {
 
   void DDenseTensor::gather(tidx_tup_st n) {
     auto loc_dims2 = qtnh::tidx_tup(dist_dims.end() - n, dist_dims.end());
-    auto shift = dims_to_size(loc_dims2);
+    auto shift = utils::dims_to_size(loc_dims2);
     auto nnew = getLocSize() * shift;
 
     MPI_Comm gath_comm;
@@ -352,14 +503,14 @@ namespace qtnh {
   SDenseTensor DDenseTensor::share() {
     gather(dist_dims.size());
     loc_els.resize(getSize());
-    MPI_Bcast(loc_els.data(), getSize(), MPI_C_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
 
-    return SDenseTensor(env, dims, loc_els);
+    // Elements will be broadcasted by the constructor
+    return SDenseTensor(env, dims, loc_els, true);
   }
 
   void DDenseTensor::rep_all(std::size_t n) {
     std::vector<MPI_Request> send_reqs(n, MPI_REQUEST_NULL);
-    for (int i = 1; active && (i < n); ++i) {
+    for (std::size_t i = 1; active && (i < n); ++i) {
       MPI_Isend(loc_els.data(), getLocSize(), MPI_C_DOUBLE_COMPLEX, env.proc_id + i * getDistSize(), 0, MPI_COMM_WORLD, &send_reqs.at(i));
     }
 
@@ -372,7 +523,6 @@ namespace qtnh {
 
     dims.insert(dims.begin(), n);
     dist_dims.insert(dist_dims.begin(), n);
-    ++n_dist_idxs;
 
     MPI_Waitall(n, send_reqs.data(), MPI_STATUS_IGNORE);
     MPI_Wait(&recv_req, MPI_STATUS_IGNORE);
@@ -382,7 +532,7 @@ namespace qtnh {
 
   void DDenseTensor::rep_each(std::size_t n) {
     std::vector<MPI_Request> send_reqs(n, MPI_REQUEST_NULL);
-    for (int i = 0; active && (i < n); ++i) {
+    for (std::size_t i = 0; active && (i < n); ++i) {
       // Rank 0 sending data to itself causes a deadlock
       if (i == 0 && env.proc_id == 0) continue;
       MPI_Isend(loc_els.data(), getLocSize(), MPI_C_DOUBLE_COMPLEX, n * env.proc_id + i, 0, MPI_COMM_WORLD, &send_reqs.at(i));
@@ -399,7 +549,6 @@ namespace qtnh {
 
     dims.insert(dims.begin() + getDistDims().size(), n);
     dist_dims.insert(dist_dims.end(), n);
-    ++n_dist_idxs;
 
     MPI_Wait(&recv_req, MPI_STATUS_IGNORE);
 

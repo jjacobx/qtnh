@@ -1,8 +1,9 @@
 add_library(qtnh
+  dense-tensor.cpp
   env.cpp
   indexing.cpp
-  dense-tensor.cpp
   tensor-network.cpp
+  utils.cpp
 )
 
 target_compile_features(qtnh
@@ -28,6 +29,14 @@ if (CMAKE_BUILD_TYPE MATCHES Debug)
   target_compile_options(qtnh
     PRIVATE
     -DDEBUG
+  )
+endif()
+
+option(DEF_STENSOR_BCAST "Broadcast shared tensors from root." 1)
+if (NOT DEF_STENSOR_BCAST)
+  target_compile_options(qtnh
+    PRIVATE
+    -DDEF_STENSOR_BCAST=0
   )
 endif()
 

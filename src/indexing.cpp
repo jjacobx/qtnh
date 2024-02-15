@@ -1,7 +1,7 @@
 #include "indexing.hpp"
 
 namespace qtnh {
-  std::ostream& operator<<(std::ostream& out, const qtnh::tidx_tup& o) {
+  std::ostream& ops::operator<<(std::ostream& out, const qtnh::tidx_tup& o) {
     out << "(";
     for (std::size_t i = 0; i < o.size(); i++) {
       out << o.at(i);

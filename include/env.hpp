@@ -1,16 +1,26 @@
 #ifndef ENV_HPP
 #define ENV_HPP
 
+#include <mpi.h>
+
 namespace qtnh {
   struct QTNHEnv {
-    int proc_id;
-    int num_processes;
-    int num_threads;
+    public:
+      unsigned int proc_id;
+      unsigned int num_processes;
+      unsigned int num_threads;
 
-    QTNHEnv();
-    ~QTNHEnv();
+      MPI_Datatype swap_p2_types[32];
+      bool swap_p2_types_committed[32];
 
-    void print() const;
+      QTNHEnv();
+      ~QTNHEnv();
+
+      void print() const;
+
+    private:
+      void init_swap_p2_types();
+      void free_swap_p2_types();
   };
 }
 

@@ -5,6 +5,10 @@
 
 namespace qtnh {
 
+  namespace ops {
+    std::ostream& operator<<(std::ostream&, const Tensor&);
+  }
+
   class DenseTensor : public Tensor {
     protected:
       std::vector<qtnh::tel> loc_els;
@@ -34,6 +38,7 @@ namespace qtnh {
       SDenseTensor() = delete;
       SDenseTensor(const SDenseTensor&) = delete;
       SDenseTensor(const QTNHEnv&, const qtnh::tidx_tup&, std::vector<qtnh::tel>);
+      SDenseTensor(const QTNHEnv&, const qtnh::tidx_tup&, std::vector<qtnh::tel>, bool);
       ~SDenseTensor() = default;
 
       virtual std::optional<qtnh::tel> getEl(const qtnh::tidx_tup&) const override;
@@ -47,8 +52,6 @@ namespace qtnh {
 
   class DDenseTensor : public DenseTensor {
     private:
-      qtnh::tidx_tup_st n_dist_idxs;
-
       virtual Tensor* contract_disp(Tensor*, const std::vector<qtnh::wire>&) override;
       virtual Tensor* contract(SDenseTensor*, const std::vector<qtnh::wire>&) override;
       virtual Tensor* contract(DDenseTensor*, const std::vector<qtnh::wire>&) override;
@@ -58,8 +61,6 @@ namespace qtnh {
       DDenseTensor(const SDenseTensor&) = delete;
       DDenseTensor(const QTNHEnv&, const qtnh::tidx_tup&, std::vector<qtnh::tel>, qtnh::tidx_tup_st);
       ~DDenseTensor() = default;
-
-      // qtnh::tidx_tup_st getDistIdxs() const { return n_dist_idxs; }
 
       virtual std::optional<qtnh::tel> getEl(const qtnh::tidx_tup&) const override;
       virtual void setEl(const qtnh::tidx_tup&, qtnh::tel) override;

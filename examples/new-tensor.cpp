@@ -1,8 +1,10 @@
 #include <iostream>
 
+#include "indexing.hpp"
 #include "tensor-network.hpp"
 
 using namespace std::complex_literals;
+using namespace qtnh::ops;
 
 int main() {
   qtnh::QTNHEnv my_env;
@@ -12,6 +14,8 @@ int main() {
 
   qtnh::tidx_tup dt1_dims = { 2, 2, 2 };
   qtnh::tidx_tup dt2_dims = { 4, 2 };
+
+  if (my_env.proc_id == 0) std::cout << "Dims: " << dt1_dims << std::endl;
 
   qtnh::SDenseTensor dt1(my_env, dt1_dims, dt1_els);
   qtnh::SDenseTensor dt2(my_env, dt2_dims, dt2_els);
@@ -94,6 +98,12 @@ int main() {
   auto t15r = qtnh::Tensor::contract(&dt13, &dt14, std::vector<qtnh::wire>(0));
   auto& t15 = *t15r;
   std::cout << my_env.proc_id << ": dt15[1, 1, 1, 3, 1] = " << t15.getLocEl({1, 1, 1, 3, 1}).value_or(std::nan("1")) << std::endl;
+
+  qtnh::SDenseTensor dt16(my_env, dt1_dims, dt1_els);
+  std::cout << my_env.proc_id << ": dt16[0, 0, 1] = " << dt16.getLocEl({0, 0, 1}).value_or(std::nan("1")) << std::endl;
+
+  dt16.swap(1, 2);
+  std::cout << my_env.proc_id << ": dt16[0, 0, 1] = " << dt16.getLocEl({0, 0, 1}).value_or(std::nan("1")) << std::endl;
 
   return 0;
 }
