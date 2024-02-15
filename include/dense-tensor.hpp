@@ -76,6 +76,35 @@ namespace qtnh {
       void rep_all(std::size_t);
       void rep_each(std::size_t);
   };
+
+  class SwapTensor : public Tensor {
+    private:
+      virtual Tensor* contract_disp(Tensor* t, const std::vector<qtnh::wire>& wires) override {
+        t->swap(wires.at(0).first, wires.at(0).second); return t; }
+      virtual Tensor* contract(SDenseTensor* t, const std::vector<qtnh::wire>& wires) override {
+        t->swap(wires.at(0).first, wires.at(0).second); return t; }
+      virtual Tensor* contract(DDenseTensor* t, const std::vector<qtnh::wire>& wires) override {
+        t->swap(wires.at(0).first, wires.at(0).second); return t; }
+
+    public:
+      SwapTensor() = delete;
+      SwapTensor(const SwapTensor&) = delete;
+      SwapTensor(const QTNHEnv& env, std::size_t n1, std::size_t n2)
+        : Tensor(env, { n1, n2, n2, n1 }) {}
+      ~SwapTensor() = default;
+
+    virtual std::optional<qtnh::tel> getEl(const qtnh::tidx_tup& idxs) const override {
+      return getLocEl(idxs); }
+    virtual std::optional<qtnh::tel> getLocEl(const qtnh::tidx_tup& idxs) const override {
+      return (*this)[idxs]; }
+    virtual qtnh::tel operator[](const qtnh::tidx_tup& idxs) const override {
+      return (idxs.at(0) == idxs.at(3)) && (idxs.at(1) == idxs.at(2)); }
+
+    virtual void swap(qtnh::tidx_tup_st, qtnh::tidx_tup_st) override {
+      utils::throw_unimplemented(); return; }
+  };
+
+  
 }
 
 #endif
