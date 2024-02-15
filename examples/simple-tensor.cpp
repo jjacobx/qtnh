@@ -30,10 +30,18 @@ int main() {
   auto t4id = tn.contractBond(b1.getID());
   auto& t_out = tn.getTensor(t4id);
 
-  std::cout << my_env.proc_id << " | Tout = " << t_out << std::endl;
+  std::cout << my_env.proc_id << " | Tout[" << t_out.isActive() << "] = " << t_out << std::endl;
   t_out.swap(0, 2);
   std::cout << my_env.proc_id << " | Tout_s1 = " << t_out << std::endl;
 
+  std::vector<qtnh::tel> t5_els = { 1, 2, 3, 1, 2, 3, 1, 2, 3 };
+  qtnh::SDenseTensor t5(my_env, { 3, 3 }, t5_els);
+  auto t6 = t5.distribute(1);
+
+  std::cout << my_env.proc_id << " | T6 = " << t6 << std::endl;
+
+  t6.swap(0, 1);
+  std::cout << my_env.proc_id << " | T6_s1 = " << t6 << std::endl;
 
   return 0;
 }

@@ -299,12 +299,16 @@ namespace qtnh {
 
     if (idx1 > idx2) std::swap(idx1, idx2);
 
-    if (idx1 > dist_dims.size()) {
+    if (active && idx1 >= dist_dims.size()) {
       _local_swap(this, idx1 - dist_dims.size(), idx2 - dist_dims.size());
       return;
     }
 
-    if (idx1 < dist_dims.size() && idx2 > dist_dims.size()) {
+    MPI_Comm active_group;
+    MPI_Comm_split(MPI_COMM_WORLD, active, env.proc_id, &active_group);
+    if (!active) return;
+
+    if (idx1 < dist_dims.size() && idx2 >= dist_dims.size()) {
       qtnh::tidx_tup trail_dims(dims.begin() + idx2 + 1, dims.end());
       auto block_length = utils::dims_to_size(trail_dims);
       auto stride = dims.at(idx2) * block_length;
@@ -324,7 +328,11 @@ namespace qtnh {
       MPI_Type_commit(&restrided);
 
       MPI_Comm swap_group;
-      MPI_Comm_split(MPI_COMM_WORLD, env.proc_id - rank_idx * dist_stride, env.proc_id, &swap_group);
+      MPI_Comm_split(active_group, env.proc_id - rank_idx * dist_stride, env.proc_id, &swap_group);
+
+      int swap_rank, swap_size;
+      MPI_Comm_rank(swap_group, &swap_rank);
+      MPI_Comm_size(swap_group, &swap_size);
 
       std::vector<qtnh::tel> new_els(loc_els.size());
       for (int i = 0; i < dims.at(idx1); ++i) {
