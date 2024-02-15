@@ -226,6 +226,10 @@ namespace qtnh {
     auto nloc = utils::dims_to_size(loc_dims);
     auto ndist = utils::dims_to_size(dist_dims);
 
+    if (env.num_processes < ndist) {
+      throw std::runtime_error("Not enough ranks to distribute provided indices");
+    }
+
     auto els = loc_els;
     if (env.proc_id < ndist) {
       els.erase(els.begin(), els.begin() + env.proc_id * nloc);
