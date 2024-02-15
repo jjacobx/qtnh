@@ -104,6 +104,34 @@ namespace qtnh {
       utils::throw_unimplemented(); return; }
   };
 
+  class IdentityTensor : public Tensor {
+    private:
+      virtual Tensor* contract_disp(Tensor* t, const std::vector<qtnh::wire>& wires) override { return t; }
+      virtual Tensor* contract(SDenseTensor* t, const std::vector<qtnh::wire>& wires) override { return t; }
+      virtual Tensor* contract(DDenseTensor* t, const std::vector<qtnh::wire>& wires) override { return t; }
+      
+    public:
+      IdentityTensor() = delete;
+      IdentityTensor(const IdentityTensor&) = delete;
+      IdentityTensor(const QTNHEnv& env, const qtnh::tidx_tup& in_dims)
+        : Tensor(env, utils::concat_dims(in_dims, in_dims)) {};
+      ~IdentityTensor() = default;
+
+      virtual std::optional<qtnh::tel> getEl(const qtnh::tidx_tup& idxs) const override {
+        return getLocEl(idxs);
+      }
+      virtual std::optional<qtnh::tel> getLocEl(const qtnh::tidx_tup& idxs) const override {
+        return (*this)[idxs];
+      }
+      virtual qtnh::tel operator[](const qtnh::tidx_tup& idxs) const override {
+        for (std::size_t i = 0; i < idxs.size() / 2; ++i) if (idxs.at(i) != idxs.at(i + idxs.size() / 2)) return 0;
+        return 1;
+      }
+
+      virtual void swap(qtnh::tidx_tup_st, qtnh::tidx_tup_st) override {
+        utils::throw_unimplemented(); return; }
+  };
+
   
 }
 
