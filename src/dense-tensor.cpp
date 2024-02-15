@@ -291,24 +291,30 @@ namespace qtnh {
   }
 
   void DDenseTensor::swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) {
+    if (idx1 > idx2) std::swap(idx1, idx2);
+
+    // Case: asymmetric swap
     if (dims.at(idx1) != dims.at(idx2)) {
       throw std::runtime_error("Asymmetric swaps are not allowed");
     }
 
+    // Case: same-index swap
     if (idx1 == idx2) return;
 
-    if (idx1 > idx2) std::swap(idx1, idx2);
-
+    // Case: local swap
     if (idx1 >= dist_dims.size()) {
       if (active) _local_swap(this, idx1 - dist_dims.size(), idx2 - dist_dims.size());
       return;
     }
 
-    MPI_Comm active_group;
-    MPI_Comm_split(MPI_COMM_WORLD, active, env.proc_id, &active_group);
-    if (!active) return;
-
+    // Case: mixed local/distributed swap
     if (idx1 < dist_dims.size() && idx2 >= dist_dims.size()) {
+      // Splitting communication causes global synchronisation
+      // Need to split active and inactive processes before quitting
+      MPI_Comm active_group;
+      MPI_Comm_split(MPI_COMM_WORLD, active, env.proc_id, &active_group);
+      if (!active) return;
+
       qtnh::tidx_tup trail_dims(dims.begin() + idx2 + 1, dims.end());
       auto block_length = utils::dims_to_size(trail_dims);
       auto stride = dims.at(idx2) * block_length;
@@ -347,7 +353,10 @@ namespace qtnh {
       return;
     }
 
+    // Case: distributed swap
     if (idx2 < dist_dims.size()) {
+      if (!active) return;
+
       auto target_idxs = utils::i_to_idxs(env.proc_id, dist_dims);
       std::swap(target_idxs.at(idx1), target_idxs.at(idx2));
       auto target = utils::idxs_to_i(target_idxs, dist_dims);
@@ -362,7 +371,7 @@ namespace qtnh {
       return;
     }
 
-    // This should not be reached
+    // * This should not be reached
     utils::throw_unimplemented();
     return;
   }
