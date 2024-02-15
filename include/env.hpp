@@ -10,8 +10,8 @@ namespace qtnh {
       unsigned int num_processes;
       unsigned int num_threads;
 
-      MPI_Datatype swap_types[4][32];
-      bool swap_types_committed[4][32];
+      MPI_Datatype swap_p2_types[32];
+      bool swap_p2_types_committed[32];
 
       QTNHEnv();
       ~QTNHEnv();
@@ -19,8 +19,8 @@ namespace qtnh {
       void print() const;
 
     private:
-      void init_swap_types();
-      void free_swap_types();
+      void init_swap_p2_types();
+      void free_swap_p2_types();
   };
 }
 

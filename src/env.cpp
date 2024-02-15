@@ -18,7 +18,7 @@ namespace qtnh {
     proc_id = _proc_id;
     num_processes = _num_processes;
 
-    init_swap_types();
+    init_swap_p2_types();
 
     #ifdef DEBUG
       ROOT_COUT << "DEF_STENSOR_BCAST is " << (DEF_STENSOR_BCAST ? "on" : "off") << std::endl;
@@ -26,7 +26,7 @@ namespace qtnh {
   }
 
   QTNHEnv::~QTNHEnv() {
-    free_swap_types();
+    free_swap_p2_types();
     MPI_Finalize();
   }
 
@@ -36,27 +36,26 @@ namespace qtnh {
     std::cout << "Thread count: " << num_threads << std::endl;
   }
 
-  void QTNHEnv::init_swap_types() {
-    for (std::size_t i = 0; i < 4; ++i) {
-      for (std::size_t j = 0; j < 32; ++j) {
-        auto b = i + 2;
-        auto block_length = (long long)pow(b, j);
-        auto stride = b * block_length;
-        if (stride <= std::numeric_limits<int>::max()) {
-          MPI_Type_vector(1, block_length, stride, MPI_C_DOUBLE_COMPLEX, &swap_types[i][j]);
-        }
-        swap_types_committed[i][j] = false;
+  void QTNHEnv::init_swap_p2_types() {
+    for (std::size_t i = 0; i < 32; ++i) {
+      auto block_length = (std::size_t)pow(2, i);
+      auto stride = 2 * block_length;
+
+      // Safeguard as type_vector only accepts int arguments
+      // TODO: use chained datatypes to overcome that limit
+      if (stride <= std::numeric_limits<int>::max()) {
+        MPI_Type_vector(1, block_length, stride, MPI_C_DOUBLE_COMPLEX, &swap_p2_types[i]);
       }
+
+      swap_p2_types_committed[i] = false;
     }
   }
 
-  void QTNHEnv::free_swap_types() {
-    for (std::size_t i = 0; i < 4; ++i) {
-      for (std::size_t j = 0; j < 32; ++j) {
-        if (swap_types_committed[i][j]) {
-          MPI_Type_free(&swap_types[i][j]);
-          swap_types_committed[i][j] = false;
-        }
+  void QTNHEnv::free_swap_p2_types() {
+    for (std::size_t i = 0; i < 32; ++i) {
+      if (swap_p2_types_committed[i]) {
+        MPI_Type_free(&swap_p2_types[i]);
+        swap_p2_types_committed[i] = false;
       }
     }
   }
