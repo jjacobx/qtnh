@@ -1,7 +1,6 @@
 #include <iostream>
 
-#include "tensor-network.hpp"
-#include "indexing.hpp"
+#include "qtnh.hpp"
 
 using namespace std::complex_literals;
 using namespace qtnh::ops;

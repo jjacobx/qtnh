@@ -3,7 +3,7 @@
 
 #include <memory>
 
-#include "typedefs.hpp"
+#include "../core/typedefs.hpp"
 
 namespace qtnh{
   namespace ops {

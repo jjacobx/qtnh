@@ -1,7 +1,7 @@
 #include <iostream>
 #include <mpi.h>
 
-#include "tensor-network.hpp"
+#include "tensor/network.hpp"
 
 namespace qtnh {
   qtnh::uint TensorNetwork::contractBond(qtnh::uint id) {

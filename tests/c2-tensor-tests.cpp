@@ -1,5 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
-#include "tensor-network.hpp"
+#include "tensor/network.hpp"
 
 using namespace std::complex_literals;
 

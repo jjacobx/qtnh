@@ -5,9 +5,9 @@
 #include <numeric>
 #include <stdexcept>
 
-#include "dense-tensor.hpp"
-#include "indexing.hpp"
-#include "utils.hpp"
+#include "core/utils.hpp"
+#include "tensor/dense.hpp"
+#include "tensor/indexing.hpp"
 
 using namespace qtnh::ops;
 

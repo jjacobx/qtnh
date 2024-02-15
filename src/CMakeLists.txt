@@ -70,13 +70,17 @@ install(TARGETS qtnh
         EXPORT qtnh
 )
 
-install(FILES ${PROJECT_SOURCE_DIR}/include/tensor.hpp
+install(FILES ${PROJECT_SOURCE_DIR}/include/qtnh.hpp
   TYPE INCLUDE
 )
 
-# install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/qtnh 
-#   TYPE INCLUDE
-# )
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/core
+  TYPE INCLUDE
+)
+
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/tensor
+  TYPE INCLUDE
+)
 
 install(EXPORT qtnh
   FILE qtnh.cmake

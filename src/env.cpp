@@ -2,8 +2,8 @@
 #include <mpi.h>
 #include <omp.h>
 
-#include "env.hpp"
-#include "typedefs.hpp"
+#include "core/env.hpp"
+#include "core/typedefs.hpp"
 
 namespace qtnh {
   QTNHEnv::QTNHEnv() {

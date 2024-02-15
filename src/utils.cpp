@@ -1,7 +1,7 @@
 #include <functional>
 #include <numeric>
 
-#include "utils.hpp"
+#include "core/utils.hpp"
 
 namespace qtnh {
   namespace utils {

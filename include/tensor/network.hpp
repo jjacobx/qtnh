@@ -1,7 +1,7 @@
 #ifndef TENSOR_NETWORK_HPP
 #define TENSOR_NETWORK_HPP
 
-#include "dense-tensor.hpp"
+#include "dense.hpp"
 
 namespace qtnh {
   struct Bond {

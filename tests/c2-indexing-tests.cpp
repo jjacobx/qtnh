@@ -1,5 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
-#include "indexing.hpp"
+#include "tensor/indexing.hpp"
 
 TEST_CASE("create-indexing-test") {
     qtnh::tidx_tup dims = { 2, 3, 4, 5 };

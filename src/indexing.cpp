@@ -1,4 +1,4 @@
-#include "indexing.hpp"
+#include "tensor/indexing.hpp"
 
 namespace qtnh {
   std::ostream& ops::operator<<(std::ostream& out, const qtnh::tidx_tup& o) {

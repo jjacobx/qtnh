@@ -1,7 +1,7 @@
 #ifndef DENSE_TENSOR_HPP
 #define DENSE_TENSOR_HPP
 
-#include "tensor.hpp"
+#include "base.hpp"
 
 namespace qtnh {
 

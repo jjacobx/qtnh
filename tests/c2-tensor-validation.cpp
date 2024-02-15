@@ -1,6 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
-#include "tensor-network.hpp"
-#include "indexing.hpp"
+#include "tensor/network.hpp"
+#include "tensor/indexing.hpp"
 
 using namespace std::complex_literals;
 

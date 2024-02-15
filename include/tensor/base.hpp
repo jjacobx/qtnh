@@ -4,9 +4,9 @@
 #include <map>
 #include <optional>
 
-#include "env.hpp"
-#include "typedefs.hpp"
-#include "utils.hpp"
+#include "../core/env.hpp"
+#include "../core/typedefs.hpp"
+#include "../core/utils.hpp"
 
 namespace qtnh {
   class SDenseTensor;
@@ -55,7 +55,7 @@ namespace qtnh {
 
       virtual std::optional<qtnh::tel> getEl(const qtnh::tidx_tup&) const = 0;
       virtual std::optional<qtnh::tel> getLocEl(const qtnh::tidx_tup&) const = 0;
-      virtual qtnh::tel operator[](const qtnh::tidx_tup& loc_idxs) const = 0;
+      virtual qtnh::tel operator[](const qtnh::tidx_tup&) const = 0;
 
       virtual void swap(qtnh::tidx_tup_st, qtnh::tidx_tup_st) = 0;
 
