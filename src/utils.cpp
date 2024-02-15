@@ -33,5 +33,14 @@ namespace qtnh {
 
       return idxs;
     }
+
+    qtnh::tidx_tup concat_dims(qtnh::tidx_tup dims1, qtnh::tidx_tup dims2) {
+      qtnh::tidx_tup dims3;
+      dims3.reserve(dims1.size() + dims2.size());
+      dims3.insert(dims3.end(), dims1.begin(), dims1.end());
+      dims3.insert(dims3.end(), dims2.begin(), dims2.end());
+
+      return dims3;
+    }
   }
 }
