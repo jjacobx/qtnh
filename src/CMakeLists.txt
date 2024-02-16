@@ -1,7 +1,9 @@
 add_library(qtnh
+  base-tensor.cpp
   dense-tensor.cpp
   env.cpp
   indexing.cpp
+  special-tensor.cpp
   tensor-network.cpp
   utils.cpp
 )
