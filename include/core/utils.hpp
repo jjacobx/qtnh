@@ -1,3 +1,6 @@
+#ifndef _CORE__UTILS_HPP
+#define _CORE__UTILS_HPP
+
 #include "typedefs.hpp"
 
 namespace qtnh {
@@ -11,3 +14,5 @@ namespace qtnh {
     qtnh::tidx_tup concat_dims(qtnh::tidx_tup, qtnh::tidx_tup);
   }
 }
+
+#endif

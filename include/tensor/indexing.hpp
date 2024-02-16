@@ -1,7 +1,5 @@
-#ifndef INDEXING_HPP
-#define INDEXING_HPP
-
-#include <memory>
+#ifndef _TENSOR__INDEXING_HPP
+#define _TENSOR__INDEXING_HPP
 
 #include "../core/typedefs.hpp"
 

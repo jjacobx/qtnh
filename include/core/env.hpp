@@ -1,5 +1,5 @@
-#ifndef ENV_HPP
-#define ENV_HPP
+#ifndef _CORE__ENV_HPP
+#define _CORE__ENV_HPP
 
 #include <mpi.h>
 

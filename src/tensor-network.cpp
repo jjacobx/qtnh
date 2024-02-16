@@ -4,6 +4,30 @@
 #include "tensor/network.hpp"
 
 namespace qtnh {
+  Bond::Bond(std::pair<qtnh::uint, qtnh::uint> tensor_ids, std::vector<qtnh::wire> wires)
+    : id(++counter), tensor_ids(tensor_ids), wires(wires) {}
+
+  TensorNetwork::TensorNetwork()
+    : tensors(std::map<qtnh::uint, Tensor&>()), bonds(std::map<qtnh::uint, Bond&>()) {}
+  
+  Tensor& TensorNetwork::getTensor(qtnh::uint k) { 
+    return tensors.at(k);
+  }
+
+  Bond& TensorNetwork::getBond(qtnh::uint k) { 
+    return bonds.at(k);
+  }
+
+  void TensorNetwork::insertTensor(Tensor& t) { 
+    tensors.insert({t.getID(), t}); 
+    return; 
+  }
+
+  void TensorNetwork::insertBond(Bond& b) { 
+    bonds.insert({b.getID(), b}); 
+    return; 
+  }
+
   qtnh::uint TensorNetwork::contractBond(qtnh::uint id) {
     auto& b = bonds.at(id);
     auto& t1 = tensors.at(b.tensor_ids.first);

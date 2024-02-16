@@ -9,5 +9,6 @@
 #include "tensor/dense.hpp"
 #include "tensor/indexing.hpp"
 #include "tensor/network.hpp"
+#include "tensor/special.hpp"
 
 #endif

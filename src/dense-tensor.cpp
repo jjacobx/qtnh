@@ -12,6 +12,9 @@
 using namespace qtnh::ops;
 
 namespace qtnh {
+  DenseTensor::DenseTensor(const QTNHEnv& env, const qtnh::tidx_tup& dims, std::vector<qtnh::tel> els)
+    : Tensor(env, dims), loc_els(els) {}
+
   TIndexing _get_indexing(Tensor* t, const std::vector<qtnh::wire>& wires, bool second) {
     auto loc_dims = t->getLocDims();
     auto dist_dims = t->getDistDims();
@@ -87,25 +90,6 @@ namespace qtnh {
     }
 
     return;
-  }
-
-  namespace ops {
-    std::ostream& operator<<(std::ostream& out, const Tensor& o) {
-      if (!o.isActive()) {
-        out << "Inactive";
-        return out;
-      }
-
-      TIndexing ti(o.getLocDims());
-      for (auto idxs : ti) {
-        out << o.getLocEl(idxs).value();
-        if (utils::idxs_to_i(idxs, o.getLocDims()) < o.getLocSize() - 1) {
-          out << ", ";
-        }
-      }
-
-      return out;
-    }
   }
 
   std::optional<qtnh::tel> DenseTensor::getLocEl(const qtnh::tidx_tup& loc_idxs) const {
