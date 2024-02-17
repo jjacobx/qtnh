@@ -19,8 +19,10 @@ Use `-DDEF_STENSOR_BCAST=0` to disable default shared tensor broadcasting. This 
 
 ## Dependencies
 
- * [CMake](https://cmake.org/) – at least version 3.10
+ * [CMake](https://cmake.org/) – at least version 3.13.0
  * [Catch2](https://github.com/catchorg/Catch2) – at least version v3.10
+ * MPI
+ * OpenMP
 
 
 ## Tests
