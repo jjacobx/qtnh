@@ -1,12 +1,7 @@
-add_library(qtnh
-  base-tensor.cpp
-  dense-tensor.cpp
-  env.cpp
-  indexing.cpp
-  special-tensor.cpp
-  tensor-network.cpp
-  utils.cpp
-)
+add_library(qtnh)
+
+add_subdirectory(core)
+add_subdirectory(tensor)
 
 target_compile_features(qtnh
   PUBLIC
