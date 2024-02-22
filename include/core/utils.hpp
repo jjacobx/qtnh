@@ -13,6 +13,8 @@ namespace qtnh {
 
     qtnh::tidx_tup concat_dims(qtnh::tidx_tup, qtnh::tidx_tup);
     std::pair<qtnh::tidx_tup, qtnh::tidx_tup> split_dims(qtnh::tidx_tup, qtnh::tidx_tup_st);
+    
+    std::vector<qtnh::wire> invert_wires(std::vector<qtnh::wire> wires);
   }
 }
 

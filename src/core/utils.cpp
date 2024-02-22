@@ -46,5 +46,13 @@ namespace qtnh {
     std::pair<qtnh::tidx_tup, qtnh::tidx_tup> split_dims(qtnh::tidx_tup dims, qtnh::tidx_tup_st n) {
       return { qtnh::tidx_tup(dims.begin(), dims.begin() + n), qtnh::tidx_tup(dims.begin() + n, dims.end()) };
     }
+
+    std::vector<qtnh::wire> invert_wires(std::vector<qtnh::wire> wires) {
+      for (auto& w : wires) {
+        std::swap(w.first, w.second);
+      }
+
+      return wires;
+    }
   }
 }
