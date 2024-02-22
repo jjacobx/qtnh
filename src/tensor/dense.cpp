@@ -8,9 +8,7 @@
 #include "core/utils.hpp"
 #include "tensor/dense.hpp"
 #include "tensor/indexing.hpp"
-#include "tensor/dense.hpp"
-
-using namespace qtnh::ops;
+#include "tensor/special.hpp"
 
 namespace qtnh {
   DenseTensor::DenseTensor(std::vector<qtnh::tel> els)
@@ -150,6 +148,10 @@ namespace qtnh {
     return t->contract(this, wires);
   }
 
+  Tensor* SDenseTensor::contract(ConvertTensor* t, const std::vector<qtnh::wire>& wires) {
+    return t->contract(this, utils::invert_wires(wires));
+  }
+
   Tensor* SDenseTensor::contract(SDenseTensor* t, const std::vector<qtnh::wire>& wires) {
     #ifdef DEBUG
       std::cout << "Contracting SDense with SDense" << std::endl;
@@ -192,7 +194,7 @@ namespace qtnh {
     return t3;
   }
 
-  DDenseTensor SDenseTensor::distribute(tidx_tup_st nidx) {
+  DDenseTensor* SDenseTensor::distribute(tidx_tup_st nidx) {
     qtnh::tidx_tup loc_dims(dims.begin() + nidx, dims.end());
     qtnh::tidx_tup dist_dims(dims.begin(), dims.begin() + nidx);
 
@@ -211,12 +213,12 @@ namespace qtnh {
       els.clear();
     }
 
-    return DDenseTensor(env, dims, els, nidx);
+    auto dt = new DDenseTensor(env, dims, els, nidx);
+    return dt;
   }
 
   DDenseTensor::DDenseTensor(const QTNHEnv& env, qtnh::tidx_tup dims, std::vector<qtnh::tel> els, qtnh::tidx_tup_st n_dist_idxs)
-    : Tensor(env, utils::split_dims(dims, n_dist_idxs).second, utils::split_dims(dims, n_dist_idxs).first), 
-      DenseTensor(els) {
+    : Tensor(env, utils::split_dims(dims, n_dist_idxs).second, utils::split_dims(dims, n_dist_idxs).first), DenseTensor(els) {
     if (env.proc_id >= getDistSize()) {
       active = false;
     }
@@ -376,6 +378,10 @@ namespace qtnh {
     return t3;
   }
 
+  Tensor* DDenseTensor::contract(ConvertTensor* t, const std::vector<qtnh::wire>& wires) {
+    return t->contract(this, utils::invert_wires(wires));
+  }
+
   Tensor* DDenseTensor::contract(DDenseTensor* t, const std::vector<qtnh::wire>& wires) {
     #ifdef DEBUG
       std::cout << "Contracting DDense with DDense" << std::endl;
@@ -474,12 +480,13 @@ namespace qtnh {
     return;
   }
 
-  SDenseTensor DDenseTensor::share() {
+  SDenseTensor* DDenseTensor::share() {
     gather(dist_dims.size());
     loc_els.resize(getSize());
 
     // Elements will be broadcasted by the constructor
-    return SDenseTensor(env, dims, loc_els, true);
+    auto st = new SDenseTensor(env, dims, loc_els, true);
+    return st;
   }
 
   void DDenseTensor::rep_all(std::size_t n) {

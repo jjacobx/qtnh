@@ -7,10 +7,12 @@
 #include "../core/typedefs.hpp"
 
 namespace qtnh {
+  class ConvertTensor;
   class SDenseTensor;
   class DDenseTensor;
 
   class Tensor {
+    friend class ConvertTensor;
     friend class SDenseTensor;
     friend class DDenseTensor;
 
@@ -27,6 +29,7 @@ namespace qtnh {
       qtnh::tidx_tup dist_dims;
 
       virtual Tensor* contract_disp(Tensor*, const std::vector<qtnh::wire>&);
+      virtual Tensor* contract(ConvertTensor*, const std::vector<qtnh::wire>&);
       virtual Tensor* contract(SDenseTensor*, const std::vector<qtnh::wire>&);
       virtual Tensor* contract(DDenseTensor*, const std::vector<qtnh::wire>&);
 

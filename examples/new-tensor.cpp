@@ -28,7 +28,7 @@ int main() {
   std::cout << my_env.proc_id << ": t2[1, 0] = " << dt2.getLocEl(idxs2).value_or(std::nan("1")) << std::endl;
   std::cout << my_env.proc_id << ": t2.id = " << dt2.getID() << std::endl;
 
-  auto dt3 = dt1.distribute(1);
+  auto& dt3 = *dt1.distribute(1);
 
   qtnh::tidx_tup idxs3 = { 0, 1 };
   std::cout << my_env.proc_id << ": t3[r, 0, 1] = " << dt3.getLocEl(idxs3).value_or(std::nan("1")) << std::endl;
@@ -59,7 +59,7 @@ int main() {
   qtnh::tidx_tup idxs6 = { 0, 0, 0 };
   std::cout << my_env.proc_id << ": t6[r, 0, 0, 0] = " << t6.getLocEl(idxs6).value_or(std::nan("1")) << std::endl;
 
-  auto dt7 = dt2.distribute(1);
+  auto& dt7 = *dt2.distribute(1);
   qtnh::Tensor& t7 = dt7;
 
   qtnh::tidx_tup idxs7 = { 0 };
@@ -73,7 +73,7 @@ int main() {
   std::cout << my_env.proc_id << ": t8[r1, r2, 0] = " << t8.getLocEl(idxs8).value_or(std::nan("1")) << std::endl;
 
   auto dt9 = qtnh::SDenseTensor(my_env, dt1_dims, dt1_els);
-  auto dt10 = dt9.distribute(1);
+  auto& dt10 = *dt9.distribute(1);
   dt10.scatter(1);
 
   qtnh::tidx_tup idxs10 = { 0 };
@@ -86,7 +86,7 @@ int main() {
   std::cout << my_env.proc_id << ": dt11[r1, 0, 0] = " << dt11.getLocEl(idxs11).value_or(std::nan("1")) << std::endl;
 
   dt11.scatter(2);
-  auto dt12 = dt11.share();
+  auto& dt12 = *dt11.share();
 
   qtnh::tidx_tup idxs12 = { 0, 0, 0 };
   std::cout << my_env.proc_id << ": dt12[0, 0, 0] = " << dt12.getLocEl(idxs12).value_or(std::nan("1")) << std::endl;

@@ -22,6 +22,7 @@ namespace qtnh {
   class SDenseTensor : public DenseTensor, public SharedTensor {
     private:
       virtual Tensor* contract_disp(Tensor*, const std::vector<qtnh::wire>&) override;
+      virtual Tensor* contract(ConvertTensor*, const std::vector<qtnh::wire>&) override;
       virtual Tensor* contract(SDenseTensor*, const std::vector<qtnh::wire>&) override;
       virtual Tensor* contract(DDenseTensor*, const std::vector<qtnh::wire>&) override;
       
@@ -36,12 +37,13 @@ namespace qtnh {
       virtual void setLocEl(const qtnh::tidx_tup&, qtnh::tel) override;
 
       virtual void swap(qtnh::tidx_tup_st, qtnh::tidx_tup_st) override;
-      DDenseTensor distribute(tidx_tup_st);
+      DDenseTensor* distribute(tidx_tup_st);
   };
 
   class DDenseTensor : public DenseTensor {
     private:
       virtual Tensor* contract_disp(Tensor*, const std::vector<qtnh::wire>&) override;
+      virtual Tensor* contract(ConvertTensor*, const std::vector<qtnh::wire>&) override;
       virtual Tensor* contract(SDenseTensor*, const std::vector<qtnh::wire>&) override;
       virtual Tensor* contract(DDenseTensor*, const std::vector<qtnh::wire>&) override;
 
@@ -60,7 +62,7 @@ namespace qtnh {
 
       void scatter(tidx_tup_st);
       void gather(tidx_tup_st);
-      SDenseTensor share();
+      SDenseTensor* share();
 
       void rep_all(std::size_t);
       void rep_each(std::size_t);

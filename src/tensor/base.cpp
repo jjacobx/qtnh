@@ -8,6 +8,11 @@ namespace qtnh {
     return nullptr; 
   }
 
+  Tensor* Tensor::contract(ConvertTensor*, const std::vector<qtnh::wire>&) {
+    utils::throw_unimplemented(); 
+    return nullptr; 
+  }
+
   Tensor* Tensor::contract(SDenseTensor*, const std::vector<qtnh::wire>&) {
     utils::throw_unimplemented(); 
     return nullptr; 
