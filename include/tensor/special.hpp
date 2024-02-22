@@ -6,7 +6,7 @@
 #include "tensor/dense.hpp"
 
 namespace qtnh {
-    class SwapTensor : public Tensor {
+    class SwapTensor : public SharedTensor {
     private:
       virtual Tensor* contract_disp(Tensor* t, const std::vector<qtnh::wire>& wires) override;
       virtual Tensor* contract(SDenseTensor* t, const std::vector<qtnh::wire>& wires) override;
@@ -23,7 +23,7 @@ namespace qtnh {
     virtual void swap(qtnh::tidx_tup_st, qtnh::tidx_tup_st) override;
   };
 
-  class IdentityTensor : public Tensor {
+  class IdentityTensor : public SharedTensor {
     private:
       virtual Tensor* contract_disp(Tensor* t, const std::vector<qtnh::wire>& wires) override;
       virtual Tensor* contract(SDenseTensor* t, const std::vector<qtnh::wire>& wires) override;
@@ -40,7 +40,7 @@ namespace qtnh {
       virtual void swap(qtnh::tidx_tup_st, qtnh::tidx_tup_st) override;
   };
 
-  class DistributeTensor : public Tensor {
+  class DistributeTensor : public IdentityTensor {
     private:
       virtual Tensor* contract_disp(Tensor* t, const std::vector<qtnh::wire>& wires) override;
       virtual Tensor* contract(SDenseTensor* t, const std::vector<qtnh::wire>& wires) override;
@@ -51,12 +51,6 @@ namespace qtnh {
       DistributeTensor(const DistributeTensor&) = delete;
       DistributeTensor(const QTNHEnv& env, const qtnh::tidx_tup& in_dims);
       ~DistributeTensor() = default;
-
-      virtual std::optional<qtnh::tel> getEl(const qtnh::tidx_tup& idxs) const override;
-      virtual std::optional<qtnh::tel> getLocEl(const qtnh::tidx_tup& idxs) const override;
-      virtual qtnh::tel operator[](const qtnh::tidx_tup& idxs) const override;
-
-      virtual void swap(qtnh::tidx_tup_st, qtnh::tidx_tup_st) override;
   };
 }
 

@@ -8,12 +8,23 @@
 #include "core/utils.hpp"
 #include "tensor/dense.hpp"
 #include "tensor/indexing.hpp"
+#include "tensor/dense.hpp"
 
 using namespace qtnh::ops;
 
 namespace qtnh {
-  DenseTensor::DenseTensor(const QTNHEnv& env, const qtnh::tidx_tup& dims, std::vector<qtnh::tel> els)
-    : Tensor(env, dims), loc_els(els) {}
+  DenseTensor::DenseTensor(std::vector<qtnh::tel> els)
+    : WritableTensor(), loc_els(els) {}
+
+  qtnh::tel DenseTensor::operator[](const qtnh::tidx_tup &loc_idxs) const {
+    auto i = utils::idxs_to_i(loc_idxs, loc_dims);
+    return loc_els.at(i);
+  }
+
+  qtnh::tel& DenseTensor::operator[](const qtnh::tidx_tup& loc_idxs) {
+    auto i = utils::idxs_to_i(loc_idxs, loc_dims);
+    return loc_els.at(i);
+  }
 
   TIndexing _get_indexing(Tensor* t, const std::vector<qtnh::wire>& wires, bool second) {
     auto loc_dims = t->getLocDims();
@@ -92,25 +103,12 @@ namespace qtnh {
     return;
   }
 
-  std::optional<qtnh::tel> DenseTensor::getLocEl(const qtnh::tidx_tup& loc_idxs) const {
-    if (!active) {
-      return {};
-    } else { 
-      return (*this)[loc_idxs];
-    }
-  }
-
-  qtnh::tel DenseTensor::operator[](const qtnh::tidx_tup& loc_idxs) const {
-    auto i = utils::idxs_to_i(loc_idxs, loc_dims);
-    return loc_els.at(i);
-  }
-
-  SDenseTensor::SDenseTensor(const QTNHEnv& env, const qtnh::tidx_tup& dims, std::vector<qtnh::tel> els)
+  SDenseTensor::SDenseTensor(const QTNHEnv& env, qtnh::tidx_tup dims, std::vector<qtnh::tel> els)
     : SDenseTensor(env, dims, els, DEF_STENSOR_BCAST) {}
 
-  SDenseTensor::SDenseTensor(const QTNHEnv& env, const qtnh::tidx_tup& dims, std::vector<qtnh::tel> els, bool bcast)
-    : DenseTensor(env, dims, els) {
-    if (loc_els.size() != getSize()) {
+  SDenseTensor::SDenseTensor(const QTNHEnv& env, qtnh::tidx_tup dims, std::vector<qtnh::tel> els, bool bcast)
+    : Tensor(env), DenseTensor(els), SharedTensor(dims) {
+    if (loc_els.size() != getLocSize()) {
       throw std::invalid_argument("Invalid length of elements.");
     }
 
@@ -126,12 +124,8 @@ namespace qtnh {
     
   }
 
-  std::optional<qtnh::tel> SDenseTensor::getEl(const qtnh::tidx_tup& glob_idxs) const {
-    return getLocEl(glob_idxs);
-  }
-
-  void SDenseTensor::setEl(const qtnh::tidx_tup& glob_idxs, qtnh::tel el) {
-    setLocEl(glob_idxs, el);
+  void SDenseTensor::setEl(const qtnh::tidx_tup& idxs, qtnh::tel el) {
+    setLocEl(idxs, el);
     return;
   }
 
@@ -139,11 +133,6 @@ namespace qtnh {
     if (!active) return;
     (*this)[loc_idxs] = el;
     return;
-  }
-
-  qtnh::tel& SDenseTensor::operator[](const qtnh::tidx_tup& loc_idxs) {
-    auto i = utils::idxs_to_i(loc_idxs, loc_dims);
-    return loc_els.at(i);
   }
 
   void SDenseTensor::swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) {
@@ -225,27 +214,33 @@ namespace qtnh {
     return DDenseTensor(env, dims, els, nidx);
   }
 
-  DDenseTensor::DDenseTensor(const QTNHEnv& env, const qtnh::tidx_tup& dims, std::vector<qtnh::tel> els, qtnh::tidx_tup_st n_dist_idxs)
-    : DenseTensor(env, dims, els) {
-    loc_dims = qtnh::tidx_tup(dims.begin() + n_dist_idxs, dims.end());
-    dist_dims = qtnh::tidx_tup(dims.begin(), dims.begin() + n_dist_idxs);
-
+  DDenseTensor::DDenseTensor(const QTNHEnv& env, qtnh::tidx_tup dims, std::vector<qtnh::tel> els, qtnh::tidx_tup_st n_dist_idxs)
+    : Tensor(env, utils::split_dims(dims, n_dist_idxs).second, utils::split_dims(dims, n_dist_idxs).first), 
+      DenseTensor(els) {
     if (env.proc_id >= getDistSize()) {
       active = false;
     }
  
-    if (active && els.size() != getLocSize()) {
+    if (active && loc_els.size() != getLocSize()) {
       throw std::invalid_argument("Invalid length of elements.");
     }
   }
 
-  std::optional<qtnh::tel> DDenseTensor::getEl(const qtnh::tidx_tup& glob_idxs) const {
-    qtnh::tidx_tup loc_idxs(glob_idxs.begin(), glob_idxs.begin() + dist_dims.size());
-    qtnh::tidx_tup dist_idxs(glob_idxs.begin() + dist_dims.size(), glob_idxs.end());
+  std::optional<qtnh::tel> DDenseTensor::getEl(const qtnh::tidx_tup& idxs) const {
+    qtnh::tidx_tup loc_idxs(idxs.begin(), idxs.begin() + dist_dims.size());
+    qtnh::tidx_tup dist_idxs(idxs.begin() + dist_dims.size(), idxs.end());
     auto rank = utils::idxs_to_i(dist_idxs, getDistDims());
 
     if (env.proc_id == rank) {
       return getLocEl(loc_idxs);
+    } else {
+      return {};
+    }
+  }
+
+  std::optional<qtnh::tel> DDenseTensor::getLocEl(const qtnh::tidx_tup& loc_idxs) const {
+    if (active) {
+      return (*this)[loc_idxs];
     } else {
       return {};
     }
@@ -267,11 +262,6 @@ namespace qtnh {
     if (!active) return;
     (*this)[loc_idxs] = el;
     return;
-  }
-
-  qtnh::tel& DDenseTensor::operator[](const qtnh::tidx_tup& loc_idxs) {
-    auto i = utils::idxs_to_i(loc_idxs, loc_dims);
-    return loc_els.at(i);
   }
 
   void DDenseTensor::swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) {

@@ -18,8 +18,12 @@ namespace qtnh {
     return nullptr; 
   }
 
-  Tensor::Tensor(const QTNHEnv& env, const qtnh::tidx_tup& dims)
-    : id(++counter), env(env), active(true), dims(dims), loc_dims(dims), dist_dims(qtnh::tidx_tup()) {};
+  Tensor::Tensor(const QTNHEnv& env) 
+    : Tensor(env, qtnh::tidx_tup(), qtnh::tidx_tup()) {}
+
+  Tensor::Tensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dist_dims)
+    : id(++counter), env(env), active(true), dims(utils::concat_dims(dist_dims, loc_dims)), 
+      loc_dims(loc_dims), dist_dims(dist_dims) {};
 
   std::size_t Tensor::getSize() const { 
     return utils::dims_to_size(getDims()); 
@@ -33,17 +37,10 @@ namespace qtnh {
     return utils::dims_to_size(getDistDims()); 
   }
 
-  std::optional<qtnh::tel> Tensor::getEl(const qtnh::tidx_tup& idxs) const {
-    return getLocEl(idxs); 
-  }
-
-  std::optional<qtnh::tel> Tensor::getLocEl(const qtnh::tidx_tup& idxs) const {
-    return (*this)[idxs]; 
-  }
-
   Tensor* Tensor::contract(Tensor* t1, Tensor* t2, const std::vector<qtnh::wire>& wires) { 
     return t2->contract_disp(t1, wires); 
   }
+
 
   namespace ops {
     std::ostream& operator<<(std::ostream& out, const Tensor& o) {
@@ -62,5 +59,20 @@ namespace qtnh {
 
       return out;
     }
+  }
+
+
+  SharedTensor::SharedTensor(qtnh::tidx_tup loc_dims) {
+    this->dims = loc_dims;
+    this->dist_dims = qtnh::tidx_tup();
+    this->loc_dims = loc_dims;
+  }
+
+  std::optional<qtnh::tel> SharedTensor::getEl(const qtnh::tidx_tup& idxs) const {
+    return getLocEl(idxs); 
+  }
+
+  std::optional<qtnh::tel> SharedTensor::getLocEl(const qtnh::tidx_tup& idxs) const {
+    return (*this)[idxs]; 
   }
 }

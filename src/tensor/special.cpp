@@ -18,7 +18,7 @@ namespace qtnh {
   }
 
   SwapTensor::SwapTensor(const QTNHEnv& env, std::size_t n1, std::size_t n2)
-    : Tensor(env, { n1, n2, n2, n1 }) {}
+    : Tensor(env), SharedTensor({ n1, n2, n2, n1 }) {}
   
   qtnh::tel SwapTensor::operator[](const qtnh::tidx_tup& idxs) const {
     return (idxs.at(0) == idxs.at(3)) && (idxs.at(1) == idxs.at(2)); 
@@ -43,7 +43,7 @@ namespace qtnh {
   }
 
   IdentityTensor::IdentityTensor(const QTNHEnv& env, const qtnh::tidx_tup& in_dims)
-    : Tensor(env, utils::concat_dims(in_dims, in_dims)) {};
+    : Tensor(env), SharedTensor(utils::concat_dims(in_dims, in_dims)) {};
 
   qtnh::tel IdentityTensor::operator[](const qtnh::tidx_tup& idxs) const {
     for (std::size_t i = 0; i < idxs.size() / 2; ++i) { 
@@ -74,28 +74,5 @@ namespace qtnh {
   }
 
   DistributeTensor::DistributeTensor(const QTNHEnv& env, const qtnh::tidx_tup& in_dims)
-    : Tensor(env, utils::concat_dims(in_dims, in_dims)) {};
-  
-  std::optional<qtnh::tel> DistributeTensor::getEl(const qtnh::tidx_tup& idxs) const {
-    return getLocEl(idxs);
-  }
-
-  std::optional<qtnh::tel> DistributeTensor::getLocEl(const qtnh::tidx_tup& idxs) const {
-    return (*this)[idxs];
-  }
-
-  qtnh::tel DistributeTensor::operator[](const qtnh::tidx_tup& idxs) const {
-    for (std::size_t i = 0; i < idxs.size() / 2; ++i) { 
-      if (idxs.at(i) != idxs.at(i + idxs.size() / 2)) { 
-        return 0;
-      }
-    }
-
-    return 1;
-  }
-
-  void DistributeTensor::swap(qtnh::tidx_tup_st, qtnh::tidx_tup_st) {
-    utils::throw_unimplemented(); 
-    return; 
-  }
+    : Tensor(env), IdentityTensor(env, in_dims) {};
 }
