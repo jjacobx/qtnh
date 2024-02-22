@@ -22,14 +22,17 @@ bool equal(const qtnh::Tensor& t1, const qtnh::Tensor& t2) {
 TEST_CASE("create-tensor-validation") {
   qtnh::QTNHEnv env;
   qtnh::tidx_tup t1_dims = { 2, 2 };
-  std::vector<qtnh::tel> t1_els = { 0.0, 0.0, 0.0, 0.0 };
-  qtnh::SDenseTensor t11(env, t1_dims, std::vector<qtnh::tel>(4, 0.0));
-  qtnh::SDenseTensor t12(env, t1_dims, t1_els);
+  std::vector<qtnh::tel> t11_els (4, 0.0);
+  std::vector<qtnh::tel> t12_els = { 0.0, 0.0, 0.0, 0.0 };
+  qtnh::SDenseTensor t11(env, t1_dims, t11_els);
+  qtnh::SDenseTensor t12(env, t1_dims, t12_els);
 
   qtnh::tidx_tup t2_dims = { 1 };
-  std::vector<qtnh::tel> t2_els = { 1.0 };
-  qtnh::SDenseTensor t21(env, t2_dims, std::vector<qtnh::tel>(1, 1.0));
-  qtnh::SDenseTensor t22(env, t2_dims, t2_els);
+  std::vector<qtnh::tel> t21_els(1, 1.0);
+  std::vector<qtnh::tel> t22_els = { 1.0 };
+
+  qtnh::SDenseTensor t21(env, t2_dims, t21_els);
+  qtnh::SDenseTensor t22(env, t2_dims, t22_els);
 
   REQUIRE(equal(t11, t12));
   REQUIRE(equal(t21, t22));
