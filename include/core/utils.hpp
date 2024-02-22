@@ -12,6 +12,7 @@ namespace qtnh {
     qtnh::tidx_tup i_to_idxs(std::size_t, qtnh::tidx_tup);
 
     qtnh::tidx_tup concat_dims(qtnh::tidx_tup, qtnh::tidx_tup);
+    std::pair<qtnh::tidx_tup, qtnh::tidx_tup> split_dims(qtnh::tidx_tup, qtnh::tidx_tup_st);
   }
 }
 
