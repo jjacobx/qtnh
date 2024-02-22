@@ -1,4 +1,4 @@
-<mxfile host="Electron" modified="2024-02-22T11:56:08.994Z" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/23.0.2 Chrome/120.0.6099.109 Electron/28.2.2 Safari/537.36" etag="hkruYAkdo-U5q_wZ_zJ1" version="23.0.2" type="device" pages="4">
+<mxfile host="Electron" modified="2024-02-22T18:15:30.964Z" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/23.0.2 Chrome/120.0.6099.109 Electron/28.2.2 Safari/537.36" etag="6XWRMGw7LHYKdPU6d264" version="23.0.2" type="device" pages="4">
   <diagram name="uml" id="3gXFDoktGD8t8uiDJKZq">
     <mxGraphModel dx="1390" dy="843" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
@@ -2084,7 +2084,7 @@
     </mxGraphModel>
   </diagram>
   <diagram id="nFttMUhsy2gWVnqqgGfw" name="hierarchy">
-    <mxGraphModel dx="1390" dy="843" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="1112" dy="674" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -2152,14 +2152,8 @@
         <mxCell id="cyi8hxyujC44Ph0KTcMo-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="JSwkFE4rfgr-k-p5hmPl-10" target="JSwkFE4rfgr-k-p5hmPl-9">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="JSwkFE4rfgr-k-p5hmPl-10" value="DistributeTensor" style="html=1;whiteSpace=wrap;fontSize=11;fontFamily=Courier New;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+        <mxCell id="JSwkFE4rfgr-k-p5hmPl-10" value="ConvertTensor" style="html=1;whiteSpace=wrap;fontSize=11;fontFamily=Courier New;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
           <mxGeometry x="280" y="360" width="120" height="40" as="geometry" />
-        </mxCell>
-        <mxCell id="cyi8hxyujC44Ph0KTcMo-4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="cyi8hxyujC44Ph0KTcMo-1" target="JSwkFE4rfgr-k-p5hmPl-9">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="cyi8hxyujC44Ph0KTcMo-1" value="ShareTensor" style="html=1;whiteSpace=wrap;fontSize=11;fontFamily=Courier New;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
-          <mxGeometry x="120" y="360" width="120" height="40" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
