@@ -1,11 +1,24 @@
 #include <iostream>
 #include <mpi.h>
 
+#include "tensor/indexing.hpp"
 #include "tensor/network.hpp"
 
 namespace qtnh {
   Bond::Bond(std::pair<qtnh::uint, qtnh::uint> tensor_ids, std::vector<qtnh::wire> wires)
     : id(++counter), tensor_ids(tensor_ids), wires(wires) {}
+
+  std::ostream& ops::operator<<(std::ostream& out, const Bond& o) {
+    out << "(" << o.tensor_ids.first << ", " << o.tensor_ids.second << "); ";
+    out << "{";
+    for (std::size_t i = 0; i < o.wires.size(); ++i) {
+      out << "(" << o.wires.at(i).first << ", " << o.wires.at(i).second << ")";
+      if (i < o.wires.size() - 1) out << ", ";
+    }
+
+    out << "}";
+    return out;
+  }
 
   TensorNetwork::TensorNetwork()
     : tensors(std::map<qtnh::uint, Tensor&>()), bonds(std::map<qtnh::uint, Bond&>()) {}
@@ -18,14 +31,14 @@ namespace qtnh {
     return bonds.at(k);
   }
 
-  void TensorNetwork::insertTensor(Tensor& t) { 
+  qtnh::uint TensorNetwork::insertTensor(Tensor& t) { 
     tensors.insert({t.getID(), t}); 
-    return; 
+    return t.getID(); 
   }
 
-  void TensorNetwork::insertBond(Bond& b) { 
+  qtnh::uint TensorNetwork::insertBond(Bond& b) { 
     bonds.insert({b.getID(), b}); 
-    return; 
+    return b.getID(); 
   }
 
   qtnh::uint TensorNetwork::contractBond(qtnh::uint id) {
@@ -49,10 +62,10 @@ namespace qtnh {
     qtnh::tidx_tup_st counter = 0;
     auto t1_imaps = std::map<qtnh::tidx_tup_st, qtnh::tidx_tup_st>();
     auto t2_imaps = std::map<qtnh::tidx_tup_st, qtnh::tidx_tup_st>();
-    for (auto i = 0; i < dist_size1; ++i) {
+    for (std::size_t i = 0; i < dist_size1; ++i) {
       if (is_open1.at(i)) t1_imaps.insert({i, counter++});
     }
-    for (auto i = 0; i < dist_size2; ++i) {
+    for (std::size_t i = 0; i < dist_size2; ++i) {
       if (is_open2.at(i)) t2_imaps.insert({i, counter++});
     }
     for (auto i = dist_size1; i < dims1.size(); ++i) {
@@ -107,5 +120,52 @@ namespace qtnh {
     }
 
     return id;
+  }
+
+  qtnh::uint TensorNetwork::contractAll(std::vector<qtnh::uint> bonds_order) {
+    auto tid = (*tensors.begin()).first;
+    for (std::size_t i = 0, j = 1; i < bonds_order.size(); i += j) {
+      auto bid = bonds_order.at(i);
+      auto& b1 = bonds.at(bid);
+
+      for (j = 1; i + j < bonds_order.size(); ++j) {
+        auto& b2 = bonds.at(bonds_order.at(i + j));
+        if (b1.tensor_ids.first == b2.tensor_ids.first && b1.tensor_ids.second == b2.tensor_ids.second) {
+          b1.wires.insert(b1.wires.end(), b2.wires.begin(), b2.wires.end());
+          bonds.erase(b2.getID());
+        } else {
+          break;
+        }
+      }
+
+      tid = contractBond(bid);
+
+      #ifdef DEBUG
+        print();
+      #endif
+    }
+
+    return tid;
+  }
+
+  void TensorNetwork::print() {
+    using namespace qtnh::ops;
+
+    std::cout << "================================================================" << std::endl;
+    std::cout << "Tensor Network of " << tensors.size() << " tensors and " << bonds.size() << " bonds" << std::endl;
+
+    std::cout << "----------------------------------------------------------------" << std::endl;
+    std::cout << "Tensors: " << std::endl;
+    for (auto kv : tensors) {
+      std::cout << "ID: " << kv.first << " | Els: " << kv.second << std::endl;
+    }
+
+    std::cout << "----------------------------------------------------------------" << std::endl;
+    std::cout << "Bonds: " << std::endl;
+    for (auto kv : bonds) {
+      std::cout << "ID: " << kv.first << " | Bond: " << kv.second << std::endl;
+    }
+
+    std::cout << "================================================================" << std::endl;
   }
 }

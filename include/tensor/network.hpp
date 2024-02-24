@@ -22,6 +22,10 @@ namespace qtnh {
       qtnh::uint getID() { return id; }
   };
 
+  namespace ops {
+    std::ostream& operator<<(std::ostream&, const Bond&);
+  }
+
   class TensorNetwork {
     private:
       std::map<qtnh::uint, Tensor&> tensors;
@@ -35,11 +39,14 @@ namespace qtnh {
       Tensor& getTensor(qtnh::uint k);
       Bond& getBond(qtnh::uint k);
 
-      void insertTensor(Tensor& t);
-      void insertBond(Bond& b);
+      qtnh::uint insertTensor(Tensor& t);
+      qtnh::uint insertBond(Bond& b);
 
       qtnh::uint contractBond(qtnh::uint);
       qtnh::uint contractAll();
+      qtnh::uint contractAll(std::vector<qtnh::uint>);
+
+      void print();
   };
 }
 
