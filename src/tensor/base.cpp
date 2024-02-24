@@ -1,3 +1,5 @@
+#include <iomanip>
+
 #include "core/utils.hpp"
 #include "tensor/base.hpp"
 #include "tensor/indexing.hpp"
@@ -53,6 +55,8 @@ namespace qtnh {
         out << "Inactive";
         return out;
       }
+
+      out << std::setprecision(2);
 
       TIndexing ti(o.getLocDims());
       for (auto idxs : ti) {

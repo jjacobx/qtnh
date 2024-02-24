@@ -62,6 +62,7 @@ namespace qtnh {
             (*t3)[*it] = el3;
 
             #ifdef DEBUG
+              using namespace qtnh::ops;
               std::cout << "t3[" << *it << "] = " << (*t3)[*it] << std::endl;
             #endif
 
@@ -317,7 +318,7 @@ namespace qtnh {
       MPI_Comm_size(swap_group, &swap_size);
 
       std::vector<qtnh::tel> new_els(loc_els.size());
-      for (int i = 0; i < dims.at(idx1); ++i) {
+      for (std::size_t i = 0; i < dims.at(idx1); ++i) {
         // TODO: Consider MPI message size limit
         // * A scatter might already take it into account
         MPI_Scatter(loc_els.data(), 1, restrided, new_els.data() + i * block_length, 1, restrided, i, swap_group);

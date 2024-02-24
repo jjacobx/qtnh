@@ -76,7 +76,7 @@ namespace qtnh {
       return t->share();
     }
 
-    auto num_dist = 0;
+    std::size_t num_dist = 0;
     for (auto w : wires) {
       if (w.second < t->getDistDims().size()) {
         num_dist++;
