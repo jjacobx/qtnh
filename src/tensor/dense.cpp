@@ -53,20 +53,32 @@ namespace qtnh {
       for (auto idxs2 : ti2) {
         qtnh::tel el3 = 0.0;
 
+        #ifdef DEBUG
+          using namespace qtnh::ops;
+          std::cout << "t3[" << *it << "] = ";
+        #endif
+
         while(t3->isActive()) {
           auto el1 = (*t1)[idxs1];
           auto el2 = (*t2)[idxs2];
           el3 += el1 * el2;
 
+        #ifdef DEBUG
+          std::cout << "t1[" << idxs1 << "] * t2[" << idxs2 << "]";
+        #endif
+
           if (ti1.isLast(idxs1, TIdxFlag::closed) && ti2.isLast(idxs2, TIdxFlag::closed)) {
             (*t3)[*it] = el3;
 
             #ifdef DEBUG
-              using namespace qtnh::ops;
-              std::cout << "t3[" << *it << "] = " << (*t3)[*it] << std::endl;
+              std::cout << " = " << el3 << std::endl;
             #endif
 
             break;
+          } else {
+            #ifdef DEBUG
+              std::cout << " + ";
+            #endif
           }
 
           ti1.next(idxs1, TIdxFlag::closed);
