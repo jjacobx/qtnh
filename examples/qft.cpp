@@ -9,11 +9,16 @@ using namespace std::complex_literals;
 using namespace qtnh;
 using namespace qtnh::ops;
 
-const int NQUBITS = 4; 
+const int NQUBITS = 2; 
 
 Tensor* Q0(const QTNHEnv& env) {
   auto* q0 = new SDenseTensor(env, { 2 }, { 1.0, 0.0 });
   return q0;
+}
+
+Tensor* Q1(const QTNHEnv& env) {
+  auto* q1 = new SDenseTensor(env, { 2 }, { 0.0, 1.0 });
+  return q1;
 }
 
 Tensor* H(const QTNHEnv& env) {
@@ -51,7 +56,7 @@ int main() {
     dimq.at(i) = 0;
 
     if (i > 0) {
-      auto* b = new Bond({ lastq.at(i), lastq.at(i - 1) }, {});
+      auto* b = new Bond({ lastq.at(i - 1), lastq.at(i) }, {});
       con_ord.push_back(tn.insertBond(*b));
     }
   }
