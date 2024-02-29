@@ -125,13 +125,13 @@ namespace qtnh {
     return tup;
   }
 
-  TIndexing TIndexing::cut(TIdxT type, qtnh::tidx_tup_st tag) {
+  TIndexing TIndexing::cut(TIdxT type) {
     qtnh::tidx_tup new_dims = dims;
     tifl_tup new_ifls = ifls;
 
     std::size_t rm_count = 0;
     for (std::size_t i = 0; i < ifls.size(); i++) {
-      if (ifls.at(i) == qtnh::tifl{ type, tag }) {
+      if (ifls.at(i).first == type) {
         new_dims.erase(new_dims.begin() + i - rm_count);
         new_ifls.erase(new_ifls.begin() + i - rm_count);
         rm_count++;
@@ -142,13 +142,13 @@ namespace qtnh {
     return result;
   }
 
-  TIndexing TIndexing::cut_all(TIdxT type) {
+  TIndexing TIndexing::cut(qtnh::tifl ifl) {
     qtnh::tidx_tup new_dims = dims;
     tifl_tup new_ifls = ifls;
 
     std::size_t rm_count = 0;
     for (std::size_t i = 0; i < ifls.size(); i++) {
-      if (ifls.at(i).first == type) {
+      if (ifls.at(i) == ifl) {
         new_dims.erase(new_dims.begin() + i - rm_count);
         new_ifls.erase(new_ifls.begin() + i - rm_count);
         rm_count++;

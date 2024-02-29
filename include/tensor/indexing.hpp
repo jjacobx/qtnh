@@ -30,8 +30,8 @@ namespace qtnh{
       qtnh::tidx_tup& prev(qtnh::tidx_tup&, TIdxT = TIdxT::open, qtnh::tidx_tup_st = 0);
       qtnh::tidx_tup& reset(qtnh::tidx_tup&, TIdxT = TIdxT::open, qtnh::tidx_tup_st = 0);
 
-      TIndexing cut(TIdxT = TIdxT::open, qtnh::tidx_tup_st = 0);
-      TIndexing cut_all(TIdxT = TIdxT::open);
+      TIndexing cut(TIdxT = TIdxT::open);
+      TIndexing cut(qtnh::tifl);
 
       bool operator==(const TIndexing&);
       bool operator!=(const TIndexing&);

@@ -180,7 +180,7 @@ namespace qtnh {
 
     TIndexing ti1 = _get_indexing(this, wires, 0);
     TIndexing ti2 = _get_indexing(t, wires, 1);
-    TIndexing ti3 = TIndexing::app(ti1.cut_all(TIdxT::closed), ti2.cut_all(TIdxT::closed));
+    TIndexing ti3 = TIndexing::app(ti1.cut(TIdxT::closed), ti2.cut(TIdxT::closed));
 
     auto dims3 = ti3.getDims();
     auto nloc = utils::dims_to_size(dims3);
@@ -200,7 +200,7 @@ namespace qtnh {
 
     auto ti1 = _get_indexing(this, wires, 0);
     auto ti2 = _get_indexing(t, wires, 1);
-    auto ti3 = TIndexing::app(ti1.cut_all(TIdxT::closed), ti2.cut_all(TIdxT::closed));
+    auto ti3 = TIndexing::app(ti1.cut(TIdxT::closed), ti2.cut(TIdxT::closed));
 
     std::size_t nloc = utils::dims_to_size(ti3.getDims());
     std::vector<qtnh::tel> els3(nloc, 0.0);
@@ -384,7 +384,7 @@ namespace qtnh {
 
     auto ti1 = _get_indexing(this, wires, 0);
     auto ti2 = _get_indexing(t, wires, 1);
-    auto ti3 = TIndexing::app(ti1.cut_all(TIdxT::closed), ti2.cut_all(TIdxT::closed));
+    auto ti3 = TIndexing::app(ti1.cut(TIdxT::closed), ti2.cut(TIdxT::closed));
 
     auto nloc = utils::dims_to_size(ti3.getDims());
     std::vector<qtnh::tel> els3(nloc, 0.0);
@@ -410,7 +410,7 @@ namespace qtnh {
 
     auto ti1 = _get_indexing(this, wires, 0);
     auto ti2 = _get_indexing(t, wires, 1);
-    auto ti3 = TIndexing::app(ti1.cut_all(TIdxT::closed), ti2.cut_all(TIdxT::closed));
+    auto ti3 = TIndexing::app(ti1.cut(TIdxT::closed), ti2.cut(TIdxT::closed));
 
     auto nloc = utils::dims_to_size(ti3.getDims());
     std::vector<qtnh::tel> els3(0);
