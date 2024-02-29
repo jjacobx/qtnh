@@ -18,13 +18,15 @@ if (!_r) std::cout
 
 namespace qtnh {
   typedef std::size_t tidx;
-  typedef std::vector<qtnh::tidx> tidx_tup;
   typedef unsigned short int tidx_tup_st;
   typedef unsigned int uint;
 
-  enum class TIdxFlag { open, closed, self, oob = 99 };
+  enum class TIdxT { open, closed, self, oob = 99 };
+  typedef std::pair<TIdxT, qtnh::tidx_tup_st> tifl;
 
-  typedef std::vector<TIdxFlag> tidx_flags;
+  typedef std::vector<qtnh::tidx> tidx_tup;
+  typedef std::vector<qtnh::tifl> tifl_tup;
+
   typedef std::complex<double> tel;
 
   typedef std::pair<qtnh::tidx_tup_st, qtnh::tidx_tup_st> wire;

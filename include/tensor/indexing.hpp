@@ -11,26 +11,27 @@ namespace qtnh{
   class TIndexing {
     private:
       qtnh::tidx_tup dims;
-      tidx_flags flags;
+      qtnh::tifl_tup ifls;
     
     public:
       TIndexing();
       TIndexing(const qtnh::tidx_tup&);
       TIndexing(const qtnh::tidx_tup&, std::size_t);
-      TIndexing(const qtnh::tidx_tup&, const tidx_flags&);
+      TIndexing(const qtnh::tidx_tup&, const qtnh::tifl_tup&);
 
       const qtnh::tidx_tup& getDims() const;
-      const tidx_flags& getFlags() const;
+      const qtnh::tifl_tup& getIFls() const;
 
       bool isValid(const qtnh::tidx_tup&);
-      bool isEqual(const qtnh::tidx_tup&, const qtnh::tidx_tup&, TIdxFlag = TIdxFlag::open);
-      bool isLast(const qtnh::tidx_tup&, TIdxFlag = TIdxFlag::open);
+      bool isEqual(const qtnh::tidx_tup&, const qtnh::tidx_tup&, TIdxT = TIdxT::open, qtnh::tidx_tup_st = 0);
+      bool isLast(const qtnh::tidx_tup&, TIdxT = TIdxT::open, qtnh::tidx_tup_st = 0);
 
-      qtnh::tidx_tup& next(qtnh::tidx_tup&, TIdxFlag = TIdxFlag::open);
-      qtnh::tidx_tup& prev(qtnh::tidx_tup&, TIdxFlag = TIdxFlag::open);
-      qtnh::tidx_tup& reset(qtnh::tidx_tup&, TIdxFlag = TIdxFlag::open);
+      qtnh::tidx_tup& next(qtnh::tidx_tup&, TIdxT = TIdxT::open, qtnh::tidx_tup_st = 0);
+      qtnh::tidx_tup& prev(qtnh::tidx_tup&, TIdxT = TIdxT::open, qtnh::tidx_tup_st = 0);
+      qtnh::tidx_tup& reset(qtnh::tidx_tup&, TIdxT = TIdxT::open, qtnh::tidx_tup_st = 0);
 
-      TIndexing cut(TIdxFlag = TIdxFlag::open);
+      TIndexing cut(TIdxT = TIdxT::open, qtnh::tidx_tup_st = 0);
+      TIndexing cut_all(TIdxT = TIdxT::open);
 
       bool operator==(const TIndexing&);
       bool operator!=(const TIndexing&);
@@ -38,22 +39,22 @@ namespace qtnh{
       class iterator {
         private:
           qtnh::tidx_tup dims;
-          tidx_flags flags;
+          qtnh::tifl_tup ifls;
 
           qtnh::tidx_tup current;
-          TIdxFlag active_flag;
+          qtnh::tifl active_ifl;
 
         public:
-          iterator(const qtnh::tidx_tup&, const tidx_flags&, const qtnh::tidx_tup&, TIdxFlag = TIdxFlag::open);
+          iterator(const qtnh::tidx_tup&, const qtnh::tifl_tup&, const qtnh::tidx_tup&, TIdxT = TIdxT::open, qtnh::tidx_tup_st = 0);
 
-          const TIdxFlag& getActiveFlag() const;
+          const qtnh::tifl& getActiveIFl() const;
 
           iterator& operator++();
           bool operator!=(const iterator&);
           qtnh::tidx_tup operator*() const;
       };
 
-      iterator begin(TIdxFlag = TIdxFlag::open);
+      iterator begin(TIdxT = TIdxT::open, qtnh::tidx_tup_st = 0);
       iterator end();
 
       static TIndexing app(const TIndexing&, const TIndexing&);

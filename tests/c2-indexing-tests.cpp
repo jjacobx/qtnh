@@ -4,18 +4,18 @@
 TEST_CASE("create-indexing-test") {
     qtnh::tidx_tup dims = { 2, 3, 4, 5 };
     std::size_t closed_idx = 1;
-    qtnh::tidx_flags flags(4, qtnh::TIdxFlag::open);
-    flags.at(1) = qtnh::TIdxFlag::closed;
+    qtnh::tifl_tup ifls(4, { qtnh::TIdxT::open, 0 });
+    ifls.at(1) =  {qtnh::TIdxT::closed, 0 };
     
     qtnh::TIndexing* ti;
 
     REQUIRE_NOTHROW(ti = new qtnh::TIndexing(dims));
     REQUIRE_NOTHROW(ti = new qtnh::TIndexing(dims, closed_idx));
-    REQUIRE_NOTHROW(ti = new qtnh::TIndexing(dims, flags));
+    REQUIRE_NOTHROW(ti = new qtnh::TIndexing(dims, ifls));
 
-    qtnh::tidx_flags invalid_flags(5, qtnh::TIdxFlag::open);
+    qtnh::tifl_tup invalid_ifls(5, { qtnh::TIdxT::open, 0 });
 
-    REQUIRE_THROWS(ti = new qtnh::TIndexing(dims, invalid_flags));
+    REQUIRE_THROWS(ti = new qtnh::TIndexing(dims, invalid_ifls));
 }
 
 TEST_CASE("increase-index-test") {
@@ -51,13 +51,13 @@ TEST_CASE("iterate-indexing-test") {
 
 TEST_CASE("cut-indexing-test") {
     qtnh::tidx_tup dims1 = { 2, 3, 4, 5 };
-    qtnh::tidx_flags flags1(4, qtnh::TIdxFlag::open);
-    flags1.at(1) = qtnh::TIdxFlag::closed;
+    qtnh::tifl_tup ifls1(4, { qtnh::TIdxT::open, 0 });
+    ifls1.at(1) = { qtnh::TIdxT::closed, 0 };
 
-    qtnh::TIndexing ti1(dims1, flags1);
+    qtnh::TIndexing ti1(dims1, ifls1);
     qtnh::TIndexing ti2;
     
-    REQUIRE_NOTHROW(ti2 = ti1.cut(qtnh::TIdxFlag::closed));
+    REQUIRE_NOTHROW(ti2 = ti1.cut(qtnh::TIdxT::closed));
 }
 
 TEST_CASE("append-indexings-test") {

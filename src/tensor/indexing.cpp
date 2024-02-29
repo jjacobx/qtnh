@@ -16,18 +16,18 @@ namespace qtnh {
 
   TIndexing::TIndexing()  : TIndexing(qtnh::tidx_tup{1}) {}
 
-  TIndexing::TIndexing(const qtnh::tidx_tup& dims) : TIndexing(dims, tidx_flags(dims.size(), TIdxFlag::open)) {}
+  TIndexing::TIndexing(const qtnh::tidx_tup& dims) : TIndexing(dims, qtnh::tifl_tup(dims.size(), { TIdxT::open, 0 })) {}
 
   TIndexing::TIndexing(const qtnh::tidx_tup& dims, std::size_t closed_idx) : TIndexing(dims) {
     if (closed_idx >= dims.size()) {
       throw std::out_of_range("Closed index must fit within tensor dimensions.");
     }
 
-    this->flags.at(closed_idx) = TIdxFlag::closed;
+    ifls.at(closed_idx) = { TIdxT::closed, 0 };
   }
 
-  TIndexing::TIndexing(const qtnh::tidx_tup& dims, const tidx_flags& flags) : dims(dims), flags(flags) {
-    if (dims.size() != flags.size()) {
+  TIndexing::TIndexing(const qtnh::tidx_tup& dims, const qtnh::tifl_tup& ifls) : dims(dims), ifls(ifls) {
+    if (dims.size() != ifls.size()) {
       throw std::invalid_argument("Dimensions and flags must be of equal length.");
     }
 
@@ -39,7 +39,7 @@ namespace qtnh {
   }
 
   const qtnh::tidx_tup& TIndexing::getDims() const { return dims; }
-  const tidx_flags& TIndexing::getFlags() const { return flags; }
+  const tifl_tup& TIndexing::getIFls() const { return ifls; }
 
   bool TIndexing::isValid(const qtnh::tidx_tup& tup) {
     if (tup.size() != this->dims.size()) {
@@ -55,9 +55,9 @@ namespace qtnh {
     return true;
   }
 
-  bool TIndexing::isEqual(const qtnh::tidx_tup& tup1, const qtnh::tidx_tup& tup2, TIdxFlag fl) {
+  bool TIndexing::isEqual(const qtnh::tidx_tup& tup1, const qtnh::tidx_tup& tup2, TIdxT type, qtnh::tidx_tup_st tag) {
     for (std::size_t i = 0; i < tup1.size(); i++) {
-      if ((this->flags.at(i) == fl) && (tup1.at(i) != tup2.at(i))) {
+      if ((ifls.at(i) == qtnh::tifl{ type, tag }) && (tup1.at(i) != tup2.at(i))) {
         return false;
       }
     }
@@ -65,9 +65,9 @@ namespace qtnh {
     return true;
   }
 
-  bool TIndexing::isLast(const qtnh::tidx_tup& tup, TIdxFlag fl) {
+  bool TIndexing::isLast(const qtnh::tidx_tup& tup, TIdxT type, qtnh::tidx_tup_st tag) {
     for (std::size_t i = 0; i < tup.size(); i++) {
-      if ((this->flags.at(i) == fl) && (tup.at(i) != this->dims.at(i) - 1)) {
+      if ((ifls.at(i) == qtnh::tifl{ type, tag }) && (tup.at(i) != this->dims.at(i) - 1)) {
         return false;
       }
     }
@@ -75,9 +75,9 @@ namespace qtnh {
     return true;
   }
 
-  qtnh::tidx_tup& TIndexing::next(qtnh::tidx_tup& tup, TIdxFlag fl) {
+  qtnh::tidx_tup& TIndexing::next(qtnh::tidx_tup& tup, TIdxT type, qtnh::tidx_tup_st tag) {
     for (std::size_t i = tup.size(); i > 0; i--) {
-      if (this->flags.at(i - 1) != fl) {
+      if (ifls.at(i - 1) != qtnh::tifl{ type, tag }) {
         continue;
       }
 
@@ -95,9 +95,9 @@ namespace qtnh {
     throw std::out_of_range("Tuple is outside of indexing.");
   }
 
-  qtnh::tidx_tup& TIndexing::prev(qtnh::tidx_tup& tup, TIdxFlag fl) {
+  qtnh::tidx_tup& TIndexing::prev(qtnh::tidx_tup& tup, TIdxT type, qtnh::tidx_tup_st tag) {
     for (std::size_t i = tup.size(); i > 0; i--) {
-      if (this->flags.at(i - 1) != fl) {
+      if (ifls.at(i - 1) != qtnh::tifl{ type, tag }) {
         continue;
       }
 
@@ -115,9 +115,9 @@ namespace qtnh {
     throw std::out_of_range("Tuple is outside of indexing.");
   }
 
-  qtnh::tidx_tup& TIndexing::reset(qtnh::tidx_tup& tup, TIdxFlag fl) {
+  qtnh::tidx_tup& TIndexing::reset(qtnh::tidx_tup& tup, TIdxT type, qtnh::tidx_tup_st tag) {
     for (std::size_t i = 0; i < tup.size(); i++) {
-      if (this->flags.at(i) == fl) {
+      if (ifls.at(i) == qtnh::tifl{ type, tag }) {
         tup.at(i) = 0;
       }
     }
@@ -125,59 +125,76 @@ namespace qtnh {
     return tup;
   }
 
-  TIndexing TIndexing::cut(TIdxFlag fl) {
-    qtnh::tidx_tup new_dims = this->dims;
-    tidx_flags new_flags = this->flags;
+  TIndexing TIndexing::cut(TIdxT type, qtnh::tidx_tup_st tag) {
+    qtnh::tidx_tup new_dims = dims;
+    tifl_tup new_ifls = ifls;
 
     std::size_t rm_count = 0;
-    for (std::size_t i = 0; i < flags.size(); i++) {
-      if (flags.at(i) == fl) {
+    for (std::size_t i = 0; i < ifls.size(); i++) {
+      if (ifls.at(i) == qtnh::tifl{ type, tag }) {
         new_dims.erase(new_dims.begin() + i - rm_count);
-        new_flags.erase(new_flags.begin() + i - rm_count);
+        new_ifls.erase(new_ifls.begin() + i - rm_count);
         rm_count++;
       }
     }
 
-    TIndexing result(new_dims, new_flags);
+    TIndexing result(new_dims, new_ifls);
+    return result;
+  }
+
+  TIndexing TIndexing::cut_all(TIdxT type) {
+    qtnh::tidx_tup new_dims = dims;
+    tifl_tup new_ifls = ifls;
+
+    std::size_t rm_count = 0;
+    for (std::size_t i = 0; i < ifls.size(); i++) {
+      if (ifls.at(i).first == type) {
+        new_dims.erase(new_dims.begin() + i - rm_count);
+        new_ifls.erase(new_ifls.begin() + i - rm_count);
+        rm_count++;
+      }
+    }
+
+    TIndexing result(new_dims, new_ifls);
     return result;
   }
 
   bool TIndexing::operator==(const TIndexing& rhs) {
-    return (this->dims == rhs.getDims()) && (this->flags == rhs.getFlags());
+    return (dims == rhs.getDims()) && (ifls == rhs.getIFls());
   }
 
   bool TIndexing::operator!=(const TIndexing& rhs) {
-    return (this->dims != rhs.getDims()) || (this->flags != rhs.getFlags());
+    return (dims != rhs.getDims()) || (ifls != rhs.getIFls());
   }
 
-  TIndexing::iterator::iterator(const qtnh::tidx_tup& dims, const tidx_flags& flags, const qtnh::tidx_tup& current, TIdxFlag active_flag) 
-    : dims(dims), flags(flags), current(current), active_flag(active_flag) {};
+  TIndexing::iterator::iterator(const qtnh::tidx_tup& dims, const qtnh::tifl_tup& ifls, const qtnh::tidx_tup& current, TIdxT type, qtnh::tidx_tup_st tag) 
+    : dims(dims), ifls(ifls), current(current), active_ifl({ type, tag }) {};
 
-  const TIdxFlag& TIndexing::iterator::getActiveFlag() const { return this->active_flag; }
+  const qtnh::tifl& TIndexing::iterator::getActiveIFl() const { return active_ifl; }
 
   TIndexing::iterator& TIndexing::iterator::operator++() {
-    TIndexing ti(this->dims, this->flags);
+    TIndexing ti(dims, ifls);
     for (std::size_t i = 0; i < this->current.size(); i++) {
-      if ((this->flags.at(i) == this->active_flag) && (this->current.at(i) != this->dims.at(i) - 1)) {
-        ti.next(this->current, this->active_flag);
+      if ((ifls.at(i) == active_ifl) && (current.at(i) != dims.at(i) - 1)) {
+        ti.next(current, active_ifl.first, active_ifl.second);
         return *this;
       }
     }
     
-    this->active_flag = TIdxFlag::oob;
+    active_ifl = { TIdxT::oob, 0 };
     return *this;
   }
 
   bool TIndexing::iterator::operator!=(const iterator& rhs) {
     // Return difference if iterator flags are different
-    if (this->active_flag != rhs.getActiveFlag()) {
+    if (active_ifl != rhs.getActiveIFl()) {
       return true;
-    } else if (this->active_flag == TIdxFlag::oob) {
+    } else if (active_ifl == qtnh::tifl{ TIdxT::oob, 0 }) {
       return false;
     }
 
-    for (std::size_t i = 0; i < flags.size(); i++) {
-      if ((flags.at(i) == this->active_flag) && (this->current.at(i) != (*rhs).at(i))) {
+    for (std::size_t i = 0; i < ifls.size(); i++) {
+      if ((ifls.at(i) == active_ifl) && (current.at(i) != (*rhs).at(i))) {
         return true;
       }
     }
@@ -189,24 +206,24 @@ namespace qtnh {
     return this->current;
   }
 
-  TIndexing::iterator TIndexing::begin(TIdxFlag fl) {
-    qtnh::tidx_tup tup(this->dims.size(), 0);
-    iterator it(this->dims, this->flags, tup, fl);
+  TIndexing::iterator TIndexing::begin(TIdxT type, qtnh::tidx_tup_st tag) {
+    qtnh::tidx_tup tup(dims.size(), 0);
+    iterator it(dims, ifls, tup, type, tag);
     return it;
   }
 
   TIndexing::iterator TIndexing::end() {
     qtnh::tidx_tup tup(this->dims.size(), 0);
 
-    iterator it(this->dims, this->flags, tup, TIdxFlag::oob);
+    iterator it(dims, ifls, tup, TIdxT::oob, 0);
     return it;
   }
 
   TIndexing TIndexing::app(const TIndexing& ti1, const TIndexing& ti2) {
     qtnh::tidx_tup dims = ti1.getDims();
-    tidx_flags flags = ti1.getFlags();
+    qtnh::tifl_tup flags = ti1.getIFls();
     dims.insert(dims.end(), ti2.getDims().begin(), ti2.getDims().end());
-    flags.insert(flags.end(), ti2.getFlags().begin(), ti2.getFlags().end());
+    flags.insert(flags.end(), ti2.getIFls().begin(), ti2.getIFls().end());
 
     TIndexing result(dims, flags);
     return result;

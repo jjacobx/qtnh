@@ -28,13 +28,14 @@ namespace qtnh {
     auto loc_dims = t->getLocDims();
     auto dist_dims = t->getDistDims();
 
-    std::vector<TIdxFlag> flags(loc_dims.size(), TIdxFlag::open);
+    qtnh::tifl_tup ifls(loc_dims.size(), { TIdxT::open, 0 });
 
+    qtnh::tidx_tup_st tag = 0;
     for (auto w : wires) {
-      flags.at((second ? w.second : w.first) - dist_dims.size()) = TIdxFlag::closed;
+      ifls.at((second ? w.second : w.first) - dist_dims.size()) = qtnh::tifl{ TIdxT::closed, tag++ };
     }
 
-    return TIndexing(loc_dims, flags);
+    return TIndexing(loc_dims, ifls);
   }
 
   qtnh::tidx_tup _concat_dims(qtnh::tidx_tup dist_dims1, qtnh::tidx_tup dist_dims2, qtnh::tidx_tup loc_dims) {
@@ -47,10 +48,11 @@ namespace qtnh {
     return dims;
   }
 
-  void _set_els(Tensor* t1, Tensor* t2, DenseTensor* t3, TIndexing ti1, TIndexing ti2, TIndexing ti3) {
+  void _set_els(Tensor* t1, Tensor* t2, DenseTensor* t3, TIndexing ti1, TIndexing ti2, TIndexing ti3, qtnh::tidx_tup_st nwires) {
     auto it = ti3.begin();
     for (auto idxs1 : ti1) {
       for (auto idxs2 : ti2) {
+        qtnh::tidx_tup_st tag = 0;
         qtnh::tel el3 = 0.0;
 
         #ifdef DEBUG
@@ -63,29 +65,35 @@ namespace qtnh {
           auto el2 = (*t2)[idxs2];
           el3 += el1 * el2;
 
-        #ifdef DEBUG
-          std::cout << "t1[" << idxs1 << "] * t2[" << idxs2 << "]";
-        #endif
+          #ifdef DEBUG
+            std::cout << "t1[" << idxs1 << "] * t2[" << idxs2 << "]";
+          #endif
 
-          if (ti1.isLast(idxs1, TIdxFlag::closed) && ti2.isLast(idxs2, TIdxFlag::closed)) {
-            (*t3)[*it] = el3;
+          if (ti1.isLast(idxs1, TIdxT::closed, tag) && ti2.isLast(idxs2, TIdxT::closed, tag)) {
+            tag++;
+            if (tag >= nwires) {
+              (*t3)[*it] = el3;
 
-            #ifdef DEBUG
-              std::cout << " = " << el3 << std::endl;
-            #endif
+              #ifdef DEBUG
+                std::cout << " = " << el3 << std::endl;
+              #endif
 
-            break;
-          } else {
-            #ifdef DEBUG
-              std::cout << " + ";
-            #endif
+              break;
+            }     
           }
 
-          ti1.next(idxs1, TIdxFlag::closed);
-          ti2.next(idxs2, TIdxFlag::closed);
+          #ifdef DEBUG
+            std::cout << " + ";
+          #endif
+
+          ti1.next(idxs1, TIdxT::closed, tag);
+          ti2.next(idxs2, TIdxT::closed, tag);
         }
 
-        ti1.reset(idxs1, TIdxFlag::closed);
+        for (qtnh::tidx_tup_st t = 0; t < nwires; ++t) {
+          ti1.reset(idxs1, TIdxT::closed, t);
+        }
+
         ++it;
       }
     }
@@ -93,9 +101,9 @@ namespace qtnh {
 
   void _local_swap(DenseTensor* t, qtnh::tidx_tup_st loc_idx1, qtnh::tidx_tup_st loc_idx2) {
     auto loc_dims = t->getLocDims();
-    tidx_flags flags(loc_dims.size(), TIdxFlag::open);
-    flags.at(loc_idx1) = flags.at(loc_idx2) = TIdxFlag::closed;
-    TIndexing ti(loc_dims, flags);
+    qtnh::tifl_tup ifls(loc_dims.size(), { TIdxT::open, 0 });
+    ifls.at(loc_idx1) = ifls.at(loc_idx2) = { TIdxT::closed, 0 };
+    TIndexing ti(loc_dims, ifls);
 
     for (auto idxs : ti) {
       auto idxs1 = idxs;
@@ -172,7 +180,7 @@ namespace qtnh {
 
     TIndexing ti1 = _get_indexing(this, wires, 0);
     TIndexing ti2 = _get_indexing(t, wires, 1);
-    TIndexing ti3 = TIndexing::app(ti1.cut(TIdxFlag::closed), ti2.cut(TIdxFlag::closed));
+    TIndexing ti3 = TIndexing::app(ti1.cut_all(TIdxT::closed), ti2.cut_all(TIdxT::closed));
 
     auto dims3 = ti3.getDims();
     auto nloc = utils::dims_to_size(dims3);
@@ -180,7 +188,7 @@ namespace qtnh {
 
     auto t3 = new SDenseTensor(this->env, dims3, els3);
 
-    _set_els(this, t, t3, ti1, ti2, ti3);
+    _set_els(this, t, t3, ti1, ti2, ti3, wires.size());
 
     return t3;
   }
@@ -192,7 +200,7 @@ namespace qtnh {
 
     auto ti1 = _get_indexing(this, wires, 0);
     auto ti2 = _get_indexing(t, wires, 1);
-    auto ti3 = TIndexing::app(ti1.cut(TIdxFlag::closed), ti2.cut(TIdxFlag::closed));
+    auto ti3 = TIndexing::app(ti1.cut_all(TIdxT::closed), ti2.cut_all(TIdxT::closed));
 
     std::size_t nloc = utils::dims_to_size(ti3.getDims());
     std::vector<qtnh::tel> els3(nloc, 0.0);
@@ -202,7 +210,7 @@ namespace qtnh {
 
     auto t3 = new DDenseTensor(this->env, dims3, els3, nidx);
 
-    _set_els(this, t, t3, ti1, ti2, ti3);
+    _set_els(this, t, t3, ti1, ti2, ti3, wires.size());
 
     return t3;
   }
@@ -376,7 +384,7 @@ namespace qtnh {
 
     auto ti1 = _get_indexing(this, wires, 0);
     auto ti2 = _get_indexing(t, wires, 1);
-    auto ti3 = TIndexing::app(ti1.cut(TIdxFlag::closed), ti2.cut(TIdxFlag::closed));
+    auto ti3 = TIndexing::app(ti1.cut_all(TIdxT::closed), ti2.cut_all(TIdxT::closed));
 
     auto nloc = utils::dims_to_size(ti3.getDims());
     std::vector<qtnh::tel> els3(nloc, 0.0);
@@ -386,7 +394,7 @@ namespace qtnh {
 
     auto t3 = new DDenseTensor(this->env, dims3, els3, nidx);
 
-    _set_els(this, t, t3, ti1, ti2, ti3);
+    _set_els(this, t, t3, ti1, ti2, ti3, wires.size());
 
     return t3;
   }
@@ -402,7 +410,7 @@ namespace qtnh {
 
     auto ti1 = _get_indexing(this, wires, 0);
     auto ti2 = _get_indexing(t, wires, 1);
-    auto ti3 = TIndexing::app(ti1.cut(TIdxFlag::closed), ti2.cut(TIdxFlag::closed));
+    auto ti3 = TIndexing::app(ti1.cut_all(TIdxT::closed), ti2.cut_all(TIdxT::closed));
 
     auto nloc = utils::dims_to_size(ti3.getDims());
     std::vector<qtnh::tel> els3(0);
@@ -419,7 +427,7 @@ namespace qtnh {
     this->rep_all(n2);
     t->rep_each(n1);
 
-    _set_els(this, t, t3, ti1, ti2, ti3);
+    _set_els(this, t, t3, ti1, ti2, ti3, wires.size());
 
     return t3;
   }
