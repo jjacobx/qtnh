@@ -1,13 +1,13 @@
 #include <iostream>
 
-#include "tensor-network.hpp"
-#include "indexing.hpp"
+#include "qtnh.hpp"
 
 using namespace std::complex_literals;
 using namespace qtnh::ops;
 
 int main() {
   qtnh::QTNHEnv my_env;
+  auto is_0 = my_env.proc_id == 0;
 
   qtnh::tidx_tup t1_dims = { 2, 2, 2 };
   qtnh::tidx_tup t2_dims = { 4, 2 };
@@ -17,7 +17,7 @@ int main() {
 
   qtnh::SDenseTensor t1(my_env, t1_dims, t1_els);
   qtnh::SDenseTensor t2(my_env, t2_dims, t2_els);
-  auto t3 = t1.distribute(1);
+  auto& t3 = *t1.distribute(1);
 
   std::vector<qtnh::wire> wires1(1, {1, 2});
   qtnh::Bond b1({t2.getID(), t3.getID()}, wires1);
@@ -36,7 +36,7 @@ int main() {
 
   std::vector<qtnh::tel> t5_els = { 1, 2, 3, 1, 2, 3, 1, 2, 3 };
   qtnh::SDenseTensor t5(my_env, { 3, 3 }, t5_els);
-  auto t6 = t5.distribute(1);
+  auto& t6 = *t5.distribute(1);
 
   std::cout << my_env.proc_id << " | T6 = " << t6 << std::endl;
 
@@ -45,7 +45,7 @@ int main() {
 
   std::vector<qtnh::tel> t7_els = { 1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8 };
   qtnh::SDenseTensor t7(my_env, { 2, 2, 2, 2 }, t7_els);
-  auto t8 = t7.distribute(2);
+  auto& t8 = *t7.distribute(2);
 
   std::cout << my_env.proc_id << " | T8 = " << t8 << std::endl;
 
@@ -58,6 +58,30 @@ int main() {
 
   t8.swap(3, 2);
   std::cout << my_env.proc_id << " | T8 = " << t8 << std::endl;
+
+  qtnh::SwapTensor st(my_env, 2, 2);
+  std::cout << my_env.proc_id << " | SWAP = " << st << std::endl;
+
+  auto& t9 = *qtnh::Tensor::contract(&t8, &st, {{ 2, 3 }});
+
+  std::cout << my_env.proc_id << " | T9 = " << t9 << std::endl;
+  if (is_0) std::cout << "T9.dims = " << t9.getDims() << std::endl;
+
+  qtnh::IdentityTensor id(my_env, { 2, 2 });
+  std::cout << my_env.proc_id << " | ID = " << id << std::endl;
+  
+  auto& t10 = *qtnh::Tensor::contract(&t9, &id, {{ 3, 0 }, {2, 1}});
+  std::cout << my_env.proc_id << " | T10 = " << t10 << std::endl;
+
+  qtnh::ConvertTensor cv(my_env, { 2, 2 });
+  std::cout << my_env.proc_id << " | CV = " << cv << std::endl;
+
+  auto& t11 = *qtnh::Tensor::contract(&t10, &cv, {{1, 1}, {0, 0}});
+  std::cout << my_env.proc_id << " | T11 = " << t11 << std::endl;
+
+  qtnh::ConvertTensor sh(my_env, {});
+  auto& t12 = *qtnh::Tensor::contract(&t11, &sh, {});
+  std::cout << my_env.proc_id << " | T12 = " << t12 << std::endl;
 
   return 0;
 }

@@ -1,10 +1,7 @@
-add_library(qtnh
-  dense-tensor.cpp
-  env.cpp
-  indexing.cpp
-  tensor-network.cpp
-  utils.cpp
-)
+add_library(qtnh)
+
+add_subdirectory(core)
+add_subdirectory(tensor)
 
 target_compile_features(qtnh
   PUBLIC
@@ -70,13 +67,17 @@ install(TARGETS qtnh
         EXPORT qtnh
 )
 
-install(FILES ${PROJECT_SOURCE_DIR}/include/tensor.hpp
+install(FILES ${PROJECT_SOURCE_DIR}/include/qtnh.hpp
   TYPE INCLUDE
 )
 
-# install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/qtnh 
-#   TYPE INCLUDE
-# )
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/core
+  TYPE INCLUDE
+)
+
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/tensor
+  TYPE INCLUDE
+)
 
 install(EXPORT qtnh
   FILE qtnh.cmake

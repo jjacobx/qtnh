@@ -1,7 +1,7 @@
 #include <iostream>
 #include <mpi.h>
 
-#include "env.hpp"
+#include "core/env.hpp"
 
 int main() {
   qtnh::QTNHEnv env;

@@ -1,4 +1,4 @@
-# Qeneralised Tensor Network Hub
+# Quantum Tensor Network Hub
 
 This project aims to create a generalised distributed software for performing contractions of tensor networks, for the purpose of simulating quantum circuits. 
 
@@ -19,8 +19,10 @@ Use `-DDEF_STENSOR_BCAST=0` to disable default shared tensor broadcasting. This 
 
 ## Dependencies
 
- * [CMake](https://cmake.org/) – at least version 3.10
+ * [CMake](https://cmake.org/) – at least version 3.13.0
  * [Catch2](https://github.com/catchorg/Catch2) – at least version v3.10
+ * MPI
+ * OpenMP
 
 
 ## Tests
@@ -30,21 +32,21 @@ Use `make test` after building to run the tests.
 
 ## Usage
 
-The library uses two main custom types – `qtnh::tidx` for tensor indices (grouped into `qtnh::tidx_tup`), and `qtnh::tel` for tensor elements (collected in a vector `std::vector<qtnh::tel>`). Currently, the former is a wrapper around `std::size_t`, while the latter representes `std::complex<double>`. In addition, there is a custom tensor index flag `qtnh::TIdxFlag`, which usually takes one of the two values `qtnh::TIdxFlag::open` or `qtnh::TIdxFlag::closed` for open and closed indices respectively. To describe multiple dimensions, a vector of flags `qtnh::tidx_flags` is used. 
+The library uses two main custom types – `qtnh::tidx` for tensor indices (grouped into `qtnh::tidx_tup`), and `qtnh::tel` for tensor elements (collected in a vector `std::vector<qtnh::tel>`). Currently, the former is a wrapper around `std::size_t`, while the latter representes `std::complex<double>`. In addition, there is a custom tensor index type enum `qtnh::TIdxT`, which usually takes one of the two values `qtnh::TIdxT::open` or `qtnh::TIdxT:closed` for open and closed indices respectively. Paired together with an integer tag, it forms a flag `qtnh::tifl`, which labels tensor indices for contraction. To describe multiple indices, a vector of flags `qtnh::tifl_tup` is used. 
 
 ### Indexing
 
-Indexing defines a coordinate system that can be used to iterate through tensor elements, and is implemented in a class `qtnh::TIndexing`. It consists of `qtnh::tidx_tup dims` to specify limits in each dimension, and `qtnh::tidx_flags flags` to indicate whether each of the dimensions is open or closed. `qtnh::TIndexing` can be used to increment a `qtnh::tidx_tup` to address the next tensor element, while keeping either open or closed dimensions fixed: 
+Indexing defines a coordinate system that can be used to iterate through tensor elements, and is implemented in a class `qtnh::TIndexing`. It consists of `qtnh::tidx_tup dims` to specify limits in each dimension, and `qtnh::tifl_tup ifls` to label each dimension of the tensor for contraction. The labels are pairs of index types (e.g. open or closed) and tags (useful when muliple indices are contracted). `qtnh::TIndexing` can be used to increment a `qtnh::tidx_tup` to address the next tensor element, while keeping either open or closed dimensions fixed: 
 
 ```c++
-qqtnh::tidx_tup dims = { 2, 3 };
-qtnh::tidx_flags flags = { qtnh::TIdxFlag::closed, 1tnh::TIdxFlag::open };
-qtnh::TIndexing ti(dims, flags);
+qtnh::tidx_tup dims = { 2, 3 };
+qtnh::tifl_tup ifls = { { qtnh::TIdxT::closed, 0 }, { qtnh::TIdxTFlag::open, 0 } };
+qtnh::TIndexing ti(dims, ifls);
 
-tidx_tuple idx = { 0, 0 };           // idx = { 0, 0 }
-idx = ti.next(idx, qtnh::TIdxFlag::open);    // idx = { 0, 1 }
-idx = ti.next(idx, qtnh::TIFlag::closed);  // idx = { 1, 1 }
-idx = ti.next(idx, qtnh::TIFlag::closed);  // error, idx[0] > (dims[0] - 1)
+qtnh::tidx_tup idx = { 0, 0 };            // idx = { 0, 0 }
+idx = ti.next(idx, qtnh::TIdxT::open);    // idx = { 0, 1 }
+idx = ti.next(idx, qtnh::TIdxT::closed);  // idx = { 1, 1 }
+idx = ti.next(idx, qtnh::TIdxT::closed);  // error, idx[0] > (dims[0] - 1)
 ```
 
 The value of the incremented `qtnh::tidx_tup idx` must be such that `idx[i] < dims[i]` for a given `qtnh::TIndexing`, otherwise an error is thrown. 
@@ -53,8 +55,8 @@ The value of the incremented `qtnh::tidx_tup idx` must be such that `idx[i] < di
 
 ```c++
 qtnh::tidx_tup dims = { 2, 3, 2 };
-qtnh::tidx_flags flags = { qtnh::TIdxFlag::open, qtnh::TIdxFlag::closed, qtnh::TIdxFlag::open };
-qtnh::TIndexing ti(dims, flags);
+qtnh::tifl_tup ifls = { { qtnh::TIdxFlag::open, 0 }, { qtnh::TIdxFlag::closed, 0 }, { qtnh::TIdxFlag::open, 0 } };
+qtnh::TIndexing ti(dims, ifls);
 
 for (auto idx : ti) {
     std::cout << idx << " "; // { 0, 0, 0 } { 0, 0, 1 } { 1, 0, 0 } { 1, 0, 1 },

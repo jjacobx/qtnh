@@ -48,3 +48,20 @@ target_compile_options(mpi-tests
   PRIVATE
   -Wall
 )
+
+add_executable(qft
+  qft.cpp
+)
+
+add_dependencies(qft
+  qtnh
+)
+
+target_link_libraries(qft
+  qtnh
+)
+
+target_compile_options(qft
+  PRIVATE
+  -Wall
+)

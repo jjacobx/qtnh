@@ -63,8 +63,10 @@
 **/map*/*.json
 **/map*/*.zip
 
-# Core dumps
+# Core dumps except library directories
 **/core
+!include/core/ 
+!src/core/
 
 # Results output
 results/img/**

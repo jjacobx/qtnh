@@ -1,7 +1,7 @@
 #include <functional>
 #include <numeric>
 
-#include "utils.hpp"
+#include "core/utils.hpp"
 
 namespace qtnh {
   namespace utils {
@@ -32,6 +32,27 @@ namespace qtnh {
       }
 
       return idxs;
+    }
+
+    qtnh::tidx_tup concat_dims(qtnh::tidx_tup dims1, qtnh::tidx_tup dims2) {
+      qtnh::tidx_tup dims3;
+      dims3.reserve(dims1.size() + dims2.size());
+      dims3.insert(dims3.end(), dims1.begin(), dims1.end());
+      dims3.insert(dims3.end(), dims2.begin(), dims2.end());
+
+      return dims3;
+    }
+
+    std::pair<qtnh::tidx_tup, qtnh::tidx_tup> split_dims(qtnh::tidx_tup dims, qtnh::tidx_tup_st n) {
+      return { qtnh::tidx_tup(dims.begin(), dims.begin() + n), qtnh::tidx_tup(dims.begin() + n, dims.end()) };
+    }
+
+    std::vector<qtnh::wire> invert_wires(std::vector<qtnh::wire> wires) {
+      for (auto& w : wires) {
+        std::swap(w.first, w.second);
+      }
+
+      return wires;
     }
   }
 }
