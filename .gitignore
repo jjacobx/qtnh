@@ -47,7 +47,7 @@
 **/rmd/
 
 # Doxygen output
-doxydoc/
+docs/
 
 # App metadata
 **/.vscode/
