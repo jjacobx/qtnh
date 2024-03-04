@@ -14,7 +14,7 @@ namespace qtnh {
     return out;
   }
 
-  TIndexing::TIndexing()  : TIndexing(qtnh::tidx_tup{1}) {}
+  TIndexing::TIndexing()  : TIndexing(qtnh::tidx_tup{ 1 }) {}
 
   TIndexing::TIndexing(const qtnh::tidx_tup& dims) : TIndexing(dims, qtnh::tifl_tup(dims.size(), { TIdxT::open, 0 })) {}
 
@@ -41,13 +41,13 @@ namespace qtnh {
   const qtnh::tidx_tup& TIndexing::getDims() const { return dims; }
   const tifl_tup& TIndexing::getIFls() const { return ifls; }
 
-  bool TIndexing::isValid(const qtnh::tidx_tup& tup) {
-    if (tup.size() != this->dims.size()) {
+  bool TIndexing::isValid(const qtnh::tidx_tup& idxs) {
+    if (idxs.size() != this->dims.size()) {
       return false;
     }
 
-    for (std::size_t i = 0; i < tup.size(); i++) {
-      if (tup.at(i) >= this->dims.at(i)) {
+    for (std::size_t i = 0; i < idxs.size(); i++) {
+      if (idxs.at(i) >= this->dims.at(i)) {
         return false;
       }
     }
@@ -55,9 +55,9 @@ namespace qtnh {
     return true;
   }
 
-  bool TIndexing::isEqual(const qtnh::tidx_tup& tup1, const qtnh::tidx_tup& tup2, TIdxT type, qtnh::tidx_tup_st tag) {
-    for (std::size_t i = 0; i < tup1.size(); i++) {
-      if ((ifls.at(i) == qtnh::tifl{ type, tag }) && (tup1.at(i) != tup2.at(i))) {
+  bool TIndexing::isEqual(const qtnh::tidx_tup& idxs1, const qtnh::tidx_tup& idxs2, TIdxT type, qtnh::tidx_tup_st tag) {
+    for (std::size_t i = 0; i < idxs1.size(); i++) {
+      if ((ifls.at(i) == qtnh::tifl{ type, tag }) && (idxs1.at(i) != idxs2.at(i))) {
         return false;
       }
     }
@@ -65,9 +65,9 @@ namespace qtnh {
     return true;
   }
 
-  bool TIndexing::isLast(const qtnh::tidx_tup& tup, TIdxT type, qtnh::tidx_tup_st tag) {
-    for (std::size_t i = 0; i < tup.size(); i++) {
-      if ((ifls.at(i) == qtnh::tifl{ type, tag }) && (tup.at(i) != this->dims.at(i) - 1)) {
+  bool TIndexing::isLast(const qtnh::tidx_tup& idxs, TIdxT type, qtnh::tidx_tup_st tag) {
+    for (std::size_t i = 0; i < idxs.size(); i++) {
+      if ((ifls.at(i) == qtnh::tifl{ type, tag }) && (idxs.at(i) != this->dims.at(i) - 1)) {
         return false;
       }
     }
@@ -75,17 +75,17 @@ namespace qtnh {
     return true;
   }
 
-  qtnh::tidx_tup& TIndexing::next(qtnh::tidx_tup& tup, TIdxT type, qtnh::tidx_tup_st tag) {
-    for (std::size_t i = tup.size(); i > 0; i--) {
+  qtnh::tidx_tup& TIndexing::next(qtnh::tidx_tup& idxs, TIdxT type, qtnh::tidx_tup_st tag) {
+    for (std::size_t i = idxs.size(); i > 0; i--) {
       if (ifls.at(i - 1) != qtnh::tifl{ type, tag }) {
         continue;
       }
 
-      if (tup.at(i - 1) < this->dims.at(i - 1) - 1) {
-        tup.at(i - 1)++;
-        return tup;
-      } else if (tup.at(i - 1) == this->dims.at(i - 1) - 1) {
-        tup.at(i - 1) = 0;
+      if (idxs.at(i - 1) < this->dims.at(i - 1) - 1) {
+        idxs.at(i - 1)++;
+        return idxs;
+      } else if (idxs.at(i - 1) == this->dims.at(i - 1) - 1) {
+        idxs.at(i - 1) = 0;
         continue;
       } else {
         break;
@@ -95,18 +95,18 @@ namespace qtnh {
     throw std::out_of_range("Tuple is outside of indexing.");
   }
 
-  qtnh::tidx_tup& TIndexing::prev(qtnh::tidx_tup& tup, TIdxT type, qtnh::tidx_tup_st tag) {
-    for (std::size_t i = tup.size(); i > 0; i--) {
+  qtnh::tidx_tup& TIndexing::prev(qtnh::tidx_tup& idxs, TIdxT type, qtnh::tidx_tup_st tag) {
+    for (std::size_t i = idxs.size(); i > 0; i--) {
       if (ifls.at(i - 1) != qtnh::tifl{ type, tag }) {
         continue;
       }
 
-      if (tup.at(i - 1) == 0) {
-        tup.at(i - 1) = this->dims.at(i - 1) - 1;
+      if (idxs.at(i - 1) == 0) {
+        idxs.at(i - 1) = this->dims.at(i - 1) - 1;
         continue;
-      } else if (tup.at(i - 1) < this->dims.at(i - 1)) {
-        tup.at(i - 1)--;
-        return tup;
+      } else if (idxs.at(i - 1) < this->dims.at(i - 1)) {
+        idxs.at(i - 1)--;
+        return idxs;
       } else {
         break;
       }
@@ -115,14 +115,14 @@ namespace qtnh {
     throw std::out_of_range("Tuple is outside of indexing.");
   }
 
-  qtnh::tidx_tup& TIndexing::reset(qtnh::tidx_tup& tup, TIdxT type, qtnh::tidx_tup_st tag) {
-    for (std::size_t i = 0; i < tup.size(); i++) {
+  qtnh::tidx_tup& TIndexing::reset(qtnh::tidx_tup& idxs, TIdxT type, qtnh::tidx_tup_st tag) {
+    for (std::size_t i = 0; i < idxs.size(); i++) {
       if (ifls.at(i) == qtnh::tifl{ type, tag }) {
-        tup.at(i) = 0;
+        idxs.at(i) = 0;
       }
     }
 
-    return tup;
+    return idxs;
   }
 
   TIndexing TIndexing::cut(TIdxT type) {
