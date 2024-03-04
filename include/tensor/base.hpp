@@ -30,26 +30,26 @@ namespace qtnh {
       qtnh::tidx_tup dist_dims;  ///< Distributed index dimensions.
 
       /// @brief Contraction dispatch to derived tensor class. 
-      /// @param t pointer to other contracted tensor. 
-      /// @param ws a vector of wires for contraction. 
+      /// @param t Pointer to other contracted tensor. 
+      /// @param ws Vector of wires for contraction. 
       /// @return Resultant tensor pointer after dispatch and contraction completes. 
       virtual Tensor* contract_disp(Tensor* t, const std::vector<qtnh::wire>& ws);
 
       /// @brief Contraction of derived tensor and tensor of type %ConvertTensor. 
-      /// @param t pointer to other contracted tensor of type %ConvertTensor. 
-      /// @param ws a vector of wires for contraction. 
+      /// @param t Pointer to other contracted tensor of type %ConvertTensor. 
+      /// @param ws Vector of wires for contraction. 
       /// @return Resultant tensor pointer after contraction completes. 
       virtual Tensor* contract(ConvertTensor* t, const std::vector<qtnh::wire>& ws);
 
       /// @brief Contraction of derived tensor and tensor of type %SDenseTensor. 
-      /// @param t pointer to other contracted tensor of type %SDenseTensor. 
-      /// @param ws a vector of wires for contraction. 
+      /// @param t Pointer to other contracted tensor of type %SDenseTensor. 
+      /// @param ws Vector of wires for contraction. 
       /// @return Resultant tensor pointer after contraction completes. 
       virtual Tensor* contract(SDenseTensor* t, const std::vector<qtnh::wire>& ws);
 
       /// @brief Contraction of derived tensor and tensor of type %DDenseTensor. 
-      /// @param t pointer to other contracted tensor of type %DDenseTensor. 
-      /// @param ws a vector of wires for contraction. 
+      /// @param t Pointer to other contracted tensor of type %DDenseTensor. 
+      /// @param ws Vector of wires for contraction. 
       /// @return Resultant tensor pointer after contraction completes. 
       virtual Tensor* contract(DDenseTensor* t, const std::vector<qtnh::wire>& ws);
 
@@ -62,7 +62,7 @@ namespace qtnh {
       /// @brief Construct empty tensor of zero size within environment. 
       /// @param env Environment to use for construction. 
       Tensor(const QTNHEnv& env);
-      /// @brief Custruct empty tensor with given local and distributed dimensions within environment. 
+      /// @brief Construct empty tensor with given local and distributed dimensions within environment. 
       /// @param env Environment to use for construction. 
       /// @param loc_dims Local index dimensions. 
       /// @param dist_dims Distributed index dimensions. 
@@ -82,7 +82,7 @@ namespace qtnh {
       std::size_t getDistSize() const;  ///< Get combined size of distributed index dimensions. 
 
       /// @brief Rank-safe method to get element and given global indices. 
-      /// @param idxs tensor index tuple indicating global position of the element. 
+      /// @param idxs Tensor index tuple indicating global position of the element. 
       /// @return Value of the element at given indices, or {} if value is not present. 
       ///
       /// This method doesn't require checking if value is present or if tensor is active. 
@@ -90,7 +90,7 @@ namespace qtnh {
       /// It is also guaranteed to return the same value everywhere it is present. 
       virtual std::optional<qtnh::tel> getEl(const qtnh::tidx_tup& idxs) const = 0;
       /// @brief Rank-safe method to get element and given local indices. 
-      /// @param idxs tensor index tuple indicating local position of the element. 
+      /// @param idxs Tensor index tuple indicating local position of the element. 
       /// @return Value of the element at given indices, or {} if value is not present. 
       ///
       /// This method doesn't require checking if tensor is active. If that is not the case, 
@@ -98,7 +98,7 @@ namespace qtnh {
       /// but different ranks might have different values. 
       virtual std::optional<qtnh::tel> getLocEl(const qtnh::tidx_tup& idxs) const = 0;
       /// @brief Rank-unsafe method to get element and given local indices. 
-      /// @param idxs tensor index tuple indicating local position of the element. 
+      /// @param idxs Tensor index tuple indicating local position of the element. 
       /// @return Value of the element at given indices. Throws error if value is not present. 
       ///
       /// This method requires ensuring the element is present (i.e. the tensor is active)
@@ -108,17 +108,17 @@ namespace qtnh {
       virtual qtnh::tel operator[](const qtnh::tidx_tup& idxs) const = 0;
 
       /// @brief Swap indices on current tensor. 
-      /// @param idx1 first index to swap. 
-      /// @param idx2 second index to swap. 
+      /// @param idx1 First index to swap. 
+      /// @param idx2 Second index to swap. 
       /// 
       /// Must be overriden for every derived tensor class, as swaps depend on implementation. 
       /// For some classes it might not be a valid method. 
       virtual void swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) = 0;
 
       /// @brief Contract two tensors via given wires. 
-      /// @param t1 pointer to first tensor to contract. 
-      /// @param t2 pointer to second tensor to contract. 
-      /// @param ws a vector of wires which indicate which pairs of indices to sum over. 
+      /// @param t1 Pointer to first tensor to contract. 
+      /// @param t2 Pointer to second tensor to contract. 
+      /// @param ws A vector of wires which indicate which pairs of indices to sum over. 
       /// @return Contracted tensor pointer. 
       static Tensor* contract(Tensor* t1, Tensor* t2, const std::vector<qtnh::wire>& ws);
   };
@@ -150,9 +150,7 @@ namespace qtnh {
       /// Default destructor. 
       ~SharedTensor() = default;
 
-      /// Implement Tensor::getEl method. 
       virtual std::optional<qtnh::tel> getEl(const qtnh::tidx_tup&) const override;
-      /// Implement Tensor::getLocEl method. 
       virtual std::optional<qtnh::tel> getLocEl(const qtnh::tidx_tup&) const override;
   };
 
@@ -169,22 +167,22 @@ namespace qtnh {
       using Tensor::operator[];
 
       /// @brief Upade element on given global indices. 
-      /// @param idxs tensor index tuple indicating global position to be updated. 
-      /// @param el complex number to be written at the given position. 
+      /// @param idxs Tensor index tuple indicating global position to be updated. 
+      /// @param el Complex number to be written at the given position. 
       ///
       /// The index update is only executed on ranks that contain the global position. 
       /// Other ranks are unaffacted by the write. 
       virtual void setEl(const qtnh::tidx_tup& idxs, qtnh::tel el) = 0;
       /// @brief Upade element on given local indices. 
-      /// @param idxs tensor index tuple indicating local position to be updated. 
-      /// @param el complex number to be written at the given position. 
+      /// @param idxs Tensor index tuple indicating local position to be updated. 
+      /// @param el Complex number to be written at the given position. 
       ///
       /// The index update is executed on all active ranks, and different values might be
       /// passed to the method on different ranks. 
       virtual void setLocEl(const qtnh::tidx_tup& idxs, qtnh::tel el) = 0;
       /// @brief Upade element on given local indices using the brackets operator. 
-      /// @param idxs tensor index tuple indicating local position to be updated. 
-      /// @param el complex number to be written at the given position. 
+      /// @param idxs Tensor index tuple indicating local position to be updated. 
+      /// @param el Complex number to be written at the given position. 
       ///
       /// This method is identical to setLocEl, but is included for completion, to extend 
       /// the usefulness of the square brackets operator. 
