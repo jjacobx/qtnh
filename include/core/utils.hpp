@@ -4,7 +4,6 @@
 #include "typedefs.hpp"
 
 namespace qtnh {
-  /// Namespace for helper functions. 
   namespace utils {
     /// Indicate a method is unimplemented. 
     /// Throws error if invoked. 

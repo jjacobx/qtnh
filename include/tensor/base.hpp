@@ -123,8 +123,6 @@ namespace qtnh {
       static Tensor* contract(Tensor* t1, Tensor* t2, const std::vector<qtnh::wire>& ws);
   };
 
-  /// Namespace for tensor operators. It is recommended to use it directly to allow
-  /// e.g. tensor printing. 
   namespace ops {
     /// Print tensor elements via std::cout. 
     std::ostream& operator<<(std::ostream&, const Tensor&);

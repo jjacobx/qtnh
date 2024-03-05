@@ -17,7 +17,6 @@ if (!_r) std::cout
 #define DEF_STENSOR_BCAST 1
 #endif
 
-/// QTNH project namespace. 
 namespace qtnh {
   typedef std::size_t tidx;                ///< Tensor index dimensions. 
   typedef unsigned short int tidx_tup_st;  ///< Tensor index tuple dimensions. 
