@@ -46,6 +46,9 @@
 **/.Rhistory
 **/rmd/
 
+# Doxygen output
+docs/
+
 # App metadata
 **/.vscode/
 **/.ipynb_checkpoints/

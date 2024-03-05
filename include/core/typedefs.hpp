@@ -6,6 +6,7 @@
 #include <numeric>
 #include <vector>
 
+// Helper macro to print from root
 #define ROOT_COUT \
 int _r; MPI_Comm_rank(MPI_COMM_WORLD, &_r); \
 if (!_r) std::cout
@@ -17,19 +18,24 @@ if (!_r) std::cout
 #endif
 
 namespace qtnh {
-  typedef std::size_t tidx;
-  typedef unsigned short int tidx_tup_st;
-  typedef unsigned int uint;
+  typedef std::size_t tidx;                ///< Tensor index dimensions. 
+  typedef unsigned short int tidx_tup_st;  ///< Tensor index tuple dimensions. 
+  typedef unsigned int uint;               ///< Unsigned int for IDs. 
 
-  enum class TIdxT { open, closed, self, oob = 99 };
-  typedef std::pair<TIdxT, qtnh::tidx_tup_st> tifl;
+  /// Tensor index type labels for contraction. 
+  enum class TIdxT { 
+    open,     ///< Open indices – increase independenly on contracted tensors. 
+    closed,   ///< Closed indices – increase in pairs on contracted tensors. 
+    oob = 99  ///< Out-of-bounds label – indicates that index went out of scope. 
+  };
+  typedef std::pair<TIdxT, qtnh::tidx_tup_st> tifl;  ///< Tensor index flag – consists of a type and a tag. 
 
-  typedef std::vector<qtnh::tidx> tidx_tup;
-  typedef std::vector<qtnh::tifl> tifl_tup;
+  typedef std::vector<qtnh::tidx> tidx_tup;  ///< Tuple of tensor indices – used for accessing tensor elements. 
+  typedef std::vector<qtnh::tifl> tifl_tup;  ///< Tuple of tensor flags – stores labels of all indices under contracion. 
 
-  typedef std::complex<double> tel;
+  typedef std::complex<double> tel;  ///< Tensor element type. 
 
-  typedef std::pair<qtnh::tidx_tup_st, qtnh::tidx_tup_st> wire;
+  typedef std::pair<qtnh::tidx_tup_st, qtnh::tidx_tup_st> wire; ///< A pair of contracted indices. 
 }
 
 #endif
