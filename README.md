@@ -88,3 +88,39 @@ There are three types of accessors with different behaviour when running on mult
 - distributed getters (`getDistDims()`, `getDistSize()`) – relate to how different local portions are distributed
 
 The element accessors `getEl(...)` and `getLocEl(...)` are safe to use on all ranks, as their return type is optional. On the other hand, there is also an unsafe square bracket accessor `operator[...]`, which returns an error if the element is not available locally. The situation is similar for dense tensor setters – `setEL(...)` and `setLocEl(...)`, while the square bracket operator can be used to return reference to the local element.  
+
+Tensors can be contracted with each other by using a static `qtnh::Tensor::contract(...)` method. It takes two tensor pointers, and a vector of *wires*, which are pairs of tensor indices to be contracted with each other. 
+
+```c++
+qtnh::QTNHEnv env;
+qtnh::SDenseTensor t1(env, { 2, 2, 2 }, { .1, .2, .3, .4, .5, .6, .7, .8 });
+qtnh::SDenseTensor t2(env, { 4, 2 }, { .8, .7, .6, .5, .4, .3, .2, .1 });
+
+std::vector<qtnh::wire> ws = { { 0, 1 } }; // connect index 0 of t1 and 1 of t2
+auto* t3p = qtnh::Tensor::contract(&t1, &t2, ws); // a (2, 2, 4) tensor
+```
+
+### Tensor Network
+
+Class `qtnh::TensorNetwork` acts as a storage for tensors, and bonds between them. Struct `qtnh::Bond` implements the bonds as a vector of wires and a pair of IDs of tensors to contract. Tensors and bonds can be accessed using their IDs. It is also possible to contract two tensors with given IDs, or to contract the entire network into a single tensor. When contracting multiple tensors, a *contraction order* of bond IDs can be specified. 
+
+```c++
+qtnh::QTNHEnv env;
+qtnh::TensorNetwork tn();
+
+qtnh::SDenseTensor t1(env, { 2, 2, 2 }, { .1, .2, .3, .4, .5, .6, .7, .8 });
+qtnh::SDenseTensor t2(env, { 4, 2 }, { .8, .7, .6, .5, .4, .3, .2, .1 });
+qtnh::Bond b1({ t1.getID(), t2.getID() }, { { 0, 1 } });
+
+auto t1id = tn.insertTensor(t1);
+auto t2id = tn.insertTensor(t2);
+auto b1id = tn.insertBond(b1);
+
+//  ...
+
+auto new_id = tn.contract(b1id);  // contract single bond
+auto final_id = tn.contractAll(); // contract all bonds
+
+auto tf = tn.getTensor(final_id); // read final tensor
+```
+
