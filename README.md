@@ -126,7 +126,7 @@ auto b1_id = tn.insertBond(b1);
 
 //  ...
 
-auto new_id = tn.contract(b1_id);  // contract single bond
+auto new_id = tn.contract(b1_id); // contract single bond
 auto final_id = tn.contractAll(); // contract all bonds
 
 auto tf = tn.getTensor(final_id); // read final tensor
