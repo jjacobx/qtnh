@@ -100,6 +100,14 @@ std::vector<qtnh::wire> ws = { { 0, 1 } }; // connect index 0 of t1 and 1 of t2
 auto* t3p = qtnh::Tensor::contract(&t1, &t2, ws); // a (2, 2, 4) tensor
 ```
 
+To distribute a shared tensor, use the `distribute(...)` function, or contract its first indices with a `qtnh::ConvertTensor`. First `n` indices will be converted from local to distributed. It should be noted that distributed indices cannot be contracted, and instead need to be swapped with a shared one using a `swap(...)` function, or by using `qtnh::SwapTensor`. 
+
+```c++
+qtnh::QTNHEnv env;
+qtnh::SDenseTensor t1(env, { 2, 2, 2 }, { .1, .2, .3, .4, .5, .6, .7, .8 });
+auto* t2p = t1.distribute(1); // distribute first index of t1
+```
+
 ### Tensor Network
 
 Class `qtnh::TensorNetwork` acts as a storage for tensors, and bonds between them. Struct `qtnh::Bond` implements the bonds as a vector of wires and a pair of IDs of tensors to contract. Tensors and bonds can be accessed using their IDs. It is also possible to contract two tensors with given IDs, or to contract the entire network into a single tensor. When contracting multiple tensors, a *contraction order* of bond IDs can be specified. 
@@ -112,13 +120,13 @@ qtnh::SDenseTensor t1(env, { 2, 2, 2 }, { .1, .2, .3, .4, .5, .6, .7, .8 });
 qtnh::SDenseTensor t2(env, { 4, 2 }, { .8, .7, .6, .5, .4, .3, .2, .1 });
 qtnh::Bond b1({ t1.getID(), t2.getID() }, { { 0, 1 } });
 
-auto t1id = tn.insertTensor(t1);
-auto t2id = tn.insertTensor(t2);
-auto b1id = tn.insertBond(b1);
+auto t1_id = tn.insertTensor(t1);
+auto t2_id = tn.insertTensor(t2);
+auto b1_id = tn.insertBond(b1);
 
 //  ...
 
-auto new_id = tn.contract(b1id);  // contract single bond
+auto new_id = tn.contract(b1_id);  // contract single bond
 auto final_id = tn.contractAll(); // contract all bonds
 
 auto tf = tn.getTensor(final_id); // read final tensor
