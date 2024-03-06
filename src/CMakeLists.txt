@@ -11,6 +11,7 @@ target_compile_features(qtnh
 target_compile_options(qtnh
   PRIVATE
   -Wall
+  -fsanitize=undefined,address
 )
 
 # Turn off Wsign-compare in Release builds
@@ -47,6 +48,7 @@ target_include_directories(qtnh
 target_link_libraries(qtnh
   PUBLIC
   ${MATH_LIBRARY}
+  -fsanitize=undefined,address
 )
 
 if(OpenMP_FOUND)

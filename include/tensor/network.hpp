@@ -1,8 +1,9 @@
 #ifndef _TENSOR__NETWORK_HPP
 #define _TENSOR__NETWORK_HPP
 
-#include <map>
+// #include <map>
 #include <memory>
+#include <unordered_map>
 
 #include "../core/typedefs.hpp"
 #include "tensor/dense.hpp"
@@ -65,7 +66,7 @@ namespace qtnh {
 
       template<class T, class... U>
       qtnh::uint createTensor(U&&... us) {
-        tensors.insert({ ++tensor_counter, std::unique_ptr<Tensor>(new T(std::forward<U>(us)...)) });
+        tensors.insert({ ++tensor_counter, std::make_unique<T>(std::forward<U>(us)...) });
         return tensor_counter;
       }
       /// @brief Insert tensor in the map. 
