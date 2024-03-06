@@ -64,30 +64,39 @@ namespace qtnh {
       /// @return Reference to the bond with given ID. 
       Bond& getBond(qtnh::uint id);
 
+      /// @brief Construct a tensor directly inside a tensor network. 
+      /// @tparam T Derived tensor class to call the constructor of. 
+      /// @tparam ...U Constructor argument types. 
+      /// @param ...us Constructor arguments. 
+      /// @return ID of constructed tensor. 
       template<class T, class... U>
       qtnh::uint createTensor(U&&... us) {
         tensors.insert({ ++tensor_counter, std::make_unique<T>(std::forward<U>(us)...) });
         return tensor_counter;
       }
+      
       /// @brief Insert tensor in the map. 
       /// @param t Reference to tensor to insert. 
-      /// @return ID of the inserted tensor. 
+      /// @return ID of inserted tensor. 
       qtnh::uint insertTensor(Tensor* t);
       /// @brief Insert bond in the map. 
       /// @param b Reference to bond to insert. 
-      /// @return ID of the inserted bond. 
+      /// @return ID of inserted bond. 
       qtnh::uint insertBond(Bond& b);
 
       /// @brief Contract bond with ID. 
       /// @param id ID of the bond to be contracted. 
-      /// @return ID of the tensor created by the contraction. 
+      /// @return ID of tensor created by the contraction. 
+      ///
+      /// Tensors contracted by the bond get deleted from memory, so
+      /// any pointers to them are no longer valid. 
       qtnh::uint contractBond(qtnh::uint id);
       /// @brief Contract all bonds according to arbitrary order. 
-      /// @return ID of the final tensor in the network. 
+      /// @return ID of final tensor in the network. 
       qtnh::uint contractAll();
       /// @brief Contract all bonds ordered by the vector of IDs. 
       /// @param ids Vector of bond IDs to contract in given order. 
-      /// @return ID of the final tensor in the network. 
+      /// @return ID of final tensor in the network. 
       qtnh::uint contractAll(std::vector<qtnh::uint> ids);
 
       /// Print current tensor network, listing all tensors and bonds in it. 
