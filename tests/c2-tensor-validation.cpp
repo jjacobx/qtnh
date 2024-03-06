@@ -84,8 +84,8 @@ TEST_CASE("contract-tensor-network-validation") {
   qtnh::Bond b1({t1.getID(), t2.getID()}, wires1);
 
   qtnh::TensorNetwork tn;
-  tn.insertTensor(t1);
-  tn.insertTensor(t2);
+  tn.insertTensor(&t1);
+  tn.insertTensor(&t2);
   tn.insertBond(b1);
 
   auto res_id = tn.contractAll();

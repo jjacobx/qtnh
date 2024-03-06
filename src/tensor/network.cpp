@@ -20,20 +20,21 @@ namespace qtnh {
     return out;
   }
 
-  TensorNetwork::TensorNetwork()
-    : tensors(std::map<qtnh::uint, Tensor&>()), bonds(std::map<qtnh::uint, Bond&>()) {}
+  TensorNetwork::TensorNetwork() : 
+    tensors(std::unordered_map<qtnh::uint, std::unique_ptr<Tensor>>()), 
+    bonds(std::unordered_map<qtnh::uint, Bond&>()) {}
   
-  Tensor& TensorNetwork::getTensor(qtnh::uint k) { 
-    return tensors.at(k);
+  Tensor& TensorNetwork::getTensor(qtnh::uint k) {
+    return *tensors.at(k).get();
   }
 
   Bond& TensorNetwork::getBond(qtnh::uint k) { 
     return bonds.at(k);
   }
 
-  qtnh::uint TensorNetwork::insertTensor(Tensor& t) { 
-    tensors.insert({t.getID(), t}); 
-    return t.getID(); 
+  qtnh::uint TensorNetwork::insertTensor(Tensor* t) {
+    tensors.insert({ ++tensor_counter, std::unique_ptr<Tensor>(t) }); 
+    return tensor_counter; 
   }
 
   qtnh::uint TensorNetwork::insertBond(Bond& b) { 
@@ -42,14 +43,15 @@ namespace qtnh {
   }
 
   qtnh::uint TensorNetwork::contractBond(qtnh::uint id) {
-    auto& b = bonds.at(id);
-    auto& t1 = tensors.at(b.tensor_ids.first);
-    auto& t2 = tensors.at(b.tensor_ids.second);
+    auto b = bonds.at(id);
+    auto [t1_id, t2_id] = b.tensor_ids;
+    auto t1_up = std::move(tensors.at(t1_id));
+    auto t2_up = std::move(tensors.at(t2_id));
 
-    auto dims1 = t1.getDims();
-    auto dims2 = t2.getDims();
-    auto dist_size1 = t1.getDistDims().size();
-    auto dist_size2 = t2.getDistDims().size();
+    auto dims1 = t1_up->getDims();
+    auto dims2 = t2_up->getDims();
+    auto dist_size1 = t1_up->getDistDims().size();
+    auto dist_size2 = t2_up->getDistDims().size();
 
     std::vector<bool> is_open1(dims1.size(), true);
     std::vector<bool> is_open2(dims2.size(), true);
@@ -75,41 +77,41 @@ namespace qtnh {
       if (is_open2.at(i)) t2_imaps.insert({i, counter++});
     }
 
-    auto* t3r = Tensor::contract(&t1, &t2, b.wires);
+    auto t3_p = Tensor::contract(t1_up.get(), t2_up.get(), b.wires);
 
     bonds.erase(b.getID());
-    tensors.erase(t1.getID());
-    tensors.erase(t2.getID());
-    tensors.insert({t3r->getID(), *t3r});
+    tensors.erase(t1_id);
+    tensors.erase(t2_id);
 
-    for (auto kv : bonds) {
-      auto& b = kv.second;
-      if (b.tensor_ids.first == t1.getID()) {
-        b.tensor_ids.first = t3r->getID();
+    auto t3_id = insertTensor(t3_p);
+
+    for (auto& [id, b] : bonds) {
+      if (b.tensor_ids.first == t1_id) {
+        b.tensor_ids.first = t3_id;
         for (auto& w : b.wires) {
           w.first = t1_imaps.at(w.first);
         }
-      } else if (b.tensor_ids.first == t2.getID()) {
-        b.tensor_ids.first = t3r->getID();
+      } else if (b.tensor_ids.first == t2_id) {
+        b.tensor_ids.first = t3_id;
         for (auto& w : b.wires) {
           w.first = t2_imaps.at(w.first);
         }
       }
 
-      if (b.tensor_ids.second == t1.getID()) {
-        b.tensor_ids.second = t3r->getID();
+      if (b.tensor_ids.second == t1_id) {
+        b.tensor_ids.second = t3_id;
         for (auto& w : b.wires) {
           w.second = t1_imaps.at(w.second);
         }
-      } else if (b.tensor_ids.second == t2.getID()) {
-        b.tensor_ids.second = t3r->getID();
+      } else if (b.tensor_ids.second == t2_id) {
+        b.tensor_ids.second = t3_id;
         for (auto& w : b.wires) {
           w.second = t2_imaps.at(w.second);
         }
       }
     }
 
-    return t3r->getID();
+    return t3_id;
   }
 
   qtnh::uint TensorNetwork::contractAll() {
@@ -156,14 +158,14 @@ namespace qtnh {
 
     std::cout << "----------------------------------------------------------------" << std::endl;
     std::cout << "Tensors: " << std::endl;
-    for (auto kv : tensors) {
-      std::cout << "ID: " << kv.first << " | Els: " << kv.second << std::endl;
+    for (auto& [id, t] : tensors) {
+      std::cout << "ID: " << id << " | Els: " << *t.get() << std::endl;
     }
 
     std::cout << "----------------------------------------------------------------" << std::endl;
     std::cout << "Bonds: " << std::endl;
-    for (auto kv : bonds) {
-      std::cout << "ID: " << kv.first << " | Bond: " << kv.second << std::endl;
+    for (auto& [id, b] : bonds) {
+      std::cout << "ID: " << id << " | Bond: " << b << std::endl;
     }
 
     std::cout << "================================================================" << std::endl;

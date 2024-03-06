@@ -23,8 +23,8 @@ int main() {
   qtnh::Bond b1({t2.getID(), t3.getID()}, wires1);
 
   qtnh::TensorNetwork tn;
-  tn.insertTensor(t2);
-  tn.insertTensor(t3);
+  tn.insertTensor(&t2);
+  tn.insertTensor(&t3);
   tn.insertBond(b1);
 
   auto t4id = tn.contractBond(b1.getID());

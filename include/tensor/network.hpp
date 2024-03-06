@@ -2,6 +2,7 @@
 #define _TENSOR__NETWORK_HPP
 
 #include <map>
+#include <memory>
 
 #include "../core/typedefs.hpp"
 #include "tensor/dense.hpp"
@@ -36,8 +37,13 @@ namespace qtnh {
   /// Storage for tensors and bonds connecting them. 
   class TensorNetwork {
     private:
-      std::map<qtnh::uint, Tensor&> tensors;  ///< Map between tensors in the network and their IDs. 
-      std::map<qtnh::uint, Bond&> bonds;      ///< Map between bonds in the network and their IDs. 
+      inline static qtnh::uint tensor_counter = 0;  ///< Counter to determine tensor IDs. 
+      inline static qtnh::uint bond_counter = 0;    ///< Counter to determine bond IDs. 
+
+      /// Map between tensors in the network and their IDs. 
+      std::unordered_map<qtnh::uint, std::unique_ptr<Tensor>> tensors;
+      /// Map between bonds in the network and their IDs. 
+      std::unordered_map<qtnh::uint, Bond&> bonds;                      
 
     public:
       /// Create empty tensor network. 
@@ -60,7 +66,7 @@ namespace qtnh {
       /// @brief Insert tensor in the map. 
       /// @param t Reference to tensor to insert. 
       /// @return ID of the inserted tensor. 
-      qtnh::uint insertTensor(Tensor& t);
+      qtnh::uint insertTensor(Tensor* t);
       /// @brief Insert bond in the map. 
       /// @param b Reference to bond to insert. 
       /// @return ID of the inserted bond. 
