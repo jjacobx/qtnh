@@ -22,14 +22,17 @@ if (CMAKE_BUILD_TYPE MATCHES Release)
   )
 endif()
 
+# Set DEBUG flag in Debug builds
 if (CMAKE_BUILD_TYPE MATCHES Debug)
-  # Set DEBUG flag in Debug builds
   target_compile_options(qtnh
     PRIVATE
     -DDEBUG
   )
+endif()
 
-  # Additional Debug flags and libraries
+option(FSANITIZE "Turn on fsanitize debug flags" OFF)
+if (FSANITIZE)
+  message(STATUS "Setting -fsanitize=undefined,address.")
   target_compile_options(qtnh
     PRIVATE
     -fsanitize=undefined,address
