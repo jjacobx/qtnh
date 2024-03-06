@@ -69,7 +69,7 @@ namespace qtnh {
       Tensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dist_dims);
 
       /// Default destructor. 
-      ~Tensor() = default;
+      virtual ~Tensor() = default;
 
       qtnh::uint getID() const { return id; }                          ///< Tensor ID getter. 
       bool isActive() const { return active; }                         ///< Active flag getter. 
@@ -146,7 +146,7 @@ namespace qtnh {
       SharedTensor(qtnh::tidx_tup loc_dims);
       
       /// Default destructor. 
-      ~SharedTensor() = default;
+      virtual ~SharedTensor() = default;
 
       virtual std::optional<qtnh::tel> getEl(const qtnh::tidx_tup&) const override;
       virtual std::optional<qtnh::tel> getLocEl(const qtnh::tidx_tup&) const override;
@@ -160,7 +160,7 @@ namespace qtnh {
       /// Copy constructor is invalid due to potential large tensor size. 
       WritableTensor(const SharedTensor&) = delete;
       /// Default destructor. 
-      ~WritableTensor() = default;
+      virtual ~WritableTensor() = default;
 
       using Tensor::operator[];
 

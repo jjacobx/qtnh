@@ -26,7 +26,7 @@ namespace qtnh {
       DenseTensor(std::vector<qtnh::tel> els);
 
       /// Default destructor. 
-      ~DenseTensor() = default;
+      virtual ~DenseTensor() = default;
 
       virtual qtnh::tel operator[](const qtnh::tidx_tup&) const override;
       virtual qtnh::tel& operator[](const qtnh::tidx_tup&) override;
