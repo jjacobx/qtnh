@@ -63,6 +63,11 @@ namespace qtnh {
       /// @return Reference to the bond with given ID. 
       Bond& getBond(qtnh::uint id);
 
+      template<class T, class... U>
+      qtnh::uint createTensor(U&&... us) {
+        tensors.insert({ ++tensor_counter, std::unique_ptr<Tensor>(new T(std::forward<U>(us)...)) });
+        return tensor_counter;
+      }
       /// @brief Insert tensor in the map. 
       /// @param t Reference to tensor to insert. 
       /// @return ID of the inserted tensor. 
