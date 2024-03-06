@@ -43,82 +43,78 @@ namespace qtnh {
   }
 
   qtnh::uint TensorNetwork::contractBond(qtnh::uint id) {
-    auto b = bonds.at(id);
+    auto& b = bonds.at(id);
     auto [t1_id, t2_id] = b.tensor_ids;
 
-    std::unique_ptr<Tensor> t1_up;
-    std::unique_ptr<Tensor> t2_up;
-    std::swap(tensors.at(t1_id), t1_up);
-    std::swap(tensors.at(t2_id), t2_up);
+    auto t1_up = std::move(tensors.at(t1_id));
+    auto t2_up = std::move(tensors.at(t2_id));
 
-    // auto t1_up = std::move(tensors.extract(t1_id));
-    // auto t2_up = std::move(tensors.extract(t2_id));
+    auto dims1 = t1_up->getDims();
+    auto dims2 = t2_up->getDims();
+    auto dist_size1 = t1_up->getDistDims().size();
+    auto dist_size2 = t2_up->getDistDims().size();
 
-    // auto dims1 = t1_up->getDims();
-    // auto dims2 = t2_up->getDims();
-    // auto dist_size1 = t1_up->getDistDims().size();
-    // auto dist_size2 = t2_up->getDistDims().size();
+    std::vector<bool> is_open1(dims1.size(), true);
+    std::vector<bool> is_open2(dims2.size(), true);
 
-    // std::vector<bool> is_open1(dims1.size(), true);
-    // std::vector<bool> is_open2(dims2.size(), true);
+    for (auto w : b.wires) {
+      is_open1.at(w.first) = false;
+      is_open2.at(w.second) = false;
+    }
 
-    // for (auto w : b.wires) {
-    //   is_open1.at(w.first) = false;
-    //   is_open2.at(w.second) = false;
-    // }
+    qtnh::tidx_tup_st counter = 0;
+    auto t1_imaps = std::unordered_map<qtnh::tidx_tup_st, qtnh::tidx_tup_st>();
+    auto t2_imaps = std::unordered_map<qtnh::tidx_tup_st, qtnh::tidx_tup_st>();
+    for (std::size_t i = 0; i < dist_size1; ++i) {
+      if (is_open1.at(i)) t1_imaps.insert({i, counter++});
+    }
+    for (std::size_t i = 0; i < dist_size2; ++i) {
+      if (is_open2.at(i)) t2_imaps.insert({i, counter++});
+    }
+    for (auto i = dist_size1; i < dims1.size(); ++i) {
+      if (is_open1.at(i)) t1_imaps.insert({i, counter++});
+    }
+    for (auto i = dist_size2; i < dims2.size(); ++i) {
+      if (is_open2.at(i)) t2_imaps.insert({i, counter++});
+    }
 
-    // qtnh::tidx_tup_st counter = 0;
-    // auto t1_imaps = std::map<qtnh::tidx_tup_st, qtnh::tidx_tup_st>();
-    // auto t2_imaps = std::map<qtnh::tidx_tup_st, qtnh::tidx_tup_st>();
-    // for (std::size_t i = 0; i < dist_size1; ++i) {
-    //   if (is_open1.at(i)) t1_imaps.insert({i, counter++});
-    // }
-    // for (std::size_t i = 0; i < dist_size2; ++i) {
-    //   if (is_open2.at(i)) t2_imaps.insert({i, counter++});
-    // }
-    // for (auto i = dist_size1; i < dims1.size(); ++i) {
-    //   if (is_open1.at(i)) t1_imaps.insert({i, counter++});
-    // }
-    // for (auto i = dist_size2; i < dims2.size(); ++i) {
-    //   if (is_open2.at(i)) t2_imaps.insert({i, counter++});
-    // }
+    auto t3_p = Tensor::contract(t1_up.get(), t2_up.get(), b.wires);
 
-    //auto t3_p = Tensor::contract(t1_up.get(), t2_up.get(), b.wires);
+    bonds.erase(b.getID());
+    delete &b;
 
-    //bonds.erase(b.getID());
     tensors.erase(t1_id);
     tensors.erase(t2_id);
 
-    //auto t3_id = insertTensor(t3_p);
+    auto t3_id = insertTensor(t3_p);
 
-    // for (auto& [id, b] : bonds) {
-    //   if (b.tensor_ids.first == t1_id) {
-    //     b.tensor_ids.first = t3_id;
-    //     for (auto& w : b.wires) {
-    //       w.first = t1_imaps.at(w.first);
-    //     }
-    //   } else if (b.tensor_ids.first == t2_id) {
-    //     b.tensor_ids.first = t3_id;
-    //     for (auto& w : b.wires) {
-    //       w.first = t2_imaps.at(w.first);
-    //     }
-    //   }
+    for (auto& [id, b] : bonds) {
+      if (b.tensor_ids.first == t1_id) {
+        b.tensor_ids.first = t3_id;
+        for (auto& w : b.wires) {
+          w.first = t1_imaps.at(w.first);
+        }
+      } else if (b.tensor_ids.first == t2_id) {
+        b.tensor_ids.first = t3_id;
+        for (auto& w : b.wires) {
+          w.first = t2_imaps.at(w.first);
+        }
+      }
 
-    //   if (b.tensor_ids.second == t1_id) {
-    //     b.tensor_ids.second = t3_id;
-    //     for (auto& w : b.wires) {
-    //       w.second = t1_imaps.at(w.second);
-    //     }
-    //   } else if (b.tensor_ids.second == t2_id) {
-    //     b.tensor_ids.second = t3_id;
-    //     for (auto& w : b.wires) {
-    //       w.second = t2_imaps.at(w.second);
-    //     }
-    //   }
-    // }
+      if (b.tensor_ids.second == t1_id) {
+        b.tensor_ids.second = t3_id;
+        for (auto& w : b.wires) {
+          w.second = t1_imaps.at(w.second);
+        }
+      } else if (b.tensor_ids.second == t2_id) {
+        b.tensor_ids.second = t3_id;
+        for (auto& w : b.wires) {
+          w.second = t2_imaps.at(w.second);
+        }
+      }
+    }
 
-    // return t3_id;
-    return 0;
+    return t3_id;
   }
 
   qtnh::uint TensorNetwork::contractAll() {
@@ -142,6 +138,7 @@ namespace qtnh {
         if (b1.tensor_ids.first == b2.tensor_ids.first && b1.tensor_ids.second == b2.tensor_ids.second) {
           b1.wires.insert(b1.wires.end(), b2.wires.begin(), b2.wires.end());
           bonds.erase(b2.getID());
+          delete &b2;
         } else {
           break;
         }

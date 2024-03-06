@@ -79,8 +79,8 @@ int main() {
       con_ord.push_back(tn.insertBond(*bcp1));
       con_ord.push_back(tn.insertBond(*bcp2));
 
-      lastq.at(i) = idcp; 
-      lastq.at(j) = idcp; 
+      lastq.at(i) = idcp;
+      lastq.at(j) = idcp;
       dimq.at(i) = 2;
       dimq.at(j) = 3;
     }
