@@ -80,13 +80,12 @@ TEST_CASE("contract-tensor-network-validation") {
                                     2.0 + 2.0i, 4.0 + 4.0i, 6.0 + 6.0i, 8.0 + 8.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i };
   qtnh::SDenseTensor tr(env, tr_dims, tr_els);
 
-  std::vector<qtnh::wire> wires1(1, {1, 0});
-  qtnh::Bond b1({t1.getID(), t2.getID()}, wires1);
-
   qtnh::TensorNetwork tn;
-  tn.insertTensor(&t1);
-  tn.insertTensor(&t2);
-  tn.insertBond(b1);
+  auto t1_id = tn.insertTensor(&t1);
+  auto t2_id = tn.insertTensor(&t2);
+
+  std::vector<qtnh::wire> wires1(1, {1, 0});
+  tn.createBond(t1_id, t2_id, wires1);
 
   auto res_id = tn.contractAll();
 

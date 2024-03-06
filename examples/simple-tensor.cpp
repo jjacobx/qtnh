@@ -19,15 +19,14 @@ int main() {
   qtnh::SDenseTensor t2(my_env, t2_dims, t2_els);
   auto& t3 = *t1.distribute(1);
 
-  std::vector<qtnh::wire> wires1(1, {1, 2});
-  qtnh::Bond b1({t2.getID(), t3.getID()}, wires1);
-
   qtnh::TensorNetwork tn;
-  tn.insertTensor(&t2);
-  tn.insertTensor(&t3);
-  tn.insertBond(b1);
+  auto t2_id = tn.insertTensor(&t2);
+  auto t3_id = tn.insertTensor(&t3);
 
-  auto t4id = tn.contractBond(b1.getID());
+  std::vector<qtnh::wire> wires1(1, {1, 2});
+  auto b1_id = tn.createBond(t2_id, t3_id, wires1);
+
+  auto t4id = tn.contractBond(b1_id);
   auto& t_out = tn.getTensor(t4id);
 
   std::cout << my_env.proc_id << " | Tout[" << t_out.isActive() << "] = " << t_out << std::endl;

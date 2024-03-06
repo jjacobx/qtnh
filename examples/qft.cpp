@@ -58,15 +58,15 @@ int main() {
     dimq.at(i) = 0;
 
     if (i > 0) {
-      auto* b = new Bond({ lastq.at(i - 1), lastq.at(i) }, {});
-      con_ord.push_back(tn.insertBond(*b));
+      auto b_id = tn.createBond(lastq.at(i - 1), lastq.at(i), {});
+      con_ord.push_back(b_id);
     }
   }
 
   for (auto i = 0; i < NQUBITS; ++i) {
     auto idh = H(env, tn);
-    auto* bh = new Bond({ lastq.at(i), idh }, {{ dimq.at(i), 0 }});
-    con_ord.push_back(tn.insertBond(*bh));
+    auto b_id = tn.createBond(lastq.at(i), idh, {{ dimq.at(i), 0 }});
+    con_ord.push_back(b_id);
 
     lastq.at(i) = idh;
     dimq.at(i) = 1;
@@ -74,10 +74,10 @@ int main() {
     for (auto j = i + 1; j < NQUBITS; ++j) {
       auto idcp = CP(env, tn, M_PI / std::pow(2, j - i));
 
-      auto* bcp1 = new Bond({ lastq.at(i), idcp }, {{ dimq.at(i), 0 }});
-      auto* bcp2 = new Bond({ lastq.at(j), idcp }, {{ dimq.at(j), 1 }});
-      con_ord.push_back(tn.insertBond(*bcp1));
-      con_ord.push_back(tn.insertBond(*bcp2));
+      auto b1_id = tn.createBond(lastq.at(i), idcp, {{ dimq.at(i), 0 }});
+      auto b2_id = tn.createBond(lastq.at(j), idcp, {{ dimq.at(j), 1 }});
+      con_ord.push_back(b1_id);
+      con_ord.push_back(b2_id);
 
       lastq.at(i) = idcp;
       lastq.at(j) = idcp;

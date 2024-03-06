@@ -48,13 +48,12 @@ TEST_CASE("contract-tensor-network-test") {
   std::vector<qtnh::tel> t2_els = { 1.0 + 1.0i, 2.0 + 2.0i, 3.0 + 3.0i, 4.0 + 4.0i, 1.0 - 1.0i, 2.0 - 2.0i, 3.0 - 3.0i, 4.0 - 4.0i };
   qtnh::SDenseTensor t2(env, t2_dims, t2_els);
 
-  std::vector<qtnh::wire> wires1(1, {1, 0});
-  qtnh::Bond b1({t1.getID(), t2.getID()}, wires1);
-
   qtnh::TensorNetwork tn;
-  tn.insertTensor(&t1);
-  tn.insertTensor(&t2);
-  tn.insertBond(b1);
+  auto t1_id = tn.insertTensor(&t1);
+  auto t2_id = tn.insertTensor(&t2);
+
+  std::vector<qtnh::wire> wires1(1, {1, 0});
+  tn.createBond(t1_id, t2_id, wires1);
 
   REQUIRE_NOTHROW(tn.contractAll());
 }
