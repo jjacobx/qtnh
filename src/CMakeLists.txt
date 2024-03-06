@@ -11,7 +11,7 @@ target_compile_features(qtnh
 target_compile_options(qtnh
   PRIVATE
   -Wall
-  -fsanitize=undefined,address
+  -Wdelete-non-virtual-dtor
 )
 
 # Turn off Wsign-compare in Release builds
@@ -22,11 +22,21 @@ if (CMAKE_BUILD_TYPE MATCHES Release)
   )
 endif()
 
-# Set DEBUG flag in Debug builds
 if (CMAKE_BUILD_TYPE MATCHES Debug)
+  # Set DEBUG flag in Debug builds
   target_compile_options(qtnh
     PRIVATE
     -DDEBUG
+  )
+
+  # Additional Debug flags and libraries
+  target_compile_options(qtnh
+    PRIVATE
+    -fsanitize=undefined,address
+  )
+  target_link_libraries(qtnh
+    PUBLIC
+    -fsanitize=undefined,address
   )
 endif()
 
@@ -48,7 +58,6 @@ target_include_directories(qtnh
 target_link_libraries(qtnh
   PUBLIC
   ${MATH_LIBRARY}
-  -fsanitize=undefined,address
 )
 
 if(OpenMP_FOUND)
