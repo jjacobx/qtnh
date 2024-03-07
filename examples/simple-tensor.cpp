@@ -1,13 +1,13 @@
 #include <iostream>
-
 #include "qtnh.hpp"
 
-using namespace std::complex_literals;
+using namespace qtnh;
 using namespace qtnh::ops;
+using namespace std::complex_literals;
+
 
 int main() {
-  qtnh::QTNHEnv my_env;
-  auto is_0 = my_env.proc_id == 0;
+  QTNHEnv env;
 
   qtnh::tidx_tup t1_dims = { 2, 2, 2 };
   qtnh::tidx_tup t2_dims = { 4, 2 };
@@ -15,72 +15,75 @@ int main() {
   std::vector<qtnh::tel> t1_els = { 1.0 + 1.0i, 2.0 + 2.0i, 3.0 + 3.0i, 4.0 + 4.0i, 5.0 + 5.0i, 6.0 + 6.0i, 7.0 + 7.0i, 8.0 + 8.0i };
   std::vector<qtnh::tel> t2_els = { 5.0 + 5.0i, 6.0 + 6.0i, 7.0 + 7.0i, 8.0 + 8.0i, 1.0 + 1.0i, 2.0 + 2.0i, 3.0 + 3.0i, 4.0 + 4.0i };
 
-  qtnh::SDenseTensor t1(my_env, t1_dims, t1_els);
-  qtnh::SDenseTensor t2(my_env, t2_dims, t2_els);
-  auto& t3 = *t1.distribute(1);
+  auto t1u = std::make_unique<SDenseTensor>(env, t1_dims, t1_els);
+  auto t2u = std::make_unique<SDenseTensor>(env, t2_dims, t2_els);
+  auto t3u = std::unique_ptr<DDenseTensor>(t1u->distribute(1));
+
+  std::cout << env.proc_id << " | T3 = " << *t3u << "\n";
 
   qtnh::TensorNetwork tn;
-  auto t2_id = tn.insertTensor(&t2);
-  auto t3_id = tn.insertTensor(&t3);
+  auto t2_id = tn.insertTensor(std::move(t2u));
+  auto t3_id = tn.insertTensor(std::move(t3u));
+  auto b1_id = tn.createBond(t2_id, t3_id, {{ 1, 2 }});
 
-  std::vector<qtnh::wire> wires1(1, {1, 2});
-  auto b1_id = tn.createBond(t2_id, t3_id, wires1);
+  auto t4_id = tn.contractBond(b1_id);
+  auto& t4 = tn.getTensor(t4_id);
+  std::cout << env.proc_id << " | T4 = " << t4 << "\n";
 
-  auto t4id = tn.contractBond(b1_id);
-  auto& t_out = tn.getTensor(t4id);
+  t4.swap(0, 2);
+  std::cout << env.proc_id << " | T4' = " << t4 << "\n";
 
-  std::cout << my_env.proc_id << " | Tout[" << t_out.isActive() << "] = " << t_out << std::endl;
-  t_out.swap(0, 2);
-  std::cout << my_env.proc_id << " | Tout_s1 = " << t_out << std::endl;
-
+  qtnh::tidx_tup t5_dims = { 3, 3 };
   std::vector<qtnh::tel> t5_els = { 1, 2, 3, 1, 2, 3, 1, 2, 3 };
-  qtnh::SDenseTensor t5(my_env, { 3, 3 }, t5_els);
-  auto& t6 = *t5.distribute(1);
+  auto t5u = std::make_unique<SDenseTensor>(env, t5_dims, t5_els);
 
-  std::cout << my_env.proc_id << " | T6 = " << t6 << std::endl;
+  auto t6u = std::unique_ptr<DDenseTensor>(t5u->distribute(1));
+  std::cout << env.proc_id << " | T6 = " << *t6u << "\n";
 
-  t6.swap(0, 1);
-  std::cout << my_env.proc_id << " | T6_s1 = " << t6 << std::endl;
+  t6u->swap(0, 1);
+  std::cout << env.proc_id << " | T6' = " << *t6u << "\n";
 
+  qtnh::tidx_tup t7_dims = { 2, 2, 2, 2 };
   std::vector<qtnh::tel> t7_els = { 1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8 };
-  qtnh::SDenseTensor t7(my_env, { 2, 2, 2, 2 }, t7_els);
-  auto& t8 = *t7.distribute(2);
+  auto t7u = std::make_unique<SDenseTensor>(env, t7_dims, t7_els);
 
-  std::cout << my_env.proc_id << " | T8 = " << t8 << std::endl;
+  auto t8u = std::unique_ptr<DDenseTensor>(t7u->distribute(2));
+  std::cout << env.proc_id << " | T8 = " << *t8u << "\n";
 
-  t8.swap(0, 1);
-  std::cout << my_env.proc_id << " | T8_s1 = " << t8 << std::endl;
+  t8u->swap(0, 1);
+  std::cout << env.proc_id << " | T8' = " << *t8u << "\n";
 
-  t8.swap(1, 0);
-  t8.swap(2, 3);
-  std::cout << my_env.proc_id << " | T8_s2 = " << t8 << std::endl;
+  t8u->swap(1, 0);
+  t8u->swap(2, 3);
+  std::cout << env.proc_id << " | T8'' = " << *t8u << "\n";
 
-  t8.swap(3, 2);
-  std::cout << my_env.proc_id << " | T8 = " << t8 << std::endl;
+  t8u->swap(3, 2);
+  std::cout << env.proc_id << " | T8 = " << *t8u << "\n";
 
-  qtnh::SwapTensor st(my_env, 2, 2);
-  std::cout << my_env.proc_id << " | SWAP = " << st << std::endl;
+  auto stu = std::make_unique<SwapTensor>(env, 2, 2);
+  std::cout << env.proc_id << " | SWAP = " << *stu << "\n";
 
-  auto& t9 = *qtnh::Tensor::contract(&t8, &st, {{ 2, 3 }});
+  auto t9u = Tensor::contract(std::move(t8u), std::move(stu), {{ 2, 3 }});
+  std::cout << env.proc_id << " | T9 = " << *t9u << "\n";
+  if (env.proc_id == 0) {
+    std::cout << "T9.dims = " << t9u->getDims() << "\n";
+  }
 
-  std::cout << my_env.proc_id << " | T9 = " << t9 << std::endl;
-  if (is_0) std::cout << "T9.dims = " << t9.getDims() << std::endl;
-
-  qtnh::IdentityTensor id(my_env, { 2, 2 });
-  std::cout << my_env.proc_id << " | ID = " << id << std::endl;
+  auto idu = std::make_unique<IdentityTensor>(env, qtnh::tidx_tup{ 2, 2 });
+  std::cout << env.proc_id << " | ID = " << *idu << "\n";
   
-  auto& t10 = *qtnh::Tensor::contract(&t9, &id, {{ 3, 0 }, {2, 1}});
-  std::cout << my_env.proc_id << " | T10 = " << t10 << std::endl;
+  auto t10u = Tensor::contract(std::move(t9u), std::move(idu), {{ 3, 0 }, {2, 1}});
+  std::cout << env.proc_id << " | T10 = " << *t10u << "\n";
 
-  qtnh::ConvertTensor cv(my_env, { 2, 2 });
-  std::cout << my_env.proc_id << " | CV = " << cv << std::endl;
+  auto cvu = std::make_unique<ConvertTensor>(env, qtnh::tidx_tup{ 2, 2 });
+  std::cout << env.proc_id << " | CV = " << *cvu << "\n";
 
-  auto& t11 = *qtnh::Tensor::contract(&t10, &cv, {{1, 1}, {0, 0}});
-  std::cout << my_env.proc_id << " | T11 = " << t11 << std::endl;
+  auto t11u = Tensor::contract(std::move(t10u), std::move(cvu), {{1, 1}, {0, 0}});
+  std::cout << env.proc_id << " | T11 = " << *t11u << "\n";
 
-  qtnh::ConvertTensor sh(my_env, {});
-  auto& t12 = *qtnh::Tensor::contract(&t11, &sh, {});
-  std::cout << my_env.proc_id << " | T12 = " << t12 << std::endl;
+  auto shu = std::make_unique<ConvertTensor>(env, qtnh::tidx_tup{});
+  auto t12u = Tensor::contract(std::move(t11u), std::move(shu), {});
+  std::cout << env.proc_id << " | T12 = " << *t12u << "\n";
 
   return 0;
 }
