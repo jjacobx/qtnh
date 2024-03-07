@@ -107,7 +107,7 @@ std::vector<qtnh::tel> t2_els = { 7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0, 0.0 };
 auto t1u = std::make_unique<SDenseTensor>(env, t1_dims, t1_els);
 auto t2u = std::make_unique<SDenseTensor>(env, t2_dims, t2_els);
 
-std::vector<qtnh::wire> ws = { { 0, 1 } }; // connect index 0 of t1 and 1 of t2
+std::vector<qtnh::wire> ws = {{ 0, 1 }}; // connect index 0 of t1 and 1 of t2
 auto t3u = Tensor::contract(std::move(t1u), std::move(t2u), ws); // a (2, 2, 4) tensor
 ```
 

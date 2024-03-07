@@ -2,19 +2,19 @@
 #include "tensor/special.hpp"
 
 namespace qtnh {
-  Tensor* SwapTensor::contract_disp(Tensor* t, const std::vector<qtnh::wire>& wires) {
-    t->swap(wires.at(0).first, wires.at(0).second); 
-    return t; 
+  Tensor* SwapTensor::contract_disp(Tensor* tp, const std::vector<qtnh::wire>& ws) {
+    tp->swap(ws.at(0).first, ws.at(0).second); 
+    return tp; 
   }
 
-  Tensor* SwapTensor::contract(SDenseTensor* t, const std::vector<qtnh::wire>& wires) {
-    t->swap(wires.at(0).first, wires.at(0).second); 
-    return t; 
+  Tensor* SwapTensor::contract(SDenseTensor* tp, const std::vector<qtnh::wire>& ws) {
+    tp->swap(ws.at(0).first, ws.at(0).second); 
+    return tp; 
   }
 
-  Tensor* SwapTensor::contract(DDenseTensor* t, const std::vector<qtnh::wire>& wires) {
-    t->swap(wires.at(0).first, wires.at(0).second); 
-    return t; 
+  Tensor* SwapTensor::contract(DDenseTensor* tp, const std::vector<qtnh::wire>& ws) {
+    tp->swap(ws.at(0).first, ws.at(0).second); 
+    return tp; 
   }
 
   SwapTensor::SwapTensor(const QTNHEnv& env, std::size_t n1, std::size_t n2)
@@ -30,16 +30,16 @@ namespace qtnh {
   }
 
 
-  Tensor* IdentityTensor::contract_disp(Tensor* t, const std::vector<qtnh::wire>& wires) { 
-    return t; 
+  Tensor* IdentityTensor::contract_disp(Tensor* tp, const std::vector<qtnh::wire>& ws) { 
+    return tp; 
   }
 
-  Tensor* IdentityTensor::contract(SDenseTensor* t, const std::vector<qtnh::wire>& wires) { 
-    return t; 
+  Tensor* IdentityTensor::contract(SDenseTensor* tp, const std::vector<qtnh::wire>& ws) { 
+    return tp; 
   }
 
-  Tensor* IdentityTensor::contract(DDenseTensor* t, const std::vector<qtnh::wire>& wires) { 
-    return t; 
+  Tensor* IdentityTensor::contract(DDenseTensor* tp, const std::vector<qtnh::wire>& ws) { 
+    return tp; 
   }
 
   IdentityTensor::IdentityTensor(const QTNHEnv& env, const qtnh::tidx_tup& in_dims)
@@ -61,34 +61,34 @@ namespace qtnh {
   }
 
 
-  Tensor* ConvertTensor::contract_disp(Tensor* t, const std::vector<qtnh::wire>& wires) {
-    return t->contract(this, wires);
+  Tensor* ConvertTensor::contract_disp(Tensor* tp, const std::vector<qtnh::wire>& ws) {
+    return tp->contract(this, ws);
   }
 
-  Tensor* ConvertTensor::contract(SDenseTensor* t, const std::vector<qtnh::wire>& wires) {
+  Tensor* ConvertTensor::contract(SDenseTensor* tp, const std::vector<qtnh::wire>& ws) {
     // TODO: More validation
-    return t->distribute(wires.size());
+    return tp->distribute(ws.size());
   }
 
-  Tensor* ConvertTensor::contract(DDenseTensor* t, const std::vector<qtnh::wire>& wires) {
+  Tensor* ConvertTensor::contract(DDenseTensor* tp, const std::vector<qtnh::wire>& ws) {
     // TODO: More validation
-    if (wires.size() == 0) {
-      return t->share();
+    if (ws.size() == 0) {
+      return tp->share();
     }
 
     std::size_t num_dist = 0;
-    for (auto w : wires) {
-      if (w.second < t->getDistDims().size()) {
+    for (auto w : ws) {
+      if (w.second < tp->getDistDims().size()) {
         num_dist++;
       }
     }
 
     if (num_dist == 0) {
-      t->scatter(wires.size());
-      return t; 
-    } else if (num_dist == wires.size()) {
-      t->gather(wires.size());
-      return t;
+      tp->scatter(ws.size());
+      return tp; 
+    } else if (num_dist == ws.size()) {
+      tp->gather(ws.size());
+      return tp;
     }
 
     throw std::runtime_error("Invalid contraction");

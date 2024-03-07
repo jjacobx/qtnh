@@ -12,10 +12,6 @@ namespace qtnh{
   /// This class can be used to easily iterate through tensor index tuples based on given restrictions 
   /// due to dimensions or index flags. 
   class TIndexing {
-    private:
-      qtnh::tidx_tup dims;  ///< Dimensions of each element of the indexing. 
-      qtnh::tifl_tup ifls;  ///< Flags of each element of the indexing. 
-    
     public:
       /// Empty constructor creates a single element indexing of dimension 1. 
       TIndexing();
@@ -97,13 +93,6 @@ namespace qtnh{
 
       /// Tensor indexing iterator class to enable for loops over given indexing. 
       class iterator {
-        private:
-          qtnh::tidx_tup dims;  ///< Dimensions of each element of related indexing. 
-          qtnh::tifl_tup ifls;  ///< Flags of each element of related indexing. 
-
-          qtnh::tidx_tup current;  ///< Current tensor index tuple. 
-          qtnh::tifl active_ifl;   ///< Active tensor index flag to iterate over. 
-
         public:
           /// @brief General constructor of the tensor indexing iterator. 
           /// @param dims Tensor index dimensions of related indexing. 
@@ -120,6 +109,13 @@ namespace qtnh{
           iterator& operator++();            ///< Next element operator. 
           bool operator!=(const iterator&);  ///< Inequality operator. 
           qtnh::tidx_tup operator*() const;  ///< Dereference operator. 
+
+        private:
+          qtnh::tidx_tup dims;  ///< Dimensions of each element of related indexing. 
+          qtnh::tifl_tup ifls;  ///< Flags of each element of related indexing. 
+
+          qtnh::tidx_tup current;  ///< Current tensor index tuple. 
+          qtnh::tifl active_ifl;   ///< Active tensor index flag to iterate over. 
       };
 
       /// @brief Get begin iterator with given tensor index flag type and tag. 
@@ -136,6 +132,10 @@ namespace qtnh{
       /// @param ti2 Second tensor indexing to append. 
       /// @return Tensor indexing with appended parameters of both arguments. 
       static TIndexing app(const TIndexing& ti1, const TIndexing&ti2);
+
+    private:
+      qtnh::tidx_tup dims;  ///< Dimensions of each element of the indexing. 
+      qtnh::tifl_tup ifls;  ///< Flags of each element of the indexing. 
   };  
 }
 

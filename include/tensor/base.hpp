@@ -18,38 +18,6 @@ namespace qtnh {
     friend class SDenseTensor;
     friend class DDenseTensor;
 
-    protected:
-      const QTNHEnv& env;  ///< Environment to use MPI/OpenMP in. 
-      bool active;         ///< Flag whether the tensor is valid on calling MPI rank. 
-
-      qtnh::tidx_tup dims;       ///< Global index dimensions. 
-      qtnh::tidx_tup loc_dims;   ///< Local index dimensions. 
-      qtnh::tidx_tup dist_dims;  ///< Distributed index dimensions.
-
-      /// @brief Contraction dispatch to derived tensor class. 
-      /// @param t Pointer to other contracted tensor. 
-      /// @param ws Vector of wires for contraction. 
-      /// @return Resultant tensor pointer after dispatch and contraction completes. 
-      virtual Tensor* contract_disp(Tensor* t, const std::vector<qtnh::wire>& ws);
-
-      /// @brief Contraction of derived tensor and tensor of type %ConvertTensor. 
-      /// @param t Pointer to other contracted tensor of type %ConvertTensor. 
-      /// @param ws Vector of wires for contraction. 
-      /// @return Resultant tensor pointer after contraction completes. 
-      virtual Tensor* contract(ConvertTensor* t, const std::vector<qtnh::wire>& ws);
-
-      /// @brief Contraction of derived tensor and tensor of type %SDenseTensor. 
-      /// @param t Pointer to other contracted tensor of type %SDenseTensor. 
-      /// @param ws Vector of wires for contraction. 
-      /// @return Resultant tensor pointer after contraction completes. 
-      virtual Tensor* contract(SDenseTensor* t, const std::vector<qtnh::wire>& ws);
-
-      /// @brief Contraction of derived tensor and tensor of type %DDenseTensor. 
-      /// @param t Pointer to other contracted tensor of type %DDenseTensor. 
-      /// @param ws Vector of wires for contraction. 
-      /// @return Resultant tensor pointer after contraction completes. 
-      virtual Tensor* contract(DDenseTensor* t, const std::vector<qtnh::wire>& ws);
-
     public:
       /// Empty constructor is invalid due to undefined environment. 
       Tensor() = delete;
@@ -117,6 +85,38 @@ namespace qtnh {
       /// @param ws A vector of wires which indicate which pairs of indices to sum over. 
       /// @return Contracted tensor unique pointer. 
       static std::unique_ptr<Tensor> contract(std::unique_ptr<Tensor> t1u, std::unique_ptr<Tensor> t2u, const std::vector<qtnh::wire>& ws);
+
+    protected:
+      const QTNHEnv& env;  ///< Environment to use MPI/OpenMP in. 
+      bool active;         ///< Flag whether the tensor is valid on calling MPI rank. 
+
+      qtnh::tidx_tup dims;       ///< Global index dimensions. 
+      qtnh::tidx_tup loc_dims;   ///< Local index dimensions. 
+      qtnh::tidx_tup dist_dims;  ///< Distributed index dimensions.
+
+      /// @brief Contraction dispatch to derived tensor class. 
+      /// @param tp Pointer to other contracted tensor. 
+      /// @param ws Vector of wires for contraction. 
+      /// @return Resultant tensor pointer after dispatch and contraction completes. 
+      virtual Tensor* contract_disp(Tensor* tp, const std::vector<qtnh::wire>& ws);
+
+      /// @brief Contraction of derived tensor and tensor of type %ConvertTensor. 
+      /// @param t Pointer to other contracted tensor of type %ConvertTensor. 
+      /// @param ws Vector of wires for contraction. 
+      /// @return Resultant tensor pointer after contraction completes. 
+      virtual Tensor* contract(ConvertTensor* tp, const std::vector<qtnh::wire>& ws);
+
+      /// @brief Contraction of derived tensor and tensor of type %SDenseTensor. 
+      /// @param tp Pointer to other contracted tensor of type %SDenseTensor. 
+      /// @param ws Vector of wires for contraction. 
+      /// @return Resultant tensor pointer after contraction completes. 
+      virtual Tensor* contract(SDenseTensor* t, const std::vector<qtnh::wire>& ws);
+
+      /// @brief Contraction of derived tensor and tensor of type %DDenseTensor. 
+      /// @param tp Pointer to other contracted tensor of type %DDenseTensor. 
+      /// @param ws Vector of wires for contraction. 
+      /// @return Resultant tensor pointer after contraction completes. 
+      virtual Tensor* contract(DDenseTensor* tp, const std::vector<qtnh::wire>& ws);
   };
 
   namespace ops {

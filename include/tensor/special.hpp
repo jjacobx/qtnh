@@ -11,11 +11,6 @@ namespace qtnh {
   /// of the contraction is exchange of said indices. If swaps are not allowed for a given 
   /// tensor, contracting it with a swap tensor will throw an error. 
   class SwapTensor : public SharedTensor {
-    private:
-      virtual Tensor* contract_disp(Tensor*, const std::vector<qtnh::wire>&) override;
-      virtual Tensor* contract(SDenseTensor*, const std::vector<qtnh::wire>&) override;
-      virtual Tensor* contract(DDenseTensor*, const std::vector<qtnh::wire>&) override;
-
     public:
       /// Empty constructor is invalid due to undefined environment. 
       SwapTensor() = delete;
@@ -33,19 +28,18 @@ namespace qtnh {
       /// Default destructor. 
       ~SwapTensor() = default;
 
-    virtual qtnh::tel operator[](const qtnh::tidx_tup&) const override;
+      virtual qtnh::tel operator[](const qtnh::tidx_tup&) const override;
+      virtual void swap(qtnh::tidx_tup_st, qtnh::tidx_tup_st) override;
 
-    virtual void swap(qtnh::tidx_tup_st, qtnh::tidx_tup_st) override;
+    private:
+      virtual Tensor* contract_disp(Tensor*, const std::vector<qtnh::wire>&) override;
+      virtual Tensor* contract(SDenseTensor*, const std::vector<qtnh::wire>&) override;
+      virtual Tensor* contract(DDenseTensor*, const std::vector<qtnh::wire>&) override;
   };
 
   /// The identity tensor has no effect on the tensor it is contracted with, but can be useful
   /// for simplifying the tensor network. 
   class IdentityTensor : public SharedTensor {
-    private:
-      virtual Tensor* contract_disp(Tensor*, const std::vector<qtnh::wire>&) override;
-      virtual Tensor* contract(SDenseTensor*, const std::vector<qtnh::wire>&) override;
-      virtual Tensor* contract(DDenseTensor*, const std::vector<qtnh::wire>&) override;
-      
     public:
       /// Empty constructor is invalid due to undefined environment. 
       IdentityTensor() = delete;
@@ -64,8 +58,12 @@ namespace qtnh {
       ~IdentityTensor() = default;
 
       virtual qtnh::tel operator[](const qtnh::tidx_tup&) const override;
-
       virtual void swap(qtnh::tidx_tup_st, qtnh::tidx_tup_st) override;
+
+    private:
+      virtual Tensor* contract_disp(Tensor*, const std::vector<qtnh::wire>&) override;
+      virtual Tensor* contract(SDenseTensor*, const std::vector<qtnh::wire>&) override;
+      virtual Tensor* contract(DDenseTensor*, const std::vector<qtnh::wire>&) override;
   };
 
   /// The convert tensor acts as an identity tensor, but it also modifies the type of indices. 
@@ -75,11 +73,6 @@ namespace qtnh {
     friend class SDenseTensor;
     friend class DDenseTensor;
 
-    private:
-      virtual Tensor* contract_disp(Tensor*, const std::vector<qtnh::wire>&) override;
-      virtual Tensor* contract(SDenseTensor*, const std::vector<qtnh::wire>&) override;
-      virtual Tensor* contract(DDenseTensor*, const std::vector<qtnh::wire>&) override;
-      
     public:
       /// Empty constructor is invalid due to undefined environment. 
       ConvertTensor() = delete;
@@ -97,6 +90,11 @@ namespace qtnh {
 
       /// Default destructor. 
       ~ConvertTensor() = default;
+    
+    private:
+      virtual Tensor* contract_disp(Tensor*, const std::vector<qtnh::wire>&) override;
+      virtual Tensor* contract(SDenseTensor*, const std::vector<qtnh::wire>&) override;
+      virtual Tensor* contract(DDenseTensor*, const std::vector<qtnh::wire>&) override;
   };
 }
 

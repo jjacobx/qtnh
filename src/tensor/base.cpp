@@ -50,7 +50,7 @@ namespace qtnh {
     // Check if one of the input objects isn't returned
     if (tp == t1u.get()) {
       return t1u;
-    } 
+    }
     if (tp == t2u.get()) {
       return t2u;
     }

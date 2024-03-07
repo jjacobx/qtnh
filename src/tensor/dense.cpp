@@ -24,14 +24,14 @@ namespace qtnh {
     return loc_els.at(i);
   }
 
-  TIndexing _get_indexing(Tensor* t, const std::vector<qtnh::wire>& wires, bool second) {
-    auto loc_dims = t->getLocDims();
-    auto dist_dims = t->getDistDims();
+  TIndexing _get_indexing(Tensor* tp, const std::vector<qtnh::wire>& ws, bool second) {
+    auto loc_dims = tp->getLocDims();
+    auto dist_dims = tp->getDistDims();
 
     qtnh::tifl_tup ifls(loc_dims.size(), { TIdxT::open, 0 });
 
     qtnh::tidx_tup_st tag = 0;
-    for (auto w : wires) {
+    for (auto w : ws) {
       ifls.at((second ? w.second : w.first) - dist_dims.size()) = qtnh::tifl{ TIdxT::closed, tag++ };
     }
 
@@ -48,7 +48,7 @@ namespace qtnh {
     return dims;
   }
 
-  void _set_els(Tensor* t1, Tensor* t2, DenseTensor* t3, TIndexing ti1, TIndexing ti2, TIndexing ti3, qtnh::tidx_tup_st nwires) {
+  void _set_els(Tensor* t1p, Tensor* t2p, DenseTensor* t3p, TIndexing ti1, TIndexing ti2, TIndexing ti3, qtnh::tidx_tup_st ws_size) {
     auto it = ti3.begin();
     for (auto idxs1 : ti1) {
       for (auto idxs2 : ti2) {
@@ -60,9 +60,9 @@ namespace qtnh {
           std::cout << "t3[" << *it << "] = ";
         #endif
 
-        while(t3->isActive()) {
-          auto el1 = (*t1)[idxs1];
-          auto el2 = (*t2)[idxs2];
+        while(t3p->isActive()) {
+          auto el1 = (*t1p)[idxs1];
+          auto el2 = (*t2p)[idxs2];
           el3 += el1 * el2;
 
           #ifdef DEBUG
@@ -71,8 +71,8 @@ namespace qtnh {
 
           if (ti1.isLast(idxs1, TIdxT::closed, tag) && ti2.isLast(idxs2, TIdxT::closed, tag)) {
             tag++;
-            if (tag >= nwires) {
-              (*t3)[*it] = el3;
+            if (tag >= ws_size) {
+              (*t3p)[*it] = el3;
 
               #ifdef DEBUG
                 std::cout << " = " << el3 << std::endl;
@@ -90,7 +90,7 @@ namespace qtnh {
           ti2.next(idxs2, TIdxT::closed, tag);
         }
 
-        for (qtnh::tidx_tup_st t = 0; t < nwires; ++t) {
+        for (qtnh::tidx_tup_st t = 0; t < ws_size; ++t) {
           ti1.reset(idxs1, TIdxT::closed, t);
         }
 
@@ -99,8 +99,8 @@ namespace qtnh {
     }
   }
 
-  void _local_swap(DenseTensor* t, qtnh::tidx_tup_st loc_idx1, qtnh::tidx_tup_st loc_idx2) {
-    auto loc_dims = t->getLocDims();
+  void _local_swap(DenseTensor* tp, qtnh::tidx_tup_st loc_idx1, qtnh::tidx_tup_st loc_idx2) {
+    auto loc_dims = tp->getLocDims();
     qtnh::tifl_tup ifls(loc_dims.size(), { TIdxT::open, 0 });
     ifls.at(loc_idx1) = ifls.at(loc_idx2) = { TIdxT::closed, 0 };
     TIndexing ti(loc_dims, ifls);
@@ -114,7 +114,7 @@ namespace qtnh {
         idxs1.at(loc_idx1) = idxs2.at(loc_idx1) = i;
         for (qtnh::tidx j = i + 1; j < loc_dims.at(loc_idx2); ++j) {
           idxs1.at(loc_idx2) = idxs2.at(loc_idx1) = j;
-          std::swap((*t)[idxs1], (*t)[idxs2]);
+          std::swap((*tp)[idxs1], (*tp)[idxs2]);
         }
       }
     }
@@ -165,54 +165,54 @@ namespace qtnh {
     return;
   }
 
-  Tensor* SDenseTensor::contract_disp(Tensor* t, const std::vector<qtnh::wire>& wires) {
-    return t->contract(this, wires);
+  Tensor* SDenseTensor::contract_disp(Tensor* tp, const std::vector<qtnh::wire>& ws) {
+    return tp->contract(this, ws);
   }
 
-  Tensor* SDenseTensor::contract(ConvertTensor* t, const std::vector<qtnh::wire>& wires) {
-    return t->contract(this, utils::invert_wires(wires));
+  Tensor* SDenseTensor::contract(ConvertTensor* tp, const std::vector<qtnh::wire>& ws) {
+    return tp->contract(this, utils::invert_wires(ws));
   }
 
-  Tensor* SDenseTensor::contract(SDenseTensor* t, const std::vector<qtnh::wire>& wires) {
+  Tensor* SDenseTensor::contract(SDenseTensor* tp, const std::vector<qtnh::wire>& ws) {
     #ifdef DEBUG
       std::cout << "Contracting SDense with SDense" << std::endl;
     #endif
 
-    TIndexing ti1 = _get_indexing(this, wires, 0);
-    TIndexing ti2 = _get_indexing(t, wires, 1);
+    TIndexing ti1 = _get_indexing(this, ws, 0);
+    TIndexing ti2 = _get_indexing(tp, ws, 1);
     TIndexing ti3 = TIndexing::app(ti1.cut(TIdxT::closed), ti2.cut(TIdxT::closed));
 
     auto dims3 = ti3.getDims();
     auto nloc = utils::dims_to_size(dims3);
     std::vector<qtnh::tel> els3(nloc, 0.0);
 
-    auto t3 = new SDenseTensor(this->env, dims3, els3);
+    auto t3p = new SDenseTensor(this->env, dims3, els3);
 
-    _set_els(this, t, t3, ti1, ti2, ti3, wires.size());
+    _set_els(this, tp, t3p, ti1, ti2, ti3, ws.size());
 
-    return t3;
+    return t3p;
   }
 
-  Tensor* SDenseTensor::contract(DDenseTensor* t, const std::vector<qtnh::wire>& wires) {
+  Tensor* SDenseTensor::contract(DDenseTensor* tp, const std::vector<qtnh::wire>& ws) {
     #ifdef DEBUG
       std::cout << "Contracting DDense with SDense" << std::endl;
     #endif
 
-    auto ti1 = _get_indexing(this, wires, 0);
-    auto ti2 = _get_indexing(t, wires, 1);
+    auto ti1 = _get_indexing(this, ws, 0);
+    auto ti2 = _get_indexing(tp, ws, 1);
     auto ti3 = TIndexing::app(ti1.cut(TIdxT::closed), ti2.cut(TIdxT::closed));
 
     std::size_t nloc = utils::dims_to_size(ti3.getDims());
     std::vector<qtnh::tel> els3(nloc, 0.0);
 
-    auto dims3 = _concat_dims(dist_dims, t->getDistDims(), ti3.getDims());
-    auto nidx = t->getDistDims().size();
+    auto dims3 = _concat_dims(dist_dims, tp->getDistDims(), ti3.getDims());
+    auto nidx = tp->getDistDims().size();
 
-    auto t3 = new DDenseTensor(this->env, dims3, els3, nidx);
+    auto t3p = new DDenseTensor(this->env, dims3, els3, nidx);
 
-    _set_els(this, t, t3, ti1, ti2, ti3, wires.size());
+    _set_els(this, tp, t3p, ti1, ti2, ti3, ws.size());
 
-    return t3;
+    return t3p;
   }
 
   DDenseTensor* SDenseTensor::distribute(tidx_tup_st nidx) {
@@ -373,61 +373,61 @@ namespace qtnh {
     return;
   }
 
-  Tensor* DDenseTensor::contract_disp(Tensor* t, const std::vector<qtnh::wire>& wires) {
-    return t->contract(this, wires);
+  Tensor* DDenseTensor::contract_disp(Tensor* tp, const std::vector<qtnh::wire>& ws) {
+    return tp->contract(this, ws);
   }
 
-  Tensor* DDenseTensor::contract(SDenseTensor* t, const std::vector<qtnh::wire>& wires) {
+  Tensor* DDenseTensor::contract(SDenseTensor* tp, const std::vector<qtnh::wire>& ws) {
     #ifdef DEBUG
       std::cout << "Contracting DDense with SDense" << std::endl;
     #endif
 
-    auto ti1 = _get_indexing(this, wires, 0);
-    auto ti2 = _get_indexing(t, wires, 1);
+    auto ti1 = _get_indexing(this, ws, 0);
+    auto ti2 = _get_indexing(tp, ws, 1);
     auto ti3 = TIndexing::app(ti1.cut(TIdxT::closed), ti2.cut(TIdxT::closed));
 
     auto nloc = utils::dims_to_size(ti3.getDims());
     std::vector<qtnh::tel> els3(nloc, 0.0);
 
-    auto dims3 = _concat_dims(dist_dims, t->getDistDims(), ti3.getDims());
+    auto dims3 = _concat_dims(dist_dims, tp->getDistDims(), ti3.getDims());
     auto nidx = dist_dims.size();
 
     auto t3 = new DDenseTensor(this->env, dims3, els3, nidx);
 
-    _set_els(this, t, t3, ti1, ti2, ti3, wires.size());
+    _set_els(this, tp, t3, ti1, ti2, ti3, ws.size());
 
     return t3;
   }
 
-  Tensor* DDenseTensor::contract(ConvertTensor* t, const std::vector<qtnh::wire>& wires) {
-    return t->contract(this, utils::invert_wires(wires));
+  Tensor* DDenseTensor::contract(ConvertTensor* tp, const std::vector<qtnh::wire>& ws) {
+    return tp->contract(this, utils::invert_wires(ws));
   }
 
-  Tensor* DDenseTensor::contract(DDenseTensor* t, const std::vector<qtnh::wire>& wires) {
+  Tensor* DDenseTensor::contract(DDenseTensor* tp, const std::vector<qtnh::wire>& ws) {
     #ifdef DEBUG
       std::cout << "Contracting DDense with DDense" << std::endl;
     #endif
 
-    auto ti1 = _get_indexing(this, wires, 0);
-    auto ti2 = _get_indexing(t, wires, 1);
+    auto ti1 = _get_indexing(this, ws, 0);
+    auto ti2 = _get_indexing(tp, ws, 1);
     auto ti3 = TIndexing::app(ti1.cut(TIdxT::closed), ti2.cut(TIdxT::closed));
 
     auto nloc = utils::dims_to_size(ti3.getDims());
     std::vector<qtnh::tel> els3(0);
 
-    auto dims3 = _concat_dims(dist_dims, t->getDistDims(), ti3.getDims());
-    auto nidx = dist_dims.size() + t->getDistDims().size();
+    auto dims3 = _concat_dims(dist_dims, tp->getDistDims(), ti3.getDims());
+    auto nidx = dist_dims.size() + tp->getDistDims().size();
 
     auto n1 = utils::dims_to_size(dist_dims);
-    auto n2 = utils::dims_to_size(t->getDistDims());
+    auto n2 = utils::dims_to_size(tp->getDistDims());
 
     if (env.proc_id < n1 * n2) els3.assign(nloc, 0.0);
     auto t3 = new DDenseTensor(this->env, dims3, els3, nidx);
 
     this->rep_all(n2);
-    t->rep_each(n1);
+    tp->rep_each(n1);
 
-    _set_els(this, t, t3, ti1, ti2, ti3, wires.size());
+    _set_els(this, tp, t3, ti1, ti2, ti3, ws.size());
 
     return t3;
   }
