@@ -42,13 +42,13 @@ Indexing defines a coordinate system that can be used to iterate through tensor 
 
 ```c++
 qtnh::tidx_tup dims = { 2, 3 };
-qtnh::tifl_tup ifls = { { qtnh::TIdxT::closed, 0 }, { qtnh::TIdxTFlag::open, 0 } };
-qtnh::TIndexing ti(dims, ifls);
+qtnh::tifl_tup ifls = { { TIdxT::closed, 0 }, { TIdxT::open, 0 } };
+TIndexing ti(dims, ifls);
 
-qtnh::tidx_tup idx = { 0, 0 };            // idx = { 0, 0 }
-idx = ti.next(idx, qtnh::TIdxT::open);    // idx = { 0, 1 }
-idx = ti.next(idx, qtnh::TIdxT::closed);  // idx = { 1, 1 }
-idx = ti.next(idx, qtnh::TIdxT::closed);  // error, idx[0] > (dims[0] - 1)
+qtnh::tidx_tup idx = { 0, 0 };      // idx = { 0, 0 }
+idx = ti.next(idx, TIdxT::open);    // idx = { 0, 1 }
+idx = ti.next(idx, TIdxT::closed);  // idx = { 1, 1 }
+idx = ti.next(idx, TIdxT::closed);  // error, idx[0] > (dims[0] - 1)
 ```
 
 The value of the incremented `qtnh::tidx_tup idx` must be such that `idx[i] < dims[i]` for a given `qtnh::TIndexing`, otherwise an error is thrown. 
@@ -57,8 +57,8 @@ The value of the incremented `qtnh::tidx_tup idx` must be such that `idx[i] < di
 
 ```c++
 qtnh::tidx_tup dims = { 2, 3, 2 };
-qtnh::tifl_tup ifls = { { qtnh::TIdxFlag::open, 0 }, { qtnh::TIdxFlag::closed, 0 }, { qtnh::TIdxFlag::open, 0 } };
-qtnh::TIndexing ti(dims, ifls);
+qtnh::tifl_tup ifls = { { TIdxT::open, 0 }, { TIdxT::closed, 0 }, { TIdxT::open, 0 } };
+TIndexing ti(dims, ifls);
 
 // { 0, 0, 0 } { 0, 0, 1 } { 1, 0, 0 } { 1, 0, 1 }
 for (auto idx : ti) {
