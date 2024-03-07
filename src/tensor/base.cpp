@@ -29,7 +29,7 @@ namespace qtnh {
     : Tensor(env, qtnh::tidx_tup(), qtnh::tidx_tup()) {}
 
   Tensor::Tensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dist_dims)
-    : id(++counter), env(env), active(true), dims(utils::concat_dims(dist_dims, loc_dims)), 
+    : env(env), active(true), dims(utils::concat_dims(dist_dims, loc_dims)), 
       loc_dims(loc_dims), dist_dims(dist_dims) {};
 
   std::size_t Tensor::getSize() const { 

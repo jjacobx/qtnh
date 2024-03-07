@@ -38,11 +38,6 @@ TEST_CASE("create-tensor-validation") {
   REQUIRE(equal(t21, t22));
   REQUIRE(!equal(t11, t21));
   REQUIRE(!equal(t12, t22));
-
-  REQUIRE(t11.getID() == 1);
-  REQUIRE(t12.getID() == 2);
-  REQUIRE(t21.getID() == 3);
-  REQUIRE(t22.getID() == 4);
 }
 
 TEST_CASE("access-tensor-validation") {

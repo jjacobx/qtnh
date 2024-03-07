@@ -18,10 +18,6 @@ namespace qtnh {
     friend class SDenseTensor;
     friend class DDenseTensor;
 
-    private:
-      inline static qtnh::uint counter = 0;  ///< Counter of created tensors. 
-      const qtnh::uint id;                   ///< ID of current tensor. 
-
     protected:
       const QTNHEnv& env;  ///< Environment to use MPI/OpenMP in. 
       bool active;         ///< Flag whether the tensor is valid on calling MPI rank. 
@@ -72,7 +68,6 @@ namespace qtnh {
       /// Default destructor. 
       virtual ~Tensor() = default;
 
-      qtnh::uint getID() const { return id; }                          ///< Tensor ID getter. 
       bool isActive() const { return active; }                         ///< Active flag getter. 
       const qtnh::tidx_tup& getDims() const { return dims; }           ///< Index dimensions getter. 
       const qtnh::tidx_tup& getLocDims() const { return loc_dims; }    ///< Local index dimensions getter. 
