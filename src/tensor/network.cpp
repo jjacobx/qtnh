@@ -27,8 +27,8 @@ namespace qtnh {
     return bond_counter;
   }
 
-  qtnh::uint TensorNetwork::insertTensor(Tensor* t) {
-    tensors.insert({ ++tensor_counter, std::unique_ptr<Tensor>(t) }); 
+  qtnh::uint TensorNetwork::insertTensor(std::unique_ptr<Tensor> tu) {
+    tensors.insert({ ++tensor_counter, std::move(tu) }); 
     return tensor_counter; 
   }
 
@@ -68,13 +68,13 @@ namespace qtnh {
       if (is_open2.at(i)) t2_imaps.insert({i, counter++});
     }
 
-    auto t3_p = Tensor::contract(t1_up.get(), t2_up.get(), b.wires);
+    auto t3_p = Tensor::contract(std::move(t1_up), std::move(t2_up), b.wires);
 
     bonds.erase(id);
     tensors.erase(t1_id);
     tensors.erase(t2_id);
 
-    auto t3_id = insertTensor(t3_p);
+    auto t3_id = insertTensor(std::move(t3_p));
     
     for (auto& [id, b] : bonds) {
       if (b.tensor_ids.first == t1_id) {

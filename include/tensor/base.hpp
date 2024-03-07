@@ -1,6 +1,7 @@
 #ifndef _TENSOR__BASE_HPP
 #define _TENSOR__BASE_HPP
 
+#include <memory>
 #include <optional>
 
 #include "../core/env.hpp"
@@ -120,7 +121,7 @@ namespace qtnh {
       /// @param t2 Pointer to second tensor to contract. 
       /// @param ws A vector of wires which indicate which pairs of indices to sum over. 
       /// @return Contracted tensor pointer. 
-      static Tensor* contract(Tensor* t1, Tensor* t2, const std::vector<qtnh::wire>& ws);
+      static std::unique_ptr<Tensor> contract(std::unique_ptr<Tensor> t1u, std::unique_ptr<Tensor> t2u, const std::vector<qtnh::wire>& ws);
   };
 
   namespace ops {

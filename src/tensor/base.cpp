@@ -44,8 +44,18 @@ namespace qtnh {
     return utils::dims_to_size(getDistDims()); 
   }
 
-  Tensor* Tensor::contract(Tensor* t1, Tensor* t2, const std::vector<qtnh::wire>& wires) { 
-    return t2->contract_disp(t1, wires); 
+  std::unique_ptr<Tensor> Tensor::contract(std::unique_ptr<Tensor> t1u, std::unique_ptr<Tensor> t2u, const std::vector<qtnh::wire>& ws) { 
+    auto* tp = t2u->contract_disp(t1u.get(), ws);
+    
+    // Check if one of the input objects isn't returned
+    if (tp == t1u.get()) {
+      return t1u;
+    } 
+    if (tp == t2u.get()) {
+      return t2u;
+    }
+
+    return std::unique_ptr<Tensor>(tp);
   }
 
 

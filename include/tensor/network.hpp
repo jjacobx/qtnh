@@ -40,7 +40,7 @@ namespace qtnh {
       Tensor& getTensor(qtnh::uint id);
       /// @brief Get bond with ID. 
       /// @param id Bond ID in the map. 
-      /// @return Reference to the bond with given ID. 
+      /// @return Copy of the bond with given ID. 
       Bond getBond(qtnh::uint id);
 
       /// @brief Construct a tensor directly inside the tensor network. 
@@ -64,7 +64,7 @@ namespace qtnh {
       /// @brief Insert tensor in the map. 
       /// @param t Reference to tensor to insert. 
       /// @return ID of inserted tensor. 
-      qtnh::uint insertTensor(Tensor* t);
+      qtnh::uint insertTensor(std::unique_ptr<Tensor> tu);
 
       /// @brief Contract bond with ID. 
       /// @param id ID of the bond to be contracted. 
