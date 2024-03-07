@@ -5,26 +5,6 @@
 #include "tensor/indexing.hpp"
 
 namespace qtnh {
-  Tensor* Tensor::contract_disp(Tensor*, const std::vector<qtnh::wire>&) {
-    utils::throw_unimplemented(); 
-    return nullptr; 
-  }
-
-  Tensor* Tensor::contract(ConvertTensor*, const std::vector<qtnh::wire>&) {
-    utils::throw_unimplemented(); 
-    return nullptr; 
-  }
-
-  Tensor* Tensor::contract(SDenseTensor*, const std::vector<qtnh::wire>&) {
-    utils::throw_unimplemented(); 
-    return nullptr; 
-  }
-  
-  Tensor* Tensor::contract(DDenseTensor*, const std::vector<qtnh::wire>&) {
-    utils::throw_unimplemented(); 
-    return nullptr; 
-  }
-
   Tensor::Tensor(const QTNHEnv& env) 
     : Tensor(env, qtnh::tidx_tup(), qtnh::tidx_tup()) {}
 
@@ -47,7 +27,7 @@ namespace qtnh {
   std::unique_ptr<Tensor> Tensor::contract(std::unique_ptr<Tensor> t1u, std::unique_ptr<Tensor> t2u, const std::vector<qtnh::wire>& ws) { 
     auto* tp = t2u->contract_disp(t1u.get(), ws);
     
-    // Check if one of the input objects isn't returned
+    // Check if one of the input objects is returned
     if (tp == t1u.get()) {
       return t1u;
     }
@@ -56,6 +36,27 @@ namespace qtnh {
     }
 
     return std::unique_ptr<Tensor>(tp);
+  }
+
+
+  Tensor* Tensor::contract_disp(Tensor*, const std::vector<qtnh::wire>&) {
+    utils::throw_unimplemented(); 
+    return nullptr; 
+  }
+
+  Tensor* Tensor::contract(ConvertTensor*, const std::vector<qtnh::wire>&) {
+    utils::throw_unimplemented(); 
+    return nullptr; 
+  }
+
+  Tensor* Tensor::contract(SDenseTensor*, const std::vector<qtnh::wire>&) {
+    utils::throw_unimplemented(); 
+    return nullptr; 
+  }
+  
+  Tensor* Tensor::contract(DDenseTensor*, const std::vector<qtnh::wire>&) {
+    utils::throw_unimplemented(); 
+    return nullptr; 
   }
 
 

@@ -373,65 +373,6 @@ namespace qtnh {
     return;
   }
 
-  Tensor* DDenseTensor::contract_disp(Tensor* tp, const std::vector<qtnh::wire>& ws) {
-    return tp->contract(this, ws);
-  }
-
-  Tensor* DDenseTensor::contract(SDenseTensor* tp, const std::vector<qtnh::wire>& ws) {
-    #ifdef DEBUG
-      std::cout << "Contracting DDense with SDense" << std::endl;
-    #endif
-
-    auto ti1 = _get_indexing(this, ws, 0);
-    auto ti2 = _get_indexing(tp, ws, 1);
-    auto ti3 = TIndexing::app(ti1.cut(TIdxT::closed), ti2.cut(TIdxT::closed));
-
-    auto nloc = utils::dims_to_size(ti3.getDims());
-    std::vector<qtnh::tel> els3(nloc, 0.0);
-
-    auto dims3 = _concat_dims(dist_dims, tp->getDistDims(), ti3.getDims());
-    auto nidx = dist_dims.size();
-
-    auto t3 = new DDenseTensor(this->env, dims3, els3, nidx);
-
-    _set_els(this, tp, t3, ti1, ti2, ti3, ws.size());
-
-    return t3;
-  }
-
-  Tensor* DDenseTensor::contract(ConvertTensor* tp, const std::vector<qtnh::wire>& ws) {
-    return tp->contract(this, utils::invert_wires(ws));
-  }
-
-  Tensor* DDenseTensor::contract(DDenseTensor* tp, const std::vector<qtnh::wire>& ws) {
-    #ifdef DEBUG
-      std::cout << "Contracting DDense with DDense" << std::endl;
-    #endif
-
-    auto ti1 = _get_indexing(this, ws, 0);
-    auto ti2 = _get_indexing(tp, ws, 1);
-    auto ti3 = TIndexing::app(ti1.cut(TIdxT::closed), ti2.cut(TIdxT::closed));
-
-    auto nloc = utils::dims_to_size(ti3.getDims());
-    std::vector<qtnh::tel> els3(0);
-
-    auto dims3 = _concat_dims(dist_dims, tp->getDistDims(), ti3.getDims());
-    auto nidx = dist_dims.size() + tp->getDistDims().size();
-
-    auto n1 = utils::dims_to_size(dist_dims);
-    auto n2 = utils::dims_to_size(tp->getDistDims());
-
-    if (env.proc_id < n1 * n2) els3.assign(nloc, 0.0);
-    auto t3 = new DDenseTensor(this->env, dims3, els3, nidx);
-
-    this->rep_all(n2);
-    tp->rep_each(n1);
-
-    _set_els(this, tp, t3, ti1, ti2, ti3, ws.size());
-
-    return t3;
-  }
-
   void DDenseTensor::scatter(tidx_tup_st n) {
     auto dist_dims2 = qtnh::tidx_tup(loc_dims.begin(), loc_dims.begin() + n);
     auto shift = utils::dims_to_size(dist_dims2);
@@ -555,5 +496,64 @@ namespace qtnh {
     MPI_Wait(&recv_req, MPI_STATUS_IGNORE);
 
     return;
+  }
+
+  Tensor* DDenseTensor::contract_disp(Tensor* tp, const std::vector<qtnh::wire>& ws) {
+    return tp->contract(this, ws);
+  }
+
+  Tensor* DDenseTensor::contract(SDenseTensor* tp, const std::vector<qtnh::wire>& ws) {
+    #ifdef DEBUG
+      std::cout << "Contracting DDense with SDense" << std::endl;
+    #endif
+
+    auto ti1 = _get_indexing(this, ws, 0);
+    auto ti2 = _get_indexing(tp, ws, 1);
+    auto ti3 = TIndexing::app(ti1.cut(TIdxT::closed), ti2.cut(TIdxT::closed));
+
+    auto nloc = utils::dims_to_size(ti3.getDims());
+    std::vector<qtnh::tel> els3(nloc, 0.0);
+
+    auto dims3 = _concat_dims(dist_dims, tp->getDistDims(), ti3.getDims());
+    auto nidx = dist_dims.size();
+
+    auto t3 = new DDenseTensor(this->env, dims3, els3, nidx);
+
+    _set_els(this, tp, t3, ti1, ti2, ti3, ws.size());
+
+    return t3;
+  }
+
+  Tensor* DDenseTensor::contract(ConvertTensor* tp, const std::vector<qtnh::wire>& ws) {
+    return tp->contract(this, utils::invert_wires(ws));
+  }
+
+  Tensor* DDenseTensor::contract(DDenseTensor* tp, const std::vector<qtnh::wire>& ws) {
+    #ifdef DEBUG
+      std::cout << "Contracting DDense with DDense" << std::endl;
+    #endif
+
+    auto ti1 = _get_indexing(this, ws, 0);
+    auto ti2 = _get_indexing(tp, ws, 1);
+    auto ti3 = TIndexing::app(ti1.cut(TIdxT::closed), ti2.cut(TIdxT::closed));
+
+    auto nloc = utils::dims_to_size(ti3.getDims());
+    std::vector<qtnh::tel> els3(0);
+
+    auto dims3 = _concat_dims(dist_dims, tp->getDistDims(), ti3.getDims());
+    auto nidx = dist_dims.size() + tp->getDistDims().size();
+
+    auto n1 = utils::dims_to_size(dist_dims);
+    auto n2 = utils::dims_to_size(tp->getDistDims());
+
+    if (env.proc_id < n1 * n2) els3.assign(nloc, 0.0);
+    auto t3 = new DDenseTensor(this->env, dims3, els3, nidx);
+
+    this->rep_all(n2);
+    tp->rep_each(n1);
+
+    _set_els(this, tp, t3, ti1, ti2, ti3, ws.size());
+
+    return t3;
   }
 }
