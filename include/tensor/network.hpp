@@ -38,11 +38,18 @@ namespace qtnh {
       /// @param id Tensor ID in the map. 
       /// @return Reference to the tensor with given ID. 
       Tensor& getTensor(qtnh::uint id);
+      /// @brief Erase and extract tensor with ID. 
+      /// @param id Tensor ID in the map. 
+      /// @return Unique pointer to the tensor with given ID. 
+      std::unique_ptr<Tensor> extractTensor(qtnh::uint id);
+      /// @brief Get all tensor IDs in the network. 
+      /// @return A vector of all tensor IDs present in the network. 
+      std::vector<qtnh::uint> getTensorIDs();
       /// @brief Get bond with ID. 
       /// @param id Bond ID in the map. 
       /// @return Copy of the bond with given ID. 
       Bond getBond(qtnh::uint id);
-
+      
       /// @brief Construct a tensor directly inside the tensor network. 
       /// @tparam T Derived tensor class to call the constructor of. 
       /// @tparam ...U Constructor argument types. 

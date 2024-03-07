@@ -16,6 +16,22 @@ namespace qtnh {
     return *tensors.at(k).get();
   }
 
+  std::unique_ptr<Tensor> TensorNetwork::extractTensor(qtnh::uint id) {
+    auto tu = std::move(tensors.at(id));
+    tensors.erase(id);
+
+    return tu;
+  }
+
+  std::vector<qtnh::uint> TensorNetwork::getTensorIDs() {
+    std::vector<qtnh::uint> tensor_ids;
+    for (auto& [k, v] : tensors) {
+      tensor_ids.push_back(k);
+    }
+
+    return tensor_ids;
+  }
+
   TensorNetwork::Bond TensorNetwork::getBond(qtnh::uint k) { 
     return bonds.at(k);
   }
@@ -145,22 +161,22 @@ namespace qtnh {
   void TensorNetwork::print() {
     using namespace qtnh::ops;
 
-    std::cout << "================================================================" << std::endl;
-    std::cout << "Tensor Network of " << tensors.size() << " tensors and " << bonds.size() << " bonds" << std::endl;
+    std::cout << "================================================================\n";
+    std::cout << "Tensor Network of " << tensors.size() << " tensors and " << bonds.size() << " bonds\n";
 
-    std::cout << "----------------------------------------------------------------" << std::endl;
-    std::cout << "Tensors: " << std::endl;
+    std::cout << "----------------------------------------------------------------\n";
+    std::cout << "Tensors: \n";
     for (auto& [id, t] : tensors) {
-      std::cout << "ID: " << id << " | Els: " << *t.get() << std::endl;
+      std::cout << "ID: " << id << " | Els: " << *t.get() << "\n";
     }
 
-    std::cout << "----------------------------------------------------------------" << std::endl;
-    std::cout << "Bonds: " << std::endl;
+    std::cout << "----------------------------------------------------------------\n";
+    std::cout << "Bonds: \n";
     for (auto& [id, b] : bonds) {
-      std::cout << "ID: " << id << " | Bond: " << b << std::endl;
+      std::cout << "ID: " << id << " | Bond: " << b << "\n";
     }
 
-    std::cout << "================================================================" << std::endl;
+    std::cout << "================================================================\n";
   }
 
   std::ostream& ops::operator<<(std::ostream& out, const TensorNetwork::Bond& o) {

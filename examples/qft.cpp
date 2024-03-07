@@ -88,8 +88,12 @@ int main() {
 
   tn.print();
 
+  // Contract the network and extract result. 
   auto id = tn.contractAll(con_ord);
-  std::cout << tn.getTensor(id) << std::endl;
+  auto tfu = tn.extractTensor(id);
+  // tn should be empty now. 
+
+  std::cout << *tfu << "\n";
 
   return 0;
 }
