@@ -8,9 +8,6 @@ namespace qtnh {
   /// Virtual tensor class which assumes that all elements are stored in a vector. 
   /// Local elements can be the same on all ranks (shared tensor) or different (distributed tensor). 
   class DenseTensor : public WritableTensor {
-    protected:
-      std::vector<qtnh::tel> loc_els; ///< Local elements. 
-    
     public:
       /// Empty constructor is invalid due to undefined environment. 
       DenseTensor() = delete;
@@ -26,21 +23,18 @@ namespace qtnh {
       DenseTensor(std::vector<qtnh::tel> els);
 
       /// Default destructor. 
-      ~DenseTensor() = default;
+      virtual ~DenseTensor() = default;
 
       virtual qtnh::tel operator[](const qtnh::tidx_tup&) const override;
       virtual qtnh::tel& operator[](const qtnh::tidx_tup&) override;
+    
+    protected:
+      std::vector<qtnh::tel> loc_els; ///< Local elements. 
   };
 
   /// Shared dense tensor class which ensures that the dense tensor is active and has the same
   /// values across all ranks. 
   class SDenseTensor : public DenseTensor, public SharedTensor {
-    private:
-      virtual Tensor* contract_disp(Tensor*, const std::vector<qtnh::wire>&) override;
-      virtual Tensor* contract(ConvertTensor*, const std::vector<qtnh::wire>&) override;
-      virtual Tensor* contract(SDenseTensor*, const std::vector<qtnh::wire>&) override;
-      virtual Tensor* contract(DDenseTensor*, const std::vector<qtnh::wire>&) override;
-      
     public: 
       /// Empty constructor is invalid due to undefined environment. 
       SDenseTensor() = delete;
@@ -84,6 +78,12 @@ namespace qtnh {
       /// It is better to distribute all needed indices here, as this is an efficient method, and it doesn't
       /// Require communication. In contrast, distributing the %DDenseTensor further does require communication. 
       DDenseTensor* distribute(tidx_tup_st n);
+    
+    private:
+      virtual Tensor* contract_disp(Tensor*, const std::vector<qtnh::wire>&) override;
+      virtual Tensor* contract(ConvertTensor*, const std::vector<qtnh::wire>&) override;
+      virtual Tensor* contract(SDenseTensor*, const std::vector<qtnh::wire>&) override;
+      virtual Tensor* contract(DDenseTensor*, const std::vector<qtnh::wire>&) override;
   };
 
   /// Distributed dense tensor class that splits the tensor along first n indices, the total size of which
@@ -91,12 +91,6 @@ namespace qtnh {
   /// ranks. It is forbidden to contract distributed indices – instead they have to be swapped to the local 
   /// regime, and only then contracted with another shared index. 
   class DDenseTensor : public DenseTensor {
-    private:
-      virtual Tensor* contract_disp(Tensor*, const std::vector<qtnh::wire>&) override;
-      virtual Tensor* contract(ConvertTensor*, const std::vector<qtnh::wire>&) override;
-      virtual Tensor* contract(SDenseTensor*, const std::vector<qtnh::wire>&) override;
-      virtual Tensor* contract(DDenseTensor*, const std::vector<qtnh::wire>&) override;
-
     public:
       /// Empty constructor is invalid due to undefined environment. 
       DDenseTensor() = delete;
@@ -150,6 +144,12 @@ namespace qtnh {
       /// @brief Repeat each of the local parts of the tensor n times along the distributed indices. 
       /// @param n Number of times to repeat the elements. 
       void rep_each(std::size_t n);
+    
+    private:
+      virtual Tensor* contract_disp(Tensor*, const std::vector<qtnh::wire>&) override;
+      virtual Tensor* contract(ConvertTensor*, const std::vector<qtnh::wire>&) override;
+      virtual Tensor* contract(SDenseTensor*, const std::vector<qtnh::wire>&) override;
+      virtual Tensor* contract(DDenseTensor*, const std::vector<qtnh::wire>&) override;
   };
 }
 

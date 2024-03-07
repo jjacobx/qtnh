@@ -1,6 +1,7 @@
 #ifndef _TENSOR__BASE_HPP
 #define _TENSOR__BASE_HPP
 
+#include <memory>
 #include <optional>
 
 #include "../core/env.hpp"
@@ -16,42 +17,6 @@ namespace qtnh {
     friend class ConvertTensor;
     friend class SDenseTensor;
     friend class DDenseTensor;
-
-    private:
-      inline static qtnh::uint counter = 0;  ///< Counter of created tensors. 
-      const qtnh::uint id;                   ///< ID of current tensor. 
-
-    protected:
-      const QTNHEnv& env;  ///< Environment to use MPI/OpenMP in. 
-      bool active;         ///< Flag whether the tensor is valid on calling MPI rank. 
-
-      qtnh::tidx_tup dims;       ///< Global index dimensions. 
-      qtnh::tidx_tup loc_dims;   ///< Local index dimensions. 
-      qtnh::tidx_tup dist_dims;  ///< Distributed index dimensions.
-
-      /// @brief Contraction dispatch to derived tensor class. 
-      /// @param t Pointer to other contracted tensor. 
-      /// @param ws Vector of wires for contraction. 
-      /// @return Resultant tensor pointer after dispatch and contraction completes. 
-      virtual Tensor* contract_disp(Tensor* t, const std::vector<qtnh::wire>& ws);
-
-      /// @brief Contraction of derived tensor and tensor of type %ConvertTensor. 
-      /// @param t Pointer to other contracted tensor of type %ConvertTensor. 
-      /// @param ws Vector of wires for contraction. 
-      /// @return Resultant tensor pointer after contraction completes. 
-      virtual Tensor* contract(ConvertTensor* t, const std::vector<qtnh::wire>& ws);
-
-      /// @brief Contraction of derived tensor and tensor of type %SDenseTensor. 
-      /// @param t Pointer to other contracted tensor of type %SDenseTensor. 
-      /// @param ws Vector of wires for contraction. 
-      /// @return Resultant tensor pointer after contraction completes. 
-      virtual Tensor* contract(SDenseTensor* t, const std::vector<qtnh::wire>& ws);
-
-      /// @brief Contraction of derived tensor and tensor of type %DDenseTensor. 
-      /// @param t Pointer to other contracted tensor of type %DDenseTensor. 
-      /// @param ws Vector of wires for contraction. 
-      /// @return Resultant tensor pointer after contraction completes. 
-      virtual Tensor* contract(DDenseTensor* t, const std::vector<qtnh::wire>& ws);
 
     public:
       /// Empty constructor is invalid due to undefined environment. 
@@ -69,9 +34,8 @@ namespace qtnh {
       Tensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dist_dims);
 
       /// Default destructor. 
-      ~Tensor() = default;
+      virtual ~Tensor() = default;
 
-      qtnh::uint getID() const { return id; }                          ///< Tensor ID getter. 
       bool isActive() const { return active; }                         ///< Active flag getter. 
       const qtnh::tidx_tup& getDims() const { return dims; }           ///< Index dimensions getter. 
       const qtnh::tidx_tup& getLocDims() const { return loc_dims; }    ///< Local index dimensions getter. 
@@ -116,11 +80,43 @@ namespace qtnh {
       virtual void swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) = 0;
 
       /// @brief Contract two tensors via given wires. 
-      /// @param t1 Pointer to first tensor to contract. 
-      /// @param t2 Pointer to second tensor to contract. 
+      /// @param t1u Unique pointer to first tensor to contract. 
+      /// @param t2u Unique pointer to second tensor to contract. 
       /// @param ws A vector of wires which indicate which pairs of indices to sum over. 
-      /// @return Contracted tensor pointer. 
-      static Tensor* contract(Tensor* t1, Tensor* t2, const std::vector<qtnh::wire>& ws);
+      /// @return Contracted tensor unique pointer. 
+      static std::unique_ptr<Tensor> contract(std::unique_ptr<Tensor> t1u, std::unique_ptr<Tensor> t2u, const std::vector<qtnh::wire>& ws);
+
+    protected:
+      const QTNHEnv& env;  ///< Environment to use MPI/OpenMP in. 
+      bool active;         ///< Flag whether the tensor is valid on calling MPI rank. 
+
+      qtnh::tidx_tup dims;       ///< Global index dimensions. 
+      qtnh::tidx_tup loc_dims;   ///< Local index dimensions. 
+      qtnh::tidx_tup dist_dims;  ///< Distributed index dimensions.
+
+      /// @brief Contraction dispatch to derived tensor class. 
+      /// @param tp Pointer to other contracted tensor. 
+      /// @param ws Vector of wires for contraction. 
+      /// @return Resultant tensor pointer after dispatch and contraction completes. 
+      virtual Tensor* contract_disp(Tensor* tp, const std::vector<qtnh::wire>& ws);
+
+      /// @brief Contraction of derived tensor and tensor of type %ConvertTensor. 
+      /// @param t Pointer to other contracted tensor of type %ConvertTensor. 
+      /// @param ws Vector of wires for contraction. 
+      /// @return Resultant tensor pointer after contraction completes. 
+      virtual Tensor* contract(ConvertTensor* tp, const std::vector<qtnh::wire>& ws);
+
+      /// @brief Contraction of derived tensor and tensor of type %SDenseTensor. 
+      /// @param tp Pointer to other contracted tensor of type %SDenseTensor. 
+      /// @param ws Vector of wires for contraction. 
+      /// @return Resultant tensor pointer after contraction completes. 
+      virtual Tensor* contract(SDenseTensor* t, const std::vector<qtnh::wire>& ws);
+
+      /// @brief Contraction of derived tensor and tensor of type %DDenseTensor. 
+      /// @param tp Pointer to other contracted tensor of type %DDenseTensor. 
+      /// @param ws Vector of wires for contraction. 
+      /// @return Resultant tensor pointer after contraction completes. 
+      virtual Tensor* contract(DDenseTensor* tp, const std::vector<qtnh::wire>& ws);
   };
 
   namespace ops {
@@ -146,7 +142,7 @@ namespace qtnh {
       SharedTensor(qtnh::tidx_tup loc_dims);
       
       /// Default destructor. 
-      ~SharedTensor() = default;
+      virtual ~SharedTensor() = default;
 
       virtual std::optional<qtnh::tel> getEl(const qtnh::tidx_tup&) const override;
       virtual std::optional<qtnh::tel> getLocEl(const qtnh::tidx_tup&) const override;
@@ -160,7 +156,7 @@ namespace qtnh {
       /// Copy constructor is invalid due to potential large tensor size. 
       WritableTensor(const SharedTensor&) = delete;
       /// Default destructor. 
-      ~WritableTensor() = default;
+      virtual ~WritableTensor() = default;
 
       using Tensor::operator[];
 

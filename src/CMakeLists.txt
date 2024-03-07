@@ -11,6 +11,7 @@ target_compile_features(qtnh
 target_compile_options(qtnh
   PRIVATE
   -Wall
+  -Wdelete-non-virtual-dtor
 )
 
 # Turn off Wsign-compare in Release builds
@@ -26,6 +27,19 @@ if (CMAKE_BUILD_TYPE MATCHES Debug)
   target_compile_options(qtnh
     PRIVATE
     -DDEBUG
+  )
+endif()
+
+option(FSANITIZE "Turn on fsanitize debug flags" OFF)
+if (FSANITIZE)
+  message(STATUS "Setting -fsanitize=undefined,address.")
+  target_compile_options(qtnh
+    PRIVATE
+    -fsanitize=undefined,address
+  )
+  target_link_libraries(qtnh
+    PUBLIC
+    -fsanitize=undefined,address
   )
 endif()
 
