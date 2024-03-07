@@ -62,7 +62,7 @@ namespace qtnh {
       qtnh::uint createBond(qtnh::uint t1_id, qtnh::uint t2_id, std::vector<qtnh::wire> ws);
 
       /// @brief Insert tensor in the map. 
-      /// @param t Reference to tensor to insert. 
+      /// @param tu Unique pointer to the tensor to insert. 
       /// @return ID of inserted tensor. 
       qtnh::uint insertTensor(std::unique_ptr<Tensor> tu);
 

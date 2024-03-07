@@ -9,7 +9,7 @@ mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release
 make
 
-examples/simple-tensor
+mpirun -n 2 examples/qft
 ```
 
 Use `-DCMAKE_BUILD_TYPE=Debug` to print out more information at runtime. 
@@ -60,8 +60,9 @@ qtnh::tidx_tup dims = { 2, 3, 2 };
 qtnh::tifl_tup ifls = { { qtnh::TIdxFlag::open, 0 }, { qtnh::TIdxFlag::closed, 0 }, { qtnh::TIdxFlag::open, 0 } };
 qtnh::TIndexing ti(dims, ifls);
 
+// { 0, 0, 0 } { 0, 0, 1 } { 1, 0, 0 } { 1, 0, 1 }
 for (auto idx : ti) {
-    std::cout << idx << " "; // { 0, 0, 0 } { 0, 0, 1 } { 1, 0, 0 } { 1, 0, 1 },
+    std::cout << idx << " ";
 }
 ```
 
@@ -70,12 +71,13 @@ for (auto idx : ti) {
 Tensors are multi-dimensional arrays of numbers defined in a base class `qtnh::Tensor`. Their dimensions are specified in `qtnh::tidx_tup dims`. A derived abstract class `qtnh::DenseTensor` generalises data storage to a vector of dense complex elements `std::vector<qtnh::tels> data`, and allows to rewrite all elements. Further distinction is made in classes `qtnh::SDenseTensor` and `qtnh::DDenseTensor`, where the former shares the same elements across all MPI ranks, while the latter distributes the first few dimensions to a necessary number of processes starting from rank 0 (ranks beyond maximum required contain empty data). To enable MPI, tensors need to be assigned a `qtnh::QTNHEnv`, which contains communication-related information. Finally, all tensors can be addressed using a `qtnh::tidx_tup idx` which corresponds to the index of the target element, while dense tensors can also be modified that way: 
 
 ```c++
-qtnh::QTNHEnv env;
+QTNHEnv env;
+
 qtnh::tidx_tup dims = { 2, 2 };
 std::vector<qtnh::tel> data = { 0.0, 1.0, 1.0, 0.0 };
-qtnh::SDenseTensor X(env, dims, data); // X quantum gate
+SDenseTensor X(env, dims, data); // X quantum gate
 
-X.setLocEl({0, 0}, X.getLocEl({0, 1}).value()); // { 1.0, 1.0, 1.0, 0.0 };
+X.setLocEl({ 0, 0 }, X.getLocEl({ 0, 1 }).value()); // { 1.0, 1.0, 1.0, 0.0 };
 
 // Print all tensor elements
 TIndexing ti(dims); // by default all dimensions are open
@@ -91,46 +93,71 @@ There are three types of accessors with different behaviour when running on mult
 
 The element accessors `getEl(...)` and `getLocEl(...)` are safe to use on all ranks, as their return type is optional. On the other hand, there is also an unsafe square bracket accessor `operator[...]`, which returns an error if the element is not available locally. The situation is similar for dense tensor setters – `setEL(...)` and `setLocEl(...)`, while the square bracket operator can be used to return reference to the local element.  
 
-Tensors can be contracted with each other by using a static `qtnh::Tensor::contract(...)` method. It takes two tensor pointers, and a vector of *wires*, which are pairs of tensor indices to be contracted with each other. 
+Tensors can be contracted with each other by using a static `qtnh::Tensor::contract(...)` method. It takes two unique tensor pointers, and a vector of *wires*, which are pairs of tensor indices to be contracted with each other. It is recommended to always use unique pointers when working with tensors, as the contraction arguments are deleted, which causes any related pointers to be invalidated. 
 
 ```c++
 qtnh::QTNHEnv env;
-qtnh::SDenseTensor t1(env, { 2, 2, 2 }, { .1, .2, .3, .4, .5, .6, .7, .8 });
-qtnh::SDenseTensor t2(env, { 4, 2 }, { .8, .7, .6, .5, .4, .3, .2, .1 });
+
+qtnh::tidx_tup t1_dims = { 2, 2, 2 };
+qtnh::tidx_tup t2_dims = { 4, 2 };
+
+std::vector<qtnh::tel> t1_els = { 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0 };
+std::vector<qtnh::tel> t2_els = { 7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0, 0.0 };
+
+auto t1u = std::make_unique<SDenseTensor>(env, t1_dims, t1_els);
+auto t2u = std::make_unique<SDenseTensor>(env, t2_dims, t2_els);
 
 std::vector<qtnh::wire> ws = { { 0, 1 } }; // connect index 0 of t1 and 1 of t2
-auto* t3p = qtnh::Tensor::contract(&t1, &t2, ws); // a (2, 2, 4) tensor
+auto t3u = Tensor::contract(std::move(t1u), std::move(t2u), ws); // a (2, 2, 4) tensor
 ```
 
-To distribute a shared tensor, use the `distribute(...)` function, or contract its first indices with a `qtnh::ConvertTensor`. First `n` indices will be converted from local to distributed. It should be noted that distributed indices cannot be contracted, and instead need to be swapped with a shared one using a `swap(...)` function, or by using `qtnh::SwapTensor`. 
+To distribute a shared tensor, use the `distribute(...)` function (unsafe option, as it returns a raw pointer), or contract its first indices with a `qtnh::ConvertTensor` (safe option). First `n` indices will be converted from local to distributed. It should be noted that distributed indices cannot be contracted, and instead need to be swapped with a shared one using a `swap(...)` function, or by using `qtnh::SwapTensor`. 
 
 ```c++
-qtnh::QTNHEnv env;
-qtnh::SDenseTensor t1(env, { 2, 2, 2 }, { .1, .2, .3, .4, .5, .6, .7, .8 });
-auto* t2p = t1.distribute(1); // distribute first index of t1
+QTNHEnv env;
+
+qtnh::tidx_tup t1_dims = { 2, 2, 2 };
+std::vector<qtnh::tel> t1_els = { 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0 };
+auto t1u = std::make_unique<SDenseTensor>(env, t1_dims, t1_els);
+
+// Distribute first index of t1. 
+// Wrap result into unique pointer for safety. 
+auto t2u = std::unique_ptr<DDenseTensor>(t1u->distribute(1));
+
+// Or the safe option: 
+
+// Create single-input convert tensor. 
+auto cvu = std::make_unique<ConvertTensor>(env, qtnh::tidx_tup{ 2 });
+// Connect it to first dimension of t1 and contract. 
+auto t3u = Tensor::contract(std::move(t1u), std::move(cvu), {{ 0, 0 }});
+// t1u is now invalid
 ```
 
 ### Tensor Network
 
-Class `qtnh::TensorNetwork` acts as a storage for tensors, and bonds between them. Struct `qtnh::Bond` implements the bonds as a vector of wires and a pair of IDs of tensors to contract. Tensors and bonds can be accessed using their IDs. It is also possible to contract two tensors with given IDs, or to contract the entire network into a single tensor. When contracting multiple tensors, a *contraction order* of bond IDs can be specified. 
+Class `qtnh::TensorNetwork` acts as a storage for tensors, and bonds between them. Internal struct `qtnh::TensorNetwork::Bond` implements the bonds as a vector of wires and a pair of IDs of tensors to contract, assigned when tensors are added to the network. Tensors and bonds can be accessed using their IDs. It is also possible to contract two tensors with given IDs, or to contract the entire network into a single tensor. When contracting multiple tensors, a *contraction order* of bond IDs can be specified. 
+
+Tensors can be created directly inside of the tensor network, which helps avoid the hastle with unique pointers. Reference to the tensor can be acquired by using `getTensor()` method. 
 
 ```c++
-qtnh::QTNHEnv env;
-qtnh::TensorNetwork tn();
+QTNHEnv env;
+TensorNetwork tn;
 
-qtnh::SDenseTensor t1(env, { 2, 2, 2 }, { .1, .2, .3, .4, .5, .6, .7, .8 });
-qtnh::SDenseTensor t2(env, { 4, 2 }, { .8, .7, .6, .5, .4, .3, .2, .1 });
-qtnh::Bond b1({ t1.getID(), t2.getID() }, { { 0, 1 } });
+qtnh::tidx_tup t1_dims = { 2, 2, 2 };
+qtnh::tidx_tup t2_dims = { 4, 2 };
 
-auto t1_id = tn.insertTensor(t1);
-auto t2_id = tn.insertTensor(t2);
-auto b1_id = tn.insertBond(b1);
+std::vector<qtnh::tel> t1_els = { 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0 };
+std::vector<qtnh::tel> t2_els = { 7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0, 0.0 };
+
+auto t1_id = tn.createTensor<SDenseTensor>(env, t1_dims, t1_els);
+auto t2_id = tn.createTensor<SDenseTensor>(env, t2_dims, t2_els);
+auto b1_id = tn.createBond(t1_id, t2_id, {{ 0, 1 }});
 
 //  ...
 
 auto new_id = tn.contract(b1_id); // contract single bond
 auto final_id = tn.contractAll(); // contract all bonds
 
-auto tf = tn.getTensor(final_id); // read final tensor
+auto& tf = tn.getTensor(final_id); // get reference to final tensor
 ```
 

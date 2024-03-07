@@ -112,10 +112,10 @@ namespace qtnh {
       virtual void swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) = 0;
 
       /// @brief Contract two tensors via given wires. 
-      /// @param t1 Pointer to first tensor to contract. 
-      /// @param t2 Pointer to second tensor to contract. 
+      /// @param t1u Unique pointer to first tensor to contract. 
+      /// @param t2u Unique pointer to second tensor to contract. 
       /// @param ws A vector of wires which indicate which pairs of indices to sum over. 
-      /// @return Contracted tensor pointer. 
+      /// @return Contracted tensor unique pointer. 
       static std::unique_ptr<Tensor> contract(std::unique_ptr<Tensor> t1u, std::unique_ptr<Tensor> t2u, const std::vector<qtnh::wire>& ws);
   };
 
