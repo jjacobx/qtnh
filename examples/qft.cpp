@@ -1,6 +1,7 @@
 #include <cmath>
 #include <complex>
 #include <iostream>
+#include <random>
 
 #include "qtnh.hpp"
 
@@ -9,8 +10,8 @@ using namespace std::complex_literals;
 using namespace qtnh;
 using namespace qtnh::ops;
 
-const unsigned int NQUBITS = 4; 
-const unsigned int DQUBITS = 2;
+const unsigned int NQUBITS = 8; 
+const unsigned int DQUBITS = 4;
 
 qtnh::uint Q0(const QTNHEnv& env, TensorNetwork& tn) {
   qtnh::tidx_tup dims{ 2 };
@@ -60,6 +61,35 @@ qtnh::uint CP(const QTNHEnv& env, TensorNetwork& tn, double p) {
   return tn.createTensor<SDenseTensor>(env, dims, els);
 }
 
+bool validateEqualState(const Tensor& t, unsigned int num_rolls) {
+  if (!t.isActive()) { 
+    return true;
+  }
+
+  auto loc_dims = t.getLocDims();
+  qtnh::tifl_tup ifls(loc_dims.size(), { TIdxT::open, 1 });
+
+  // Check across random dimension. 
+  std::random_device dev;
+  std::mt19937 rng(dev());
+  std::uniform_int_distribution<std::mt19937::result_type> uni(0, loc_dims.size() - 1);
+
+  for (unsigned int i = 0; i < num_rolls; ++i) {
+    ifls.at(uni(rng)) = { TIdxT::open, 0 };
+  }
+
+  TIndexing ti(loc_dims, ifls);
+  auto val = t.getLocEl(*ti.begin()).value();
+
+  for (auto idxs : ti) {
+    if (val != t.getLocEl(idxs).value()) { 
+      return false;
+    }
+  }
+
+  return true;
+}
+
 int main() {
   QTNHEnv env;
   TensorNetwork tn;
@@ -69,7 +99,7 @@ int main() {
   std::vector<qtnh::tidx_tup_st> qidxi(NQUBITS);
 
   for (unsigned int i = 0; i < NQUBITS; ++i) {
-    qid.at(i) = Qp(env, tn);
+    qid.at(i) = Q0(env, tn);
     if (i < DQUBITS) {
       auto tid = DIST(env, tn);
       auto bid = tn.createBond(qid.at(i), tid, {{ 0, 0 }}, true);
@@ -195,7 +225,10 @@ int main() {
   // tn should be empty now. 
 
   MPI_Barrier(MPI_COMM_WORLD);
-  std::cout << env.proc_id << " | " << *tfu << "\n";
+  std::cout << "P" << env.proc_id << "\t| " << *tfu << "\n";
+
+  MPI_Barrier(MPI_COMM_WORLD);
+  std::cout << "P" << env.proc_id << "\t| Valid: " << validateEqualState(*tfu, 4) << "\n";
 
   return 0;
 }
