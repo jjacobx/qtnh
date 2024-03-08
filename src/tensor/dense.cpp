@@ -69,18 +69,25 @@ namespace qtnh {
             std::cout << "t1[" << idxs1 << "] * t2[" << idxs2 << "]";
           #endif
 
-          if (ti1.isLast(idxs1, TIdxT::closed, tag) && ti2.isLast(idxs2, TIdxT::closed, tag)) {
+          // TODO: Implement tag-wise increment in TIndexing. 
+          while (ti1.isLast(idxs1, TIdxT::closed, tag) && ti2.isLast(idxs2, TIdxT::closed, tag)) {
             tag++;
+
             if (tag >= ws_size) {
               (*t3p)[*it] = el3;
 
               #ifdef DEBUG
-                std::cout << " = " << el3 << std::endl;
+                std::cout << " = " << el3  << std::endl;
               #endif
 
               break;
-            }     
+            }
+
+            ti1.reset(idxs1, TIdxT::closed, tag - 1);
+            ti2.reset(idxs2, TIdxT::closed, tag - 1);
           }
+
+          if (tag >= ws_size) break;
 
           #ifdef DEBUG
             std::cout << " + ";
@@ -88,6 +95,8 @@ namespace qtnh {
 
           ti1.next(idxs1, TIdxT::closed, tag);
           ti2.next(idxs2, TIdxT::closed, tag);
+
+          tag = 0;
         }
 
         for (qtnh::tidx_tup_st t = 0; t < ws_size; ++t) {
@@ -343,12 +352,12 @@ namespace qtnh {
 
       std::vector<qtnh::tel> new_els(loc_els.size());
       for (std::size_t i = 0; i < dims.at(idx1); ++i) {
-        // TODO: Consider MPI message size limit
+        // TODO: Consider MPI message size limit. 
         // * A scatter might already take it into account
         MPI_Scatter(loc_els.data(), 1, restrided, new_els.data() + i * block_length, 1, restrided, i, swap_group);
       }
 
-      // ! new_els should not be copied, and original loc_els should be destroyed
+      // ! new_els should not be copied, and original loc_els should be destroyed. 
       loc_els = std::move(new_els);
       MPI_Type_free(&restrided);
       return;
@@ -363,7 +372,7 @@ namespace qtnh {
       auto target = utils::idxs_to_i(target_idxs, dist_dims);
 
       std::vector<qtnh::tel> new_els(loc_els.size());
-      // TODO: Consider MPI message size limit – not a scatter
+      // TODO: Consider MPI message size limit – not a scatter. 
       MPI_Sendrecv(loc_els.data(), loc_els.size(), MPI_C_DOUBLE_COMPLEX, target, 0, 
                    new_els.data(), new_els.size(), MPI_C_DOUBLE_COMPLEX, target, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
       
@@ -396,12 +405,12 @@ namespace qtnh {
     if (env.proc_id < shift * getDistSize()) {
       auto nnew = getLocSize() / shift;
 
-      // Resize only receiving buffers
+      // Resize only receiving buffers. 
       if (!active) loc_els.resize(nnew);
 
       MPI_Scatter(loc_els.data(), nnew, MPI_C_DOUBLE_COMPLEX, loc_els.data(), nnew, MPI_C_DOUBLE_COMPLEX, 0, scatt_comm);
 
-      // Resize everything
+      // Resize everything. 
       loc_els.resize(nnew);
       active = true;
     }
@@ -450,7 +459,7 @@ namespace qtnh {
     gather(dist_dims.size());
     loc_els.resize(getSize());
 
-    // Elements will be broadcasted by the constructor
+    // Elements will be broadcasted by the constructor. 
     auto st = new SDenseTensor(env, dims, loc_els, true);
     return st;
   }
@@ -480,7 +489,7 @@ namespace qtnh {
   void DDenseTensor::rep_each(std::size_t n) {
     std::vector<MPI_Request> send_reqs(n, MPI_REQUEST_NULL);
     for (std::size_t i = 0; active && (i < n); ++i) {
-      // Rank 0 sending data to itself causes a deadlock
+      // Rank 0 sending data to itself causes a deadlock. 
       if (i == 0 && env.proc_id == 0) continue;
       MPI_Isend(loc_els.data(), getLocSize(), MPI_C_DOUBLE_COMPLEX, n * env.proc_id + i, 0, MPI_COMM_WORLD, &send_reqs.at(i));
     }
