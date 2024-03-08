@@ -24,6 +24,12 @@ qtnh::uint Q1(const QTNHEnv& env, TensorNetwork& tn) {
   return tn.createTensor<SDenseTensor>(env, dims, els);
 }
 
+qtnh::uint Qp(const QTNHEnv& env, TensorNetwork& tn) {
+  qtnh::tidx_tup dims{ 2 };
+  std::vector<qtnh::tel> els{ std::pow(2, -.5), std::pow(2, -.5) };
+  return tn.createTensor<SDenseTensor>(env, dims, els);
+}
+
 qtnh::uint DIST(const QTNHEnv& env, TensorNetwork& tn) {
   return tn.createTensor<ConvertTensor>(env, qtnh::tidx_tup{ 2 });
 }
@@ -63,7 +69,7 @@ int main() {
   std::vector<qtnh::tidx_tup_st> qidxi(NQUBITS);
 
   for (unsigned int i = 0; i < NQUBITS; ++i) {
-    qid.at(i) = Q0(env, tn);
+    qid.at(i) = Qp(env, tn);
     if (i < DQUBITS) {
       auto tid = DIST(env, tn);
       auto bid = tn.createBond(qid.at(i), tid, {{ 0, 0 }}, true);
