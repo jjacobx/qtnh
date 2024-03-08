@@ -295,6 +295,10 @@ namespace qtnh {
       throw std::runtime_error("Asymmetric swaps are not allowed");
     }
 
+    #ifdef DEBUG
+      std::cout << "Swapping " << idx1 << " and " << idx2 << "\n";
+    #endif
+
     // Case: same-index swap
     if (idx1 == idx2) return;
 
