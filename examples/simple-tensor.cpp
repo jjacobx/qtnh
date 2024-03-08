@@ -63,7 +63,7 @@ int main() {
   auto stu = std::make_unique<SwapTensor>(env, 2, 2);
   std::cout << env.proc_id << " | SWAP = " << *stu << "\n";
 
-  auto t9u = Tensor::contract(std::move(t8u), std::move(stu), {{ 2, 3 }});
+  auto t9u = Tensor::contract(std::move(t8u), std::move(stu), {{ 2, 0 }, { 3, 1 }});
   std::cout << env.proc_id << " | T9 = " << *t9u << "\n";
   if (env.proc_id == 0) {
     std::cout << "T9.dims = " << t9u->getDims() << "\n";
