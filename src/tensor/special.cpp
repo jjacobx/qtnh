@@ -16,17 +16,17 @@ namespace qtnh {
 
 
   Tensor* SwapTensor::contract_disp(Tensor* tp, const std::vector<qtnh::wire>& ws) {
-    tp->swap(ws.at(0).first, ws.at(0).second); 
+    tp->swap(ws.at(0).first, ws.at(1).first); 
     return tp; 
   }
 
   Tensor* SwapTensor::contract(SDenseTensor* tp, const std::vector<qtnh::wire>& ws) {
-    tp->swap(ws.at(0).first, ws.at(0).second); 
+    tp->swap(ws.at(0).first, ws.at(1).first); 
     return tp; 
   }
 
   Tensor* SwapTensor::contract(DDenseTensor* tp, const std::vector<qtnh::wire>& ws) {
-    tp->swap(ws.at(0).first, ws.at(0).second); 
+    tp->swap(ws.at(0).first, ws.at(1).first); 
     return tp; 
   }
 
