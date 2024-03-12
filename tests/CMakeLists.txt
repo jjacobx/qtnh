@@ -62,3 +62,18 @@ target_link_libraries(c2-tensor-validation
 )
 
 catch_discover_tests(c2-tensor-validation)
+
+
+add_executable(c2-mpi
+c2-mpi.cpp
+)
+
+target_compile_features(c2-mpi
+  PUBLIC
+  cxx_std_17
+)
+
+target_link_libraries(c2-mpi
+  Catch2::Catch2
+  qtnh
+)

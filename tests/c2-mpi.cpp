@@ -1,0 +1,71 @@
+#include <catch2/catch_session.hpp>
+#include <catch2/catch_test_case_info.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/reporters/catch_reporter_registrars.hpp>
+#include <catch2/reporters/catch_reporter_streaming_base.hpp>
+
+#include <iostream>
+#include "qtnh.hpp"
+
+qtnh::QTNHEnv* ENVP;
+
+class RootReporter : public Catch::StreamingReporterBase {
+  public:
+    using StreamingReporterBase::StreamingReporterBase;
+
+    static std::string getDescription() {
+        return "Reporter for testing events on multiple MPI ranks. ";
+    }
+
+    void testCaseStarting(Catch::TestCaseInfo const& testInfo) override {
+      if (ENVP->proc_id == 0) {
+        std::cout << "Starting test case: " << testInfo.name << '\n';
+      }
+    }
+
+    void testCaseEnded(Catch::TestCaseStats const& testCaseStats) override {
+      if (ENVP->proc_id == 0) {
+        std::cout << "Test case ended: " << testCaseStats.testInfo->name << "\n";
+        if (testCaseStats.totals.assertions.failed == 0 && testCaseStats.totals.testCases.failed == 0) {
+          std::cout << "Passed\n";
+        } else {
+          std::cout << "Failed\n";
+        }
+      }
+    }
+
+  private:
+    static unsigned int counter;
+};
+
+unsigned int RootReporter::counter = 0;
+
+CATCH_REGISTER_REPORTER("root", RootReporter)
+
+int main(int argc, char* argv[]) {
+  qtnh::QTNHEnv* envp = new qtnh::QTNHEnv();
+  ENVP = envp;
+
+  int result = Catch::Session().run(argc, argv);
+
+  delete envp;
+
+  return result;
+}
+
+TEST_CASE("test-mpi", "[mpi][2rank]") {
+  using namespace qtnh;
+  using namespace std::complex_literals;
+
+  qtnh::tidx_tup dt1_dims = { 2, 2, 2 };
+  qtnh::tidx_tup dt2_dims = { 4, 2 };
+
+  std::vector<qtnh::tel> dt1_els = { 1.0 + 1.0i, 2.0 + 2.0i, 3.0 + 3.0i, 4.0 + 4.0i, 5.0 + 5.0i, 6.0 + 6.0i, 7.0 + 7.0i, 8.0 + 8.0i };
+  std::vector<qtnh::tel> dt2_els = { 5.0 + 5.0i, 6.0 + 6.0i, 7.0 + 7.0i, 8.0 + 8.0i, 1.0 + 1.0i, 2.0 + 2.0i, 3.0 + 3.0i, 4.0 + 4.0i };
+
+  auto t1u = std::make_unique<SDenseTensor>(*ENVP, dt1_dims, dt1_els);
+  auto t2u = std::make_unique<SDenseTensor>(*ENVP, dt2_dims, dt2_els);
+
+  std::unique_ptr<DDenseTensor> t3u;
+  REQUIRE_NOTHROW(t3u = std::unique_ptr<DDenseTensor>(t1u->distribute(1)));
+}
