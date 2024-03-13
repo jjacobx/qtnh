@@ -1,3 +1,19 @@
+add_executable(c2-indexing
+c2-indexing.cpp
+)
+
+target_compile_features(c2-indexing
+  PUBLIC
+  cxx_std_17
+)
+
+target_link_libraries(c2-indexing
+  Catch2::Catch2WithMain
+  qtnh
+)
+
+catch_discover_tests(c2-indexing)
+
 add_executable(c2-indexing-tests
 c2-indexing-tests.cpp
 )
