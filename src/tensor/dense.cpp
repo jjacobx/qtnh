@@ -83,8 +83,8 @@ namespace qtnh {
               break;
             }
 
-            ti1.reset(idxs1, TIdxT::closed, tag - 1);
-            ti2.reset(idxs2, TIdxT::closed, tag - 1);
+            idxs1 = ti1.reset(idxs1, TIdxT::closed, tag - 1);
+            idxs2 = ti2.reset(idxs2, TIdxT::closed, tag - 1);
           }
 
           if (tag >= ws_size) break;
@@ -93,14 +93,14 @@ namespace qtnh {
             std::cout << " + ";
           #endif
 
-          ti1.next(idxs1, TIdxT::closed, tag);
-          ti2.next(idxs2, TIdxT::closed, tag);
+          idxs1 = ti1.next(idxs1, TIdxT::closed, tag);
+          idxs2 = ti2.next(idxs2, TIdxT::closed, tag);
 
           tag = 0;
         }
 
         for (qtnh::tidx_tup_st t = 0; t < ws_size; ++t) {
-          ti1.reset(idxs1, TIdxT::closed, t);
+          idxs1 = ti1.reset(idxs1, TIdxT::closed, t);
         }
 
         ++it;

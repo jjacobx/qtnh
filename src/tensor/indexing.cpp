@@ -75,7 +75,7 @@ namespace qtnh {
     return true;
   }
 
-  qtnh::tidx_tup& TIndexing::next(qtnh::tidx_tup& idxs, TIdxT type, qtnh::tidx_tup_st tag) {
+  qtnh::tidx_tup TIndexing::next(qtnh::tidx_tup idxs, TIdxT type, qtnh::tidx_tup_st tag) {
     for (std::size_t i = idxs.size(); i > 0; i--) {
       if (ifls.at(i - 1) != qtnh::tifl{ type, tag }) {
         continue;
@@ -95,7 +95,7 @@ namespace qtnh {
     throw std::out_of_range("Tuple is outside of indexing.");
   }
 
-  qtnh::tidx_tup& TIndexing::prev(qtnh::tidx_tup& idxs, TIdxT type, qtnh::tidx_tup_st tag) {
+  qtnh::tidx_tup TIndexing::prev(qtnh::tidx_tup idxs, TIdxT type, qtnh::tidx_tup_st tag) {
     for (std::size_t i = idxs.size(); i > 0; i--) {
       if (ifls.at(i - 1) != qtnh::tifl{ type, tag }) {
         continue;
@@ -115,7 +115,7 @@ namespace qtnh {
     throw std::out_of_range("Tuple is outside of indexing.");
   }
 
-  qtnh::tidx_tup& TIndexing::reset(qtnh::tidx_tup& idxs, TIdxT type, qtnh::tidx_tup_st tag) {
+  qtnh::tidx_tup TIndexing::reset(qtnh::tidx_tup idxs, TIdxT type, qtnh::tidx_tup_st tag) {
     for (std::size_t i = 0; i < idxs.size(); i++) {
       if (ifls.at(i) == qtnh::tifl{ type, tag }) {
         idxs.at(i) = 0;
@@ -176,7 +176,7 @@ namespace qtnh {
     TIndexing ti(dims, ifls);
     for (std::size_t i = 0; i < this->current.size(); i++) {
       if ((ifls.at(i) == active_ifl) && (current.at(i) != dims.at(i) - 1)) {
-        ti.next(current, active_ifl.first, active_ifl.second);
+        current = ti.next(current, active_ifl.first, active_ifl.second);
         return *this;
       }
     }
