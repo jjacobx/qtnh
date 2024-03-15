@@ -57,15 +57,55 @@ TEST_CASE("test-mpi", "[mpi][2rank]") {
   using namespace qtnh;
   using namespace std::complex_literals;
 
-  qtnh::tidx_tup dt1_dims = { 2, 2, 2 };
-  qtnh::tidx_tup dt2_dims = { 4, 2 };
-
   std::vector<qtnh::tel> dt1_els = { 1.0 + 1.0i, 2.0 + 2.0i, 3.0 + 3.0i, 4.0 + 4.0i, 5.0 + 5.0i, 6.0 + 6.0i, 7.0 + 7.0i, 8.0 + 8.0i };
   std::vector<qtnh::tel> dt2_els = { 5.0 + 5.0i, 6.0 + 6.0i, 7.0 + 7.0i, 8.0 + 8.0i, 1.0 + 1.0i, 2.0 + 2.0i, 3.0 + 3.0i, 4.0 + 4.0i };
 
-  auto t1u = std::make_unique<SDenseTensor>(*ENVP, dt1_dims, dt1_els);
-  auto t2u = std::make_unique<SDenseTensor>(*ENVP, dt2_dims, dt2_els);
+  auto t1u = std::make_unique<SDenseTensor>(*ENVP, qtnh::tidx_tup { 2, 2, 2 }, dt1_els);
+  auto t2u = std::make_unique<SDenseTensor>(*ENVP, qtnh::tidx_tup { 4, 2 }, dt2_els);
 
-  std::unique_ptr<DDenseTensor> t3u;
+  std::unique_ptr<Tensor> t3u;
   REQUIRE_NOTHROW(t3u = std::unique_ptr<DDenseTensor>(t1u->distribute(1)));
+
+  SECTION("distribute") {
+    // ! This should be inside the loop, but for some reason it causes segmentation fault. 
+    // REQUIRE_NOTHROW(t3u = std::unique_ptr<DDenseTensor>(t1u->distribute(1)));
+
+    if (ENVP->proc_id == 0) {
+      REQUIRE(t3u->getLocEl({ 0, 0 }).value() == 1.0 + 1.0i);
+    } else if (ENVP->proc_id == 1) {
+      REQUIRE(t3u->getLocEl({ 0, 0 }).value() == 5.0 + 5.0i);
+    }
+  }
+
+  std::unique_ptr<Tensor> t4u;
+
+  SECTION("contract") {
+    REQUIRE_NOTHROW(t4u = Tensor::contract(std::move(t2u), std::move(t3u), {{ 1, 1 }}));
+
+    // TODO: check elements
+  }
+}
+
+TEST_CASE("new-tensor", "[mpi][4rank]") {
+  using namespace qtnh;
+  using namespace std::complex_literals;
+  
+  std::vector<qtnh::tel> dt1_els = { 1.0 + 1.0i, 2.0 + 2.0i, 3.0 + 3.0i, 4.0 + 4.0i, 5.0 + 5.0i, 6.0 + 6.0i, 7.0 + 7.0i, 8.0 + 8.0i };
+  
+  auto t1u = std::make_unique<SDenseTensor>(*ENVP, qtnh::tidx_tup { 2, 2, 2 }, dt1_els);
+  auto t2u = std::unique_ptr<DDenseTensor>(t1u->distribute(1));
+
+  SECTION("scatter") {
+    REQUIRE_NOTHROW(t2u->scatter(1));
+    
+    if (ENVP->proc_id == 0) {
+      REQUIRE(t2u->getLocEl({ 0 }).value() == 1.0 + 1.0i);
+    } else if (ENVP->proc_id == 1) {
+      REQUIRE(t2u->getLocEl({ 0 }).value() == 3.0 + 3.0i);
+    } else if (ENVP->proc_id == 1) {
+      REQUIRE(t2u->getLocEl({ 0 }).value() == 5.0 + 5.0i);
+    } else if (ENVP->proc_id == 1) {
+      REQUIRE(t2u->getLocEl({ 0 }).value() == 7.0 + 7.0i);
+    }
+  }
 }
