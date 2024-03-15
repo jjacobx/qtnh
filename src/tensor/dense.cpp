@@ -278,9 +278,9 @@ namespace qtnh {
     }
   }
 
-  void DDenseTensor::setEl(const qtnh::tidx_tup& glob_idxs, qtnh::tel el) {
-    qtnh::tidx_tup loc_idxs(glob_idxs.begin(), glob_idxs.begin() + dist_dims.size());
-    qtnh::tidx_tup dist_idxs(glob_idxs.begin() + dist_dims.size(), glob_idxs.end());
+  void DDenseTensor::setEl(const qtnh::tidx_tup& idxs, qtnh::tel el) {
+    qtnh::tidx_tup dist_idxs(idxs.begin(), idxs.begin() + dist_dims.size());
+    qtnh::tidx_tup loc_idxs(idxs.begin() + dist_dims.size(), idxs.end());
     auto rank = utils::idxs_to_i(dist_idxs, getDistDims());
 
     if (env.proc_id == rank) {
