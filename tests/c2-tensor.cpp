@@ -169,3 +169,29 @@ TEST_CASE("tensor-accessors") {
     REQUIRE((*t_dden_u)[{ 1, 0 }] == 0.3i);
   }
 }
+
+TEST_CASE("tensor-contraction") {
+  auto t_swap_u = std::make_unique<SwapTensor>(ENV, 2, 2);
+  auto t_iden_u = std::make_unique<IdentityTensor>(ENV, qtnh::tidx_tup { 2 });
+  auto t_conv_u = std::make_unique<ConvertTensor>(ENV, qtnh::tidx_tup { 2 });
+
+  std::vector<qtnh::tel> els { 1.0i, 2.0i, 3.0i, 4.0i };
+  auto t_sden_u = std::make_unique<SDenseTensor>(ENV, qtnh::tidx_tup { 2, 2 }, els);
+  auto t_dden_u = std::make_unique<DDenseTensor>(ENV, qtnh::tidx_tup { 2, 2 }, els, 0);
+
+  SECTION("dense-dense") {
+
+  }
+
+  SECTION("swap-dense") {
+
+  }
+
+  SECTION("identity-dense") {
+
+  }
+
+  SECTION("convert-dense") {
+
+  }
+}
