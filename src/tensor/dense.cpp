@@ -259,8 +259,8 @@ namespace qtnh {
   }
 
   std::optional<qtnh::tel> DDenseTensor::getEl(const qtnh::tidx_tup& idxs) const {
-    qtnh::tidx_tup loc_idxs(idxs.begin(), idxs.begin() + dist_dims.size());
-    qtnh::tidx_tup dist_idxs(idxs.begin() + dist_dims.size(), idxs.end());
+    qtnh::tidx_tup dist_idxs(idxs.begin(), idxs.begin() + dist_dims.size());
+    qtnh::tidx_tup loc_idxs(idxs.begin() + dist_dims.size(), idxs.end());
     auto rank = utils::idxs_to_i(dist_idxs, getDistDims());
 
     if (env.proc_id == rank) {
