@@ -7,6 +7,8 @@
 #include "tensor/indexing.hpp"
 #include "tensor/special.hpp"
 
+#include "gen/random-tensors.hpp"
+
 using namespace qtnh;
 using namespace std::complex_literals;
 
@@ -180,15 +182,19 @@ TEST_CASE("tensor-contraction") {
   auto t_dden_u = std::make_unique<DDenseTensor>(ENV, qtnh::tidx_tup { 2, 2 }, els, 0);
 
   SECTION("dense-dense") {
-    auto t_sden1_u = std::make_unique<SDenseTensor>(ENV, qtnh::tidx_tup { 2, 2 }, els);
-    auto t_sden2_u = std::make_unique<SDenseTensor>(ENV, qtnh::tidx_tup { 2, 2 }, els);
+    auto t_sden1_u = std::make_unique<SDenseTensor>(ENV, randt::v1.t1_info.dims, randt::v1.t1_info.els);
+    auto t_sden2_u = std::make_unique<SDenseTensor>(ENV, randt::v1.t2_info.dims, randt::v1.t2_info.els);
 
-    auto t_r1_u = Tensor::contract(std::move(t_sden1_u), std::move(t_sden2_u), {{ 0, 1 }});
-    std::vector<qtnh::tel> t_r1_els { -7.0,  -15.0, -10.0, -22.0 };
+    auto t_r1_u = Tensor::contract(std::move(t_sden1_u), std::move(t_sden2_u), randt::v1.wires);
 
-    TIndexing ti_r1(t_r1_u->getDims());
+    qtnh::tidx_tup t_r1_dims = randt::v1.t3_info.dims;
+    std::vector<qtnh::tel> t_r1_els = randt::v1.t3_info.els;
+
+    REQUIRE(t_r1_u->getDims() == t_r1_dims);
+
+    TIndexing ti_r1(t_r1_dims);
     for (auto idxs : ti_r1) {
-      auto el = t_r1_els.at(utils::idxs_to_i(idxs, t_r1_u->getDims()));
+      auto el = t_r1_els.at(utils::idxs_to_i(idxs, t_r1_dims));
       REQUIRE(t_r1_u->getLocEl(idxs).value() == el);
     }
   }
