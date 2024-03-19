@@ -1,3 +1,6 @@
+#ifndef CONTRACTION_VALIDATION_HPP
+#define CONTRACTION_VALIDATION_HPP
+
 #include "core/typedefs.hpp"
 
 struct tensor_info {
@@ -12,3 +15,5 @@ struct contraction_validation {
 
   std::vector<qtnh::wire> wires;
 };
+
+#endif
