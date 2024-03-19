@@ -180,7 +180,17 @@ TEST_CASE("tensor-contraction") {
   auto t_dden_u = std::make_unique<DDenseTensor>(ENV, qtnh::tidx_tup { 2, 2 }, els, 0);
 
   SECTION("dense-dense") {
+    auto t_sden1_u = std::make_unique<SDenseTensor>(ENV, qtnh::tidx_tup { 2, 2 }, els);
+    auto t_sden2_u = std::make_unique<SDenseTensor>(ENV, qtnh::tidx_tup { 2, 2 }, els);
 
+    auto t_r1_u = Tensor::contract(std::move(t_sden1_u), std::move(t_sden2_u), {{ 0, 1 }});
+    std::vector<qtnh::tel> t_r1_els { -7.0,  -15.0, -10.0, -22.0 };
+
+    TIndexing ti_r1(t_r1_u->getDims());
+    for (auto idxs : ti_r1) {
+      auto el = t_r1_els.at(utils::idxs_to_i(idxs, t_r1_u->getDims()));
+      REQUIRE(t_r1_u->getLocEl(idxs).value() == el);
+    }
   }
 
   SECTION("swap-dense") {
