@@ -186,20 +186,21 @@ TEST_CASE("tensor-contraction") {
   auto t_dden_u = std::make_unique<DDenseTensor>(ENV, qtnh::tidx_tup { 2, 2 }, els, 0);
 
   SECTION("dense-dense") {
-    auto t_sden1_u = std::make_unique<SDenseTensor>(ENV, gen::v1.t1_info.dims, gen::v1.t1_info.els);
-    auto t_sden2_u = std::make_unique<SDenseTensor>(ENV, gen::v1.t2_info.dims, gen::v1.t2_info.els);
+    for (auto& cv : gen::cvs) {
+      auto t_sden1_u = std::make_unique<SDenseTensor>(ENV, cv.t1_info.dims, cv.t1_info.els);
+      auto t_sden2_u = std::make_unique<SDenseTensor>(ENV, cv.t2_info.dims, cv.t2_info.els);
 
-    auto t_r1_u = Tensor::contract(std::move(t_sden1_u), std::move(t_sden2_u), gen::v1.wires);
+      auto t_r1_u = Tensor::contract(std::move(t_sden1_u), std::move(t_sden2_u), cv.wires);
 
-    qtnh::tidx_tup t_r1_dims = gen::v1.t3_info.dims;
-    std::vector<qtnh::tel> t_r1_els = gen::v1.t3_info.els;
+      qtnh::tidx_tup t_r1_dims = cv.t3_info.dims;
+      std::vector<qtnh::tel> t_r1_els = cv.t3_info.els;
 
-    REQUIRE(t_r1_u->getDims() == t_r1_dims);
-
-    TIndexing ti_r1(t_r1_dims);
-    for (auto idxs : ti_r1) {
-      auto el = t_r1_els.at(utils::idxs_to_i(idxs, t_r1_dims));
-      REQUIRE(eq(t_r1_u->getLocEl(idxs).value(), el));
+      REQUIRE(t_r1_u->getDims() == t_r1_dims);
+      TIndexing ti_r1(t_r1_dims);
+      for (auto idxs : ti_r1) {
+        auto el = t_r1_els.at(utils::idxs_to_i(idxs, t_r1_dims));
+        REQUIRE(eq(t_r1_u->getLocEl(idxs).value(), el));
+      }
     }
   }
 
