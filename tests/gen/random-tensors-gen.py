@@ -82,7 +82,7 @@ def gen_random_tensors_header(contractions : list[Contraction]):
 
     f.write("    std::vector<qtnh::wire>{")
     for j, w in enumerate(con.ws):
-      f.write(f"{{{w[0]}, {w[1]}}}")
+      f.write(f"{{ {w[0]}, {w[1]} }}")
       if (j < len(con.ws) - 1):
         f.write(", ")
     f.write("}\n")
@@ -103,6 +103,7 @@ def gen_random_tensors_header(contractions : list[Contraction]):
 
 def main():
   np.random.seed(9457)
+  random.seed(9457)
 
   cons = []
 
