@@ -1,15 +1,53 @@
 import numpy as np
+import random
+import string
 import os
 
 from collections import namedtuple
 
+
 Contraction = namedtuple("Contraction", "t1 t2 t3 ws")
 
-def random_tensor(dims, dp=1):
+
+def random_dims_and_wires(nwires, max_idxs, allowed_dims):
+  n1 = np.random.randint(nwires + 1, max_idxs)
+  n2 = np.random.randint(nwires + 1, max_idxs)
+
+  dims1 = random.choices(allowed_dims, k = n1)
+  dims2 = random.choices(allowed_dims, k = n2)
+
+  # nw = np.random.randint(0, min(n1, n2))
+
+  w1 = random.sample(list(np.arange(0, n1)), nwires)
+  w2 = random.sample(list(np.arange(0, n2)), nwires)
+
+  for i1, i2 in zip(w1, w2):
+    dims1[i1] = dims2[i2]
+
+  ws = zip(w1, w2)
+
+  return tuple(dims1), tuple(dims2), list(ws)
+
+
+def random_tensor(dims, dp = 1):
   real = (np.random.randint(2 * 10**dp, size = dims) - 10**dp) / 10**dp
   imag = (np.random.randint(2 * 10**dp, size = dims) - 10**dp) / 10**dp
 
   return real + imag * 1j
+
+
+def make_contraction(t1, t2, ws):
+  letters = list(string.ascii_lowercase)
+
+  t1_idxs = letters[0:len(t1.shape)]
+  t2_idxs = letters[len(t1.shape):(len(t1.shape) + len(t2.shape))]
+
+  for i1, i2 in ws:
+    t2_idxs[i2] = t1_idxs[i1]
+
+  con_string = ''.join(t1_idxs) + ',' + ''.join(t2_idxs)
+
+  return Contraction(t1, t2, np.einsum(con_string, t1, t2), ws)
 
 
 def gen_random_tensors_header(contractions : list[Contraction]):
@@ -54,7 +92,7 @@ def gen_random_tensors_header(contractions : list[Contraction]):
   for i in range(len(contractions)):
     f.write(f"v{i+1}")
     if i < len(contractions) - 1:
-      f.print(", ")
+      f.write(", ")
   
   f.write(" };\n")
 
@@ -62,10 +100,38 @@ def gen_random_tensors_header(contractions : list[Contraction]):
   f.write("#endif")
 
 
-np.random.seed(9457)
 
-t1 = random_tensor((2, 2))
-t2 = random_tensor((2, 2))
+def main():
+  np.random.seed(9457)
 
-con = Contraction(t1, t2, np.einsum("ij,ki->jk", t1, t2), [(0, 1)])
-gen_random_tensors_header([con])
+  cons = []
+
+  for i in range(5):
+    dims1, dims2, ws = random_dims_and_wires(i % 4, 5, [2])
+    con = make_contraction(random_tensor(dims1), random_tensor(dims2), ws)
+
+    cons.append(con)
+
+  for i in range(5):
+    dims1, dims2, ws = random_dims_and_wires(i % 3, 4, [2, 3])
+    con = make_contraction(random_tensor(dims1), random_tensor(dims2), ws)
+
+    cons.append(con)
+
+  for i in range(5):
+    dims1, dims2, ws = random_dims_and_wires(i % 2, 3, [2, 3, 4])
+    con = make_contraction(random_tensor(dims1), random_tensor(dims2), ws)
+
+    cons.append(con)
+
+  for i in range(5):
+    dims1, dims2, ws = random_dims_and_wires(i % 2, 3, [2, 3, 4, 5])
+    con = make_contraction(random_tensor(dims1), random_tensor(dims2), ws)
+
+    cons.append(con)
+
+  gen_random_tensors_header(cons)
+
+
+if __name__ == "__main__":
+  main()
