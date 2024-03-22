@@ -181,10 +181,6 @@ TEST_CASE("tensor-contraction") {
   auto t_iden_u = std::make_unique<IdentityTensor>(ENV, qtnh::tidx_tup { 2 });
   auto t_conv_u = std::make_unique<ConvertTensor>(ENV, qtnh::tidx_tup { 2 });
 
-  std::vector<qtnh::tel> els { 1.0i, 2.0i, 3.0i, 4.0i };
-  auto t_sden_u = std::make_unique<SDenseTensor>(ENV, qtnh::tidx_tup { 2, 2 }, els);
-  auto t_dden_u = std::make_unique<DDenseTensor>(ENV, qtnh::tidx_tup { 2, 2 }, els, 0);
-
   SECTION("dense-dense") {
     // SDenseTensor x SDenseTensor
     for (auto& cv : gen::cvs) {
@@ -257,17 +253,51 @@ TEST_CASE("tensor-contraction") {
         REQUIRE(eq(t_r1_u->getLocEl(idxs).value(), el));
       }
     }
+
+    // TODO: test invalid contractions
   }
 
   SECTION("swap-dense") {
-
+    // TODO: generate and test swaps on random indices
   }
 
   SECTION("identity-dense") {
-
+    // TODO: generate and test identities applied to random indices
   }
 
   SECTION("convert-dense") {
+    // The only convert contractions that can be tested serially are tensor products
+    // Also test for invalid convert contractions
 
+    qtnh::tidx_tup dims { 2, 2 };
+    std::vector<qtnh::tel> els { 1.0i, 2.0i, 3.0i, 4.0i };
+    auto t_sden_u = std::make_unique<SDenseTensor>(ENV, dims, els);
+    auto t_dden_u = std::make_unique<DDenseTensor>(ENV, dims, els, 0);
+    auto t_conv1_u = std::make_unique<ConvertTensor>(ENV, qtnh::tidx_tup {});
+    auto t_conv2_u = std::make_unique<ConvertTensor>(ENV, qtnh::tidx_tup {});
+
+    // SDenseTensor to DDenseTensor
+    auto t_r1_u = Tensor::contract(std::move(t_sden_u), std::move(t_conv1_u), {});
+    REQUIRE(dynamic_cast<SDenseTensor*>(t_r1_u.get()) == nullptr);
+    REQUIRE(dynamic_cast<DDenseTensor*>(t_r1_u.get()) != nullptr);
+
+    REQUIRE(t_r1_u->getDims() == dims);
+    TIndexing ti_r1(dims);
+    for (auto idxs : ti_r1) {
+      auto el = els.at(utils::idxs_to_i(idxs, dims));
+      REQUIRE(eq(t_r1_u->getLocEl(idxs).value(), el));
+    }
+
+    // DDenseTensor to SDenseTensor
+    auto t_r2_u = Tensor::contract(std::move(t_dden_u), std::move(t_conv2_u), {});
+    REQUIRE(dynamic_cast<SDenseTensor*>(t_r2_u.get()) != nullptr);
+    REQUIRE(dynamic_cast<DDenseTensor*>(t_r2_u.get()) == nullptr);
+
+    REQUIRE(t_r2_u->getDims() == dims);
+    TIndexing ti_r2(dims);
+    for (auto idxs : ti_r2) {
+      auto el = els.at(utils::idxs_to_i(idxs, dims));
+      REQUIRE(eq(t_r2_u->getLocEl(idxs).value(), el));
+    }
   }
 }
