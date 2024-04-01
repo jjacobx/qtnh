@@ -183,7 +183,7 @@ TEST_CASE("tensor-contraction") {
 
   SECTION("dense-dense") {
     // SDenseTensor x SDenseTensor
-    for (auto& cv : gen::cvs) {
+    for (auto& cv : gen::dense_vals) {
       auto t_sden1_u = std::make_unique<SDenseTensor>(ENV, cv.t1_info.dims, cv.t1_info.els);
       auto t_sden2_u = std::make_unique<SDenseTensor>(ENV, cv.t2_info.dims, cv.t2_info.els);
 
@@ -201,7 +201,7 @@ TEST_CASE("tensor-contraction") {
     }
 
     // SDenseTensor x DDenseTensor
-    for (auto& cv : gen::cvs) {
+    for (auto& cv : gen::dense_vals) {
       auto t_sden1_u = std::make_unique<SDenseTensor>(ENV, cv.t1_info.dims, cv.t1_info.els);
       auto t_sden2_u = std::make_unique<DDenseTensor>(ENV, cv.t2_info.dims, cv.t2_info.els, 0);
 
@@ -219,7 +219,7 @@ TEST_CASE("tensor-contraction") {
     }
 
     // DDenseTensor x SDenseTensor
-    for (auto& cv : gen::cvs) {
+    for (auto& cv : gen::dense_vals) {
       auto t_sden1_u = std::make_unique<DDenseTensor>(ENV, cv.t1_info.dims, cv.t1_info.els, 0);
       auto t_sden2_u = std::make_unique<SDenseTensor>(ENV, cv.t2_info.dims, cv.t2_info.els);
 
@@ -237,7 +237,7 @@ TEST_CASE("tensor-contraction") {
     }
 
     // DDenseTensor x DDenseTensor
-    for (auto& cv : gen::cvs) {
+    for (auto& cv : gen::dense_vals) {
       auto t_sden1_u = std::make_unique<DDenseTensor>(ENV, cv.t1_info.dims, cv.t1_info.els, 0);
       auto t_sden2_u = std::make_unique<DDenseTensor>(ENV, cv.t2_info.dims, cv.t2_info.els, 0);
 

@@ -48,7 +48,7 @@ def make_contraction(t1, t2, ws):
   return Contraction(t1, t2, np.einsum(con_string, t1, t2), ws)
 
 
-def gen_random_tensors_header(contractions : list[Contraction]):
+def gen_random_tensors_header(contractions : list[Contraction], groups : list[(str, int)]):
   this_dir = os.path.dirname(os.path.realpath(__file__))
   with open(this_dir + '/random-tensors.hpp', 'w', encoding = "utf-8") as f:
     f.write("#ifndef RANDOM_TENSORS_HPP\n#define RANDOM_TENSORS_HPP\n\n")
@@ -85,17 +85,18 @@ def gen_random_tensors_header(contractions : list[Contraction]):
       f.write("}\n")
       f.write("  };\n\n")
 
-    f.write("  const std::vector<contraction_validation> cvs { ")
-    for i in range(len(contractions)):
-      f.write(f"v{i+1}")
-      if i < len(contractions) - 1:
-        f.write(", ")
-    
-    f.write(" };\n")
+    k = 1
+    for (name, n) in groups:
+      f.write(f"  const std::vector<contraction_validation> {name} {{ ")
+      for i in range(n):
+        f.write(f"v{i+k}")
+        if i < n - 1:
+          f.write(", ")
+      f.write(" };\n")
+      k += n
 
     f.write("}\n\n")
     f.write("#endif")
-
 
 
 def main():
@@ -132,7 +133,10 @@ def main():
 
     cons.append(con)
 
-  gen_random_tensors_header(cons)
+  
+
+  groups = [("dense_vals", 20)]
+  gen_random_tensors_header(cons, groups)
 
 
 if __name__ == "__main__":
