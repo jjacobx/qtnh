@@ -27,6 +27,18 @@ def random_dims_and_wires(nwires, max_idxs, allowed_dims):
   return tuple(dims1), tuple(dims2), list(ws)
 
 
+def random_dims_and_is(max_idxs : int, allowed_dims : list[int], swapped_dims : tuple[int, int]):
+  n = np.random.randint(2, max_idxs)
+  dims = random.choices(allowed_dims, k = n)
+  w = random.sample(list(np.arange(0, n)), 2)
+  w.sort()
+
+  dims[w[0]] = swapped_dims[0]
+  dims[w[1]] = swapped_dims[1]
+
+  return tuple(dims), w[0], w[1]
+
+
 def random_tensor(dims, dp = 1):
   real = (np.random.randint(2 * 10**dp, size = dims) - 10**dp) / 10**dp
   imag = (np.random.randint(2 * 10**dp, size = dims) - 10**dp) / 10**dp
@@ -151,10 +163,22 @@ def main():
 
     cons.append(con)
 
-  con = make_swap(random_tensor((2, 3, 2)), 0, 2)
-  cons.append(con)
+  for i in range(5):
+    dims, i1, i2 = random_dims_and_is(4, [2, 3, 4], (2, 2))
+    con = make_swap(random_tensor(dims), i1, i2)
+    cons.append(con)
 
-  groups = [("dense_vals", 20), ("swap_vals", 1)]
+  for i in range(5):
+    dims, i1, i2 = random_dims_and_is(4, [2, 3], (3, 3))
+    con = make_swap(random_tensor(dims), i1, i2)
+    cons.append(con)
+
+  for i in range(5):
+    dims, i1, i2 = random_dims_and_is(3, [2, 3], (2, 3))
+    con = make_swap(random_tensor(dims), i1, i2)
+    cons.append(con)
+
+  groups = [("dense_vals", 20), ("swap_vals", 10), ("invalid_swaps", 5)]
   gen_random_tensors_header(cons, groups)
 
 
