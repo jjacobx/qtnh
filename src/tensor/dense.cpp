@@ -120,7 +120,7 @@ namespace qtnh {
 
       // Swaps only invoked n * (n - 1) / 2 times, instead of n * n
       for (qtnh::tidx i = 0; i < loc_dims.at(loc_idx1) - 1; ++i) {
-        idxs1.at(loc_idx1) = idxs2.at(loc_idx1) = i;
+        idxs1.at(loc_idx1) = idxs2.at(loc_idx2) = i;
         for (qtnh::tidx j = i + 1; j < loc_dims.at(loc_idx2); ++j) {
           idxs1.at(loc_idx2) = idxs2.at(loc_idx1) = j;
           std::swap((*tp)[idxs1], (*tp)[idxs2]);
