@@ -258,7 +258,31 @@ TEST_CASE("tensor-contraction") {
   }
 
   SECTION("swap-dense") {
-    // TODO: generate and test swaps on random indices
+    // Valid swaps
+    for (auto& cv : gen::swap_vals) {
+      auto t_sden_u = std::make_unique<DDenseTensor>(ENV, cv.t1_info.dims, cv.t1_info.els, 0);
+      auto t_swap_u = std::make_unique<SwapTensor>(ENV, cv.t2_info.dims.at(0), cv.t2_info.dims.at(1));
+
+      auto t_r1_u = Tensor::contract(std::move(t_sden_u), std::move(t_swap_u), cv.wires);
+
+      qtnh::tidx_tup t_r1_dims = cv.t3_info.dims;
+      std::vector<qtnh::tel> t_r1_els = cv.t3_info.els;
+
+      REQUIRE(t_r1_u->getDims() == t_r1_dims);
+      TIndexing ti_r1(t_r1_dims);
+      for (auto idxs : ti_r1) {
+        auto el = t_r1_els.at(utils::idxs_to_i(idxs, t_r1_dims));
+        REQUIRE(eq(t_r1_u->getLocEl(idxs).value(), el));
+      }
+    }
+
+    // Invalid swaps
+    for (auto& cv : gen::invalid_swaps) {
+      auto t_sden_u = std::make_unique<DDenseTensor>(ENV, cv.t1_info.dims, cv.t1_info.els, 0);
+      auto t_swap_u = std::make_unique<SwapTensor>(ENV, cv.t2_info.dims.at(0), cv.t2_info.dims.at(1));
+
+      REQUIRE_THROWS(Tensor::contract(std::move(t_sden_u), std::move(t_swap_u), cv.wires));
+    }
   }
 
   SECTION("identity-dense") {
