@@ -39,6 +39,11 @@ def random_dims_and_is(max_idxs : int, allowed_dims : list[int], swapped_dims : 
   return tuple(dims), w[0], w[1]
 
 
+def random_dims(min_idxs : int, max_idxs : int, allowed_dims : list[int]):
+  n = np.random.randint(min_idxs, max_idxs)
+  return random.choices(allowed_dims, k = n)
+
+
 def random_tensor(dims, dp = 1):
   real = (np.random.randint(2 * 10**dp, size = dims) - 10**dp) / 10**dp
   imag = (np.random.randint(2 * 10**dp, size = dims) - 10**dp) / 10**dp
@@ -53,6 +58,10 @@ def swap_tensor(n1 : int, n2 : int):
       swap[i, j, j, i] = 1
   
   return swap
+
+
+def id_tensor(dims : tuple[int, ...]):
+  return np.eye(np.prod(dims)).reshape(dims + dims)  
 
 
 def make_contraction(t1, t2, ws):
@@ -82,6 +91,18 @@ def make_swap(t1, i1 : int, i2 : int):
   con_string = ''.join(t1_idxs) + '->' + ''.join(t3_idxs)
   
   return Contraction(t1, swap, np.einsum(con_string, t1), [(i1, 0), (i2, 1)])
+
+
+def make_random_id(t1, n : int):
+  idxs = random.sample(list(np.arange(0, len(t1.shape))), n)
+  idxs.sort()
+
+  # Subset the shape of t1
+  dims = tuple(map(t1.shape.__getitem__, idxs))
+
+  ws = zip(idxs, list(np.arange(0, n)))
+
+  return Contraction(t1, id_tensor(dims), t1, list(ws))
 
 
 def gen_random_tensors_header(contractions : list[Contraction], groups : list[(str, int)]):
@@ -184,7 +205,17 @@ def main():
     con = make_swap(random_tensor(dims), i1, i2)
     cons.append(con)
 
-  groups = [("dense_vals", 20), ("swap_vals", 10), ("invalid_swaps", 5)]
+  for i in range(5):
+    dims = random_dims(i // 2 + 2, 5, [2, 3])
+    con = make_random_id(random_tensor(dims), i // 2 + 1)
+    cons.append(con)
+
+  for i in range(5):
+    dims = random_dims(2, 3, [2, 3])
+    con = make_random_id(random_tensor(dims), 2)
+    cons.append(con)
+
+  groups = [("dense_vals", 20), ("swap_vals", 10), ("invalid_swaps", 5), ("id_vals", 10)]
   gen_random_tensors_header(cons, groups)
 
 
