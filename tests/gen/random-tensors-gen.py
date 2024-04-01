@@ -48,6 +48,24 @@ def make_contraction(t1, t2, ws):
   return Contraction(t1, t2, np.einsum(con_string, t1, t2), ws)
 
 
+def make_swap(t1, i1 : int, i2 : int):
+  swap_tensor = np.array([[1, 0, 0, 0], 
+                          [0, 0, 1, 0], 
+                          [0, 1, 0, 0], 
+                          [0, 0, 0, 1]]).reshape((2, 2, 2, 2))
+  
+  letters = list(string.ascii_lowercase)
+  
+  t1_idxs = letters[0:len(t1.shape)]
+  t3_idxs = t1_idxs.copy()
+
+  t3_idxs[i1], t3_idxs[i2] = t3_idxs[i2], t3_idxs[i1]
+
+  con_string = ''.join(t1_idxs) + '->' + ''.join(t3_idxs)
+  
+  return Contraction(t1, swap_tensor, np.einsum(con_string, t1), [(i1, 0), (i2, 1)])
+
+
 def gen_random_tensors_header(contractions : list[Contraction], groups : list[(str, int)]):
   this_dir = os.path.dirname(os.path.realpath(__file__))
   with open(this_dir + '/random-tensors.hpp', 'w', encoding = "utf-8") as f:
@@ -133,9 +151,10 @@ def main():
 
     cons.append(con)
 
-  
+  con = make_swap(random_tensor((2, 3, 2)), 0, 2)
+  cons.append(con)
 
-  groups = [("dense_vals", 20)]
+  groups = [("dense_vals", 20), ("swap_vals", 1)]
   gen_random_tensors_header(cons, groups)
 
 
