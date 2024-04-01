@@ -46,6 +46,15 @@ def random_tensor(dims, dp = 1):
   return real + imag * 1j
 
 
+def swap_tensor(n1 : int, n2 : int):
+  swap = np.zeros((n1, n2, n2, n1))
+  for i in range(n1):
+    for j in range(n2):
+      swap[i, j, j, i] = 1
+  
+  return swap
+
+
 def make_contraction(t1, t2, ws):
   letters = list(string.ascii_lowercase)
 
@@ -61,11 +70,6 @@ def make_contraction(t1, t2, ws):
 
 
 def make_swap(t1, i1 : int, i2 : int):
-  swap_tensor = np.array([[1, 0, 0, 0], 
-                          [0, 0, 1, 0], 
-                          [0, 1, 0, 0], 
-                          [0, 0, 0, 1]]).reshape((2, 2, 2, 2))
-  
   letters = list(string.ascii_lowercase)
   
   t1_idxs = letters[0:len(t1.shape)]
@@ -73,9 +77,11 @@ def make_swap(t1, i1 : int, i2 : int):
 
   t3_idxs[i1], t3_idxs[i2] = t3_idxs[i2], t3_idxs[i1]
 
+  swap = swap_tensor(t1.shape[i1], t1.shape[i2])
+
   con_string = ''.join(t1_idxs) + '->' + ''.join(t3_idxs)
   
-  return Contraction(t1, swap_tensor, np.einsum(con_string, t1), [(i1, 0), (i2, 1)])
+  return Contraction(t1, swap, np.einsum(con_string, t1), [(i1, 0), (i2, 1)])
 
 
 def gen_random_tensors_header(contractions : list[Contraction], groups : list[(str, int)]):
