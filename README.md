@@ -31,7 +31,7 @@ Use `-DDEF_STENSOR_BCAST=0` to disable default shared tensor broadcasting. This 
 
 Use `make test` after building to run the tests. This only comprises local/sequential tests. 
 
-To run distributed MPI tests, use `mpirun -n <N> tests/c2-mpi "[<N>rank]"`, where `<N>` is the number of ranks to use (it can be 2 or 4). 
+To run distributed MPI tests, use `mpirun -n <N> tests/c2-mpi "[<N>rank]"`, where `<N>` is the number of ranks to use (it can be 2 or 4). Use `--reporter root` to prevent duplicated output from all ranks. 
 
 
 ## Usage
