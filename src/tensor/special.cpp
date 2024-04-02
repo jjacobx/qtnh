@@ -45,21 +45,21 @@ namespace qtnh {
   }
 
   void IdentityTensor::swap(qtnh::tidx_tup_st, qtnh::tidx_tup_st) {
-    utils::throw_unimplemented(); 
-    return; 
+    utils::throw_unimplemented();
+    return;
   }
 
 
-  Tensor* IdentityTensor::contract_disp(Tensor* tp, const std::vector<qtnh::wire>& ws) { 
-    return tp; 
+  Tensor* IdentityTensor::contract_disp(Tensor* tp, const std::vector<qtnh::wire>& ws) {
+    return tp;
   }
 
-  Tensor* IdentityTensor::contract(SDenseTensor* tp, const std::vector<qtnh::wire>& ws) { 
-    return tp; 
+  Tensor* IdentityTensor::contract(SDenseTensor* tp, const std::vector<qtnh::wire>& ws) {
+    return tp;
   }
 
-  Tensor* IdentityTensor::contract(DDenseTensor* tp, const std::vector<qtnh::wire>& ws) { 
-    return tp; 
+  Tensor* IdentityTensor::contract(DDenseTensor* tp, const std::vector<qtnh::wire>& ws) {
+    return tp;
   }
 
 
