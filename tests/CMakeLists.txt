@@ -24,7 +24,7 @@ target_compile_features(c2-mpi
 )
 
 target_link_libraries(c2-mpi
-  Catch2::Catch2
+  Catch2::Catch2WithMain
   qtnh
 )
 
