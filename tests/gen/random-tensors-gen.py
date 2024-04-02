@@ -9,22 +9,29 @@ from collections import namedtuple
 Contraction = namedtuple("Contraction", "t1 t2 t3 ws")
 
 
-def random_dims_and_wires(nwires, max_idxs, allowed_dims):
-  n1 = np.random.randint(nwires + 1, max_idxs)
-  n2 = np.random.randint(nwires + 1, max_idxs)
+def random_dims(min_idxs : int, max_idxs : int, allowed_dims : list[int]):
+  n = np.random.randint(min_idxs, max_idxs)
+  dims = random.choices(allowed_dims, k = n)
+  return dims
 
-  dims1 = random.choices(allowed_dims, k = n1)
-  dims2 = random.choices(allowed_dims, k = n2)
-
-  w1 = random.sample(list(np.arange(0, n1)), nwires)
-  w2 = random.sample(list(np.arange(0, n2)), nwires)
-
-  for i1, i2 in zip(w1, w2):
-    dims1[i1] = dims2[i2]
+def random_wires(dims1 : tuple[int, ...], dims2 : tuple[int, ...], nwires : int, randomise : tuple[bool, bool] = (True, True)):
+  w1 = list(np.arange(0, len(dims1)))
+  w2 = list(np.arange(0, len(dims2)))
+  
+  w1 = random.sample(w1, nwires) if randomise[0] else w1[0:nwires]
+  w2 = random.sample(w2, nwires) if randomise[1] else w2[0:nwires]
 
   ws = zip(w1, w2)
+  return list(ws)
 
-  return tuple(dims1), tuple(dims2), list(ws)
+def make_compatible(dims1 : tuple[int, ...], dims2 : tuple[int, ...], wires : list[(int, int)]):
+  dims1 = list(dims1)
+  dims2 = list(dims2)
+
+  for i1, i2 in wires:
+    dims1[i1] = dims2[i2]
+
+  return tuple(dims1), tuple(dims2)
 
 
 def random_dims_and_is(max_idxs : int, allowed_dims : list[int], swapped_dims : tuple[int, int]):
@@ -37,11 +44,6 @@ def random_dims_and_is(max_idxs : int, allowed_dims : list[int], swapped_dims : 
   dims[w[1]] = swapped_dims[1]
 
   return tuple(dims), w[0], w[1]
-
-
-def random_dims(min_idxs : int, max_idxs : int, allowed_dims : list[int]):
-  n = np.random.randint(min_idxs, max_idxs)
-  return random.choices(allowed_dims, k = n)
 
 
 def random_tensor(dims, dp = 1):
@@ -164,28 +166,52 @@ def main():
 
   # 2-dimensional indices
   for i in range(5):
-    dims1, dims2, ws = random_dims_and_wires(i % 4, 5, [2])
+    n = i % 4
+    
+    dims1 = random_dims(n + 1, 5, [2])
+    dims2 = random_dims(n + 1, 5, [2])
+    ws = random_wires(dims1, dims2, n)
+
+    dims1, dims2 = make_compatible(dims1, dims2, ws)
     con = make_contraction(random_tensor(dims1), random_tensor(dims2), ws)
 
     cons.append(con)
 
   # 2 and 3-dimensional indices
   for i in range(5):
-    dims1, dims2, ws = random_dims_and_wires(i % 3, 4, [2, 3])
+    n = i % 3
+    
+    dims1 = random_dims(n + 1, 4, [2, 3])
+    dims2 = random_dims(n + 1, 4, [2, 3])
+    ws = random_wires(dims1, dims2, n)
+
+    dims1, dims2 = make_compatible(dims1, dims2, ws)
     con = make_contraction(random_tensor(dims1), random_tensor(dims2), ws)
 
     cons.append(con)
 
   # 2, 3 and 4-dimensional indices
   for i in range(5):
-    dims1, dims2, ws = random_dims_and_wires(i % 2, 3, [2, 3, 4])
+    n = i % 2
+    
+    dims1 = random_dims(n + 1, 3, [2, 3, 4])
+    dims2 = random_dims(n + 1, 3, [2, 3, 4])
+    ws = random_wires(dims1, dims2, n)
+
+    dims1, dims2 = make_compatible(dims1, dims2, ws)
     con = make_contraction(random_tensor(dims1), random_tensor(dims2), ws)
 
     cons.append(con)
 
   # 2, 3, 4 and 5-dimensional indices
   for i in range(5):
-    dims1, dims2, ws = random_dims_and_wires(i % 2, 3, [2, 3, 4, 5])
+    n = i % 2
+    
+    dims1 = random_dims(n + 1, 3, [2, 3, 4, 5])
+    dims2 = random_dims(n + 1, 3, [2, 3, 4, 5])
+    ws = random_wires(dims1, dims2, n)
+
+    dims1, dims2 = make_compatible(dims1, dims2, ws)
     con = make_contraction(random_tensor(dims1), random_tensor(dims2), ws)
 
     cons.append(con)
