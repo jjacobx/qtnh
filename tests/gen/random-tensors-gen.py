@@ -14,17 +14,14 @@ def random_dims(min_idxs : int, max_idxs : int, allowed_dims : list[int]):
   dims = random.choices(allowed_dims, k = n)
   return dims
 
-def random_wires(dims1 : tuple[int, ...], dims2 : tuple[int, ...], nwires : int, randomise : tuple[bool, bool] = (True, True)):
-  w1 = list(np.arange(0, len(dims1)))
-  w2 = list(np.arange(0, len(dims2)))
-  
-  w1 = random.sample(w1, nwires) if randomise[0] else w1[0:nwires]
-  w2 = random.sample(w2, nwires) if randomise[1] else w2[0:nwires]
+def random_wires(dims1 : tuple[int, ...], dims2 : tuple[int, ...], nwires : int):
+  w1 = random.sample(range(len(dims1)), nwires)
+  w2 = random.sample(range(len(dims2)), nwires)
 
   ws = zip(w1, w2)
   return list(ws)
 
-def make_compatible(dims1 : tuple[int, ...], dims2 : tuple[int, ...], wires : list[(int, int)]):
+def make_compatible(dims1 : tuple[int, ...], dims2 : tuple[int, ...], wires : list[tuple[int, int]]):
   dims1 = list(dims1)
   dims2 = list(dims2)
 
@@ -32,18 +29,6 @@ def make_compatible(dims1 : tuple[int, ...], dims2 : tuple[int, ...], wires : li
     dims1[i1] = dims2[i2]
 
   return tuple(dims1), tuple(dims2)
-
-
-def random_dims_and_is(max_idxs : int, allowed_dims : list[int], swapped_dims : tuple[int, int]):
-  n = np.random.randint(2, max_idxs)
-  dims = random.choices(allowed_dims, k = n)
-  w = random.sample(list(np.arange(0, n)), 2)
-  w.sort()
-
-  dims[w[0]] = swapped_dims[0]
-  dims[w[1]] = swapped_dims[1]
-
-  return tuple(dims), w[0], w[1]
 
 
 def random_tensor(dims, dp = 1):
@@ -81,8 +66,10 @@ def make_contraction(t1, t2, ws):
 
 
 def make_swap(t1, i1 : int, i2 : int):
+  if (i1 > i2):
+      i1, i2 = i2, i1
+
   letters = list(string.ascii_lowercase)
-  
   t1_idxs = letters[0:len(t1.shape)]
   t3_idxs = t1_idxs.copy()
 
@@ -217,18 +204,31 @@ def main():
     cons.append(con)
 
   for i in range(5):
-    dims, i1, i2 = random_dims_and_is(4, [2, 3, 4], (2, 2))
+    dims = random_dims(2, 4, [2, 3, 4])
+    i1, i2 = random.sample(range(len(dims)), 2)
+
+    dims, _ = make_compatible(dims, (2, 2), [(i1, 0), (i2, 1)])
     con = make_swap(random_tensor(dims), i1, i2)
+
     cons.append(con)
 
   for i in range(5):
-    dims, i1, i2 = random_dims_and_is(4, [2, 3], (3, 3))
+    dims = random_dims(2, 4, [2, 3])
+    i1, i2 = random.sample(range(len(dims)), 2)
+
+    dims, _ = make_compatible(dims, (3, 3), [(i1, 0), (i2, 1)])
     con = make_swap(random_tensor(dims), i1, i2)
+
     cons.append(con)
 
   for i in range(5):
-    dims, i1, i2 = random_dims_and_is(3, [2, 3], (2, 3))
+    dims = random_dims(2, 3, [2, 3])
+    i1, i2 = random.sample(range(len(dims)), 2)
+    i1, i2 = sorted((i1, i2))
+
+    dims, _ = make_compatible(dims, (2, 3), [(i1, 0), (i2, 1)])
     con = make_swap(random_tensor(dims), i1, i2)
+
     cons.append(con)
 
   for i in range(5):
