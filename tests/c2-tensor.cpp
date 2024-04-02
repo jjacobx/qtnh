@@ -254,7 +254,13 @@ TEST_CASE("tensor-contraction") {
       }
     }
 
-    // TODO: test invalid contractions
+    // Invalid contraction dimensions
+    std::vector<qtnh::tel> els1 { 1.0, 2.0, 3.0, 4.0 };
+    std::vector<qtnh::tel> els2 { 1.0, 2.0, 3.0 };
+
+    auto t1_u = std::make_unique<SDenseTensor>(ENV, qtnh::tidx_tup { 2, 2 }, els1);
+    auto t2_u = std::make_unique<SDenseTensor>(ENV, qtnh::tidx_tup { 3 }, els2);
+    REQUIRE_THROWS(Tensor::contract(std::move(t1_u), std::move(t2_u), {{ 0, 0 }}));
   }
 
   SECTION("swap-dense") {
@@ -276,7 +282,7 @@ TEST_CASE("tensor-contraction") {
       }
     }
 
-    // Invalid swaps
+    // Asymmetric swaps
     for (auto& cv : gen::invalid_swaps) {
       auto t_sden_u = std::make_unique<DDenseTensor>(ENV, cv.t1_info.dims, cv.t1_info.els, 0);
       auto t_swap_u = std::make_unique<SwapTensor>(ENV, cv.t2_info.dims.at(0), cv.t2_info.dims.at(1));
@@ -303,6 +309,13 @@ TEST_CASE("tensor-contraction") {
         REQUIRE(eq(t_r1_u->getLocEl(idxs).value(), el));
       }
     }
+
+    // Invalid contraction dimensions
+    std::vector<qtnh::tel> els1 { 1.0, 2.0, 3.0, 4.0 };
+
+    auto t1_u = std::make_unique<SDenseTensor>(ENV, qtnh::tidx_tup { 2, 2 }, els1);
+    auto t2_u = std::make_unique<IdentityTensor>(ENV, qtnh::tidx_tup { 3 });
+    REQUIRE_THROWS(Tensor::contract(std::move(t1_u), std::move(t2_u), {{ 0, 0 }}));
   }
 
   SECTION("convert-dense") {
