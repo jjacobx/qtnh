@@ -66,8 +66,7 @@ def make_contraction(t1, t2, ws):
 
 
 def make_swap(t1, i1 : int, i2 : int):
-  if (i1 > i2):
-      i1, i2 = i2, i1
+  i1, i2 = sorted((i1, i2))
 
   letters = list(string.ascii_lowercase)
   t1_idxs = letters[0:len(t1.shape)]
@@ -224,7 +223,6 @@ def main():
   for i in range(5):
     dims = random_dims(2, 3, [2, 3])
     i1, i2 = random.sample(range(len(dims)), 2)
-    i1, i2 = sorted((i1, i2))
 
     dims, _ = make_compatible(dims, (2, 3), [(i1, 0), (i2, 1)])
     con = make_swap(random_tensor(dims), i1, i2)
