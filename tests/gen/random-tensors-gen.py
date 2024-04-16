@@ -12,7 +12,7 @@ Contraction = namedtuple("Contraction", "t1 t2 t3 ws")
 def random_dims(min_idxs : int, max_idxs : int, allowed_dims : list[int]):
   n = np.random.randint(min_idxs, max_idxs)
   dims = random.choices(allowed_dims, k = n)
-  return dims
+  return tuple(dims)
 
 def random_wires(dims1 : tuple[int, ...], dims2 : tuple[int, ...], nwires : int):
   w1 = random.sample(range(len(dims1)), nwires)
@@ -31,7 +31,7 @@ def make_compatible(dims1 : tuple[int, ...], dims2 : tuple[int, ...], wires : li
   return tuple(dims1), tuple(dims2)
 
 
-def random_tensor(dims, dp = 1):
+def random_tensor(dims : tuple[int, ...], dp = 1):
   real = (np.random.randint(2 * 10**dp, size = dims) - 10**dp) / 10**dp
   imag = (np.random.randint(2 * 10**dp, size = dims) - 10**dp) / 10**dp
 
