@@ -254,7 +254,71 @@ def main():
 
     cons.append(con)
 
-  groups = [("dense_vals", 20), ("swap_vals", 10), ("invalid_swaps", 5), ("id_vals", 10), ("mpi2r_vals", 5)]
+  for i in range(5):
+    n = i % 3
+    dims1 = random_dims(2, 4, [2, 3])
+    dims2 = random_dims(2, 4, [2, 3])
+
+    ws = random_wires(dims1, dims2, n)
+    
+    dims1 = (3, ) + dims1
+    ws = [(i + 1, j) for i, j in ws]
+
+    dims1, dims2 = make_compatible(dims1, dims2, ws)
+    con = make_contraction(random_tensor(dims1), random_tensor(dims2), ws)
+
+    cons.append(con)
+
+  for i in range(5):
+    n = i % 3
+    dims1 = random_dims(2, 4, [2, 3])
+    dims2 = random_dims(2, 4, [2, 3])
+
+    ws = random_wires(dims1, dims2, n)
+    
+    dims1 = (2, ) + dims1
+    dims2 = (2, ) + dims2
+    ws = [(i + 1, j + 1) for i, j in ws]
+
+    dims1, dims2 = make_compatible(dims1, dims2, ws)
+    con = make_contraction(random_tensor(dims1), random_tensor(dims2), ws)
+
+    cons.append(con)
+
+  for i in range(5):
+    n = i % 3
+    dims1 = random_dims(2, 3, [2, 3])
+    dims2 = random_dims(2, 3, [2, 3])
+
+    ws = random_wires(dims1, dims2, n)
+    
+    dims1 = (3, ) + dims1
+    dims2 = (2, ) + dims2
+    ws = [(i + 1, j + 1) for i, j in ws]
+
+    dims1, dims2 = make_compatible(dims1, dims2, ws)
+    con = make_contraction(random_tensor(dims1), random_tensor(dims2), ws)
+
+    cons.append(con)
+
+  for i in range(5):
+    n = i % 3
+    dims1 = random_dims(2, 3, [2, 3])
+    dims2 = random_dims(2, 3, [2, 3])
+
+    ws = random_wires(dims1, dims2, n)
+    
+    dims1 = (2, 2) + dims1
+    dims2 = (2, ) + dims2
+    ws = [(i + 2, j + 1) for i, j in ws]
+
+    dims1, dims2 = make_compatible(dims1, dims2, ws)
+    con = make_contraction(random_tensor(dims1), random_tensor(dims2), ws)
+
+    cons.append(con)
+
+  groups = [("dense_vals", 20), ("swap_vals", 10), ("invalid_swaps", 5), ("id_vals", 10), 
+            ("mpi2r_vals", 5), ("mpi3r_vals", 5), ("mpi4r_vals", 5), ("mpi6r_vals", 5), ("mpi8r_vals", 5)]
   gen_random_tensors_header(cons, groups)
 
 
