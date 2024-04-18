@@ -84,12 +84,14 @@ TEST_CASE("distribute-tensor", "[mpi][2rank]") {
 TEST_CASE("contract-tensor", "[mpi][2rank]") {
   using namespace qtnh;
 
+  // DDenseTensor x SDenseTensor
   for (auto& cv : gen::mpi2r_vals) {
     auto t_sden1_u = std::make_unique<SDenseTensor>(ENV, cv.t1_info.dims, cv.t1_info.els);
+    auto t_dden1_u = std::unique_ptr<DDenseTensor>(t_sden1_u->distribute(1));
     auto t_sden2_u = std::make_unique<SDenseTensor>(ENV, cv.t2_info.dims, cv.t2_info.els);
-    auto t_dden2_u = std::unique_ptr<DDenseTensor>(t_sden2_u->distribute(1));
+    
 
-    auto t_r1_u = Tensor::contract(std::move(t_sden1_u), std::move(t_dden2_u), cv.wires);
+    auto t_r1_u = Tensor::contract(std::move(t_dden1_u), std::move(t_sden2_u), cv.wires);
 
     qtnh::tidx_tup t_r1_dims = cv.t3_info.dims;
     std::vector<qtnh::tel> t_r1_els = cv.t3_info.els;
@@ -102,6 +104,127 @@ TEST_CASE("contract-tensor", "[mpi][2rank]") {
       auto el = t_r1_els.at(utils::idxs_to_i(idxs, t_r1_dims));
 
       idxs.erase(idxs.begin());
+      REQUIRE(eq(t_r1_u->getLocEl(idxs).value(), el));
+    }
+  }
+
+  // DDenseTensor x DDenseTensor
+  for (auto& cv : gen::mpi2r_vals) {
+    auto t_sden1_u = std::make_unique<SDenseTensor>(ENV, cv.t1_info.dims, cv.t1_info.els);
+    auto t_dden1_u = std::unique_ptr<DDenseTensor>(t_sden1_u->distribute(1));
+    auto t_sden2_u = std::make_unique<SDenseTensor>(ENV, cv.t2_info.dims, cv.t2_info.els);
+    auto t_dden2_u = std::unique_ptr<DDenseTensor>(t_sden2_u->distribute(0));
+    
+
+    auto t_r1_u = Tensor::contract(std::move(t_dden1_u), std::move(t_dden2_u), cv.wires);
+
+    qtnh::tidx_tup t_r1_dims = cv.t3_info.dims;
+    std::vector<qtnh::tel> t_r1_els = cv.t3_info.els;
+
+    REQUIRE(t_r1_u->getDims() == t_r1_dims);
+    TIndexing ti_r1(t_r1_dims, 0);
+
+    for (auto idxs : ti_r1) {
+      idxs.at(0) = ENV.proc_id;
+      auto el = t_r1_els.at(utils::idxs_to_i(idxs, t_r1_dims));
+
+      idxs.erase(idxs.begin());
+      REQUIRE(eq(t_r1_u->getLocEl(idxs).value(), el));
+    }
+  }
+}
+
+TEST_CASE("contract-tensor", "[mpi][3rank]") {
+  using namespace qtnh;
+
+  // DDenseTensor x SDenseTensor
+  for (auto& cv : gen::mpi3r_vals) {
+    auto t_sden1_u = std::make_unique<SDenseTensor>(ENV, cv.t1_info.dims, cv.t1_info.els);
+    auto t_dden1_u = std::unique_ptr<DDenseTensor>(t_sden1_u->distribute(1));
+    auto t_sden2_u = std::make_unique<SDenseTensor>(ENV, cv.t2_info.dims, cv.t2_info.els);
+    
+
+    auto t_r1_u = Tensor::contract(std::move(t_dden1_u), std::move(t_sden2_u), cv.wires);
+
+    qtnh::tidx_tup t_r1_dims = cv.t3_info.dims;
+    std::vector<qtnh::tel> t_r1_els = cv.t3_info.els;
+
+    REQUIRE(t_r1_u->getDims() == t_r1_dims);
+    TIndexing ti_r1(t_r1_dims, 0);
+
+    for (auto idxs : ti_r1) {
+      idxs.at(0) = ENV.proc_id;
+      auto el = t_r1_els.at(utils::idxs_to_i(idxs, t_r1_dims));
+
+      idxs.erase(idxs.begin());
+      REQUIRE(eq(t_r1_u->getLocEl(idxs).value(), el));
+    }
+  }
+
+  // DDenseTensor x DDenseTensor
+  for (auto& cv : gen::mpi3r_vals) {
+    auto t_sden1_u = std::make_unique<SDenseTensor>(ENV, cv.t1_info.dims, cv.t1_info.els);
+    auto t_dden1_u = std::unique_ptr<DDenseTensor>(t_sden1_u->distribute(1));
+    auto t_sden2_u = std::make_unique<SDenseTensor>(ENV, cv.t2_info.dims, cv.t2_info.els);
+    auto t_dden2_u = std::unique_ptr<DDenseTensor>(t_sden2_u->distribute(0));
+    
+
+    auto t_r1_u = Tensor::contract(std::move(t_dden1_u), std::move(t_dden2_u), cv.wires);
+
+    qtnh::tidx_tup t_r1_dims = cv.t3_info.dims;
+    std::vector<qtnh::tel> t_r1_els = cv.t3_info.els;
+
+    REQUIRE(t_r1_u->getDims() == t_r1_dims);
+    TIndexing ti_r1(t_r1_dims, 0);
+
+    for (auto idxs : ti_r1) {
+      idxs.at(0) = ENV.proc_id;
+      auto el = t_r1_els.at(utils::idxs_to_i(idxs, t_r1_dims));
+
+      idxs.erase(idxs.begin());
+      REQUIRE(eq(t_r1_u->getLocEl(idxs).value(), el));
+    }
+  }
+}
+
+TEST_CASE("contract-tensor", "[mpi][4rank]") {
+  using namespace qtnh;
+
+  // DDenseTensor x DDenseTensor
+  for (auto& cv : gen::mpi4r_vals) {
+    auto t_sden1_u = std::make_unique<SDenseTensor>(ENV, cv.t1_info.dims, cv.t1_info.els);
+    auto t_dden1_u = std::unique_ptr<DDenseTensor>(t_sden1_u->distribute(1));
+    auto t_sden2_u = std::make_unique<SDenseTensor>(ENV, cv.t2_info.dims, cv.t2_info.els);
+    auto t_dden2_u = std::unique_ptr<DDenseTensor>(t_sden2_u->distribute(1));
+    
+
+    auto t_r1_u = Tensor::contract(std::move(t_dden1_u), std::move(t_dden2_u), cv.wires);
+
+    qtnh::tidx_tup t_r1_dims = cv.t3_info.dims;
+    std::vector<qtnh::tel> t_r1_els = cv.t3_info.els;
+
+    REQUIRE(t_r1_u->getDims() == t_r1_dims);
+
+    qtnh::tifl_tup ifls(t_r1_dims.size(), { TIdxT::open, 0 });
+    ifls.at(0) = ifls.at(1) = { TIdxT::closed, 0 };
+
+    TIndexing ti_r1(t_r1_dims, ifls);
+
+    for (auto idxs : ti_r1) {
+      auto dist_idxs = utils::i_to_idxs(ENV.proc_id, { 2, 2 });
+
+      idxs.at(0) = dist_idxs.at(0);
+      idxs.at(1) = dist_idxs.at(1);
+
+      auto el = t_r1_els.at(utils::idxs_to_i(idxs, t_r1_dims));
+
+      idxs.erase(idxs.begin(), idxs.begin() + 2);
+      // if (!eq(t_r1_u->getLocEl(idxs).value(), el)) {
+      //   using namespace qtnh::ops;
+      //   std::cout << "ERROR: P" << ENV.proc_id << ", idxs = " << idxs << "\n";
+      //   std::cout << "El: " << t_r1_u->getLocEl(idxs).value() << " != " << el << "\n";
+      // }
+
       REQUIRE(eq(t_r1_u->getLocEl(idxs).value(), el));
     }
   }
