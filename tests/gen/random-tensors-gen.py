@@ -283,6 +283,13 @@ def main():
     dims1, dims2 = make_compatible(dims1, dims2, ws)
     con = make_contraction(random_tensor(dims1), random_tensor(dims2), ws)
 
+    # Distributed index contraciton obeys different rules
+    axes = np.arange(len(con.t3.shape))
+    tax = len(dims1) - len(ws)
+    axes = np.delete(np.insert(axes, 1, axes[tax]), tax + 1)
+
+    con = con._replace(t3 = np.transpose(con.t3, axes))
+
     cons.append(con)
 
   for i in range(5):
@@ -299,6 +306,13 @@ def main():
     dims1, dims2 = make_compatible(dims1, dims2, ws)
     con = make_contraction(random_tensor(dims1), random_tensor(dims2), ws)
 
+    # Distributed index contraciton obeys different rules
+    axes = np.arange(len(con.t3.shape))
+    tax = len(dims1) - len(ws)
+    axes = np.delete(np.insert(axes, 1, axes[tax]), tax + 1)
+
+    con = con._replace(t3 = np.transpose(con.t3, axes))
+
     cons.append(con)
 
   for i in range(5):
@@ -314,6 +328,13 @@ def main():
 
     dims1, dims2 = make_compatible(dims1, dims2, ws)
     con = make_contraction(random_tensor(dims1), random_tensor(dims2), ws)
+
+    # Distributed index contraciton obeys different rules
+    axes = np.arange(len(con.t3.shape))
+    tax = len(dims1) - len(ws)
+    axes = np.delete(np.insert(axes, 2, axes[tax]), tax + 1)
+
+    con = con._replace(t3 = np.transpose(con.t3, axes))
 
     cons.append(con)
 
