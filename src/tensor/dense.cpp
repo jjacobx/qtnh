@@ -562,8 +562,8 @@ namespace qtnh {
     if (env.proc_id < n1 * n2) els3.assign(nloc, 0.0);
     auto t3 = new DDenseTensor(this->env, dims3, els3, nidx);
 
-    this->rep_all(n2);
-    tp->rep_each(n1);
+    this->rep_each(n2);
+    tp->rep_all(n1);
 
     _set_els(this, tp, t3, ti1, ti2, ti3, ws.size());
 
