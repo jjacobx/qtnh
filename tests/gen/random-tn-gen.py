@@ -24,6 +24,65 @@ def contract(tn: TensorNetwork):
 
   return np.einsum(con_string, *tn.tensors)
 
+def gen_random_tn_header(tns : list[TensorNetwork]):
+  this_dir = os.path.dirname(os.path.realpath(__file__))
+  with open(this_dir + '/random-tn.hpp', 'w', encoding = "utf-8") as f:
+    f.write("#ifndef RANDOM_TN_HPP\n#define RANDOM_TN_HPP\n\n")
+    f.write("#include \"contraction-validation.hpp\"\n\n")
+    f.write("using namespace std::complex_literals;\n\n")
+
+    f.write("namespace gen {\n")
+
+    for i, tn in enumerate(tns) :
+      f.write(f"  const tn_validation v{i+1} {{\n")
+      f.write("    std::vector<tensor_info> {\n")
+      for j, t in enumerate(tn.tensors):
+        f.write("      tensor_info {{ ")
+        for k, dim in enumerate(t.shape):
+          f.write(f"{dim}")
+          if (k < len(t.shape) - 1):
+            f.write(", ")
+
+        f.write(" }, { ")
+        for k, el in enumerate(t.flatten()):
+          plus = "+" if el.imag >= 0 else ""
+          f.write(f"{el.real: .2f}{plus}{el.imag:.2f}i")
+          if (k < t.size - 1):
+            f.write(", ")
+
+        f.write(" }}")
+        if (j < len(tn.tensors) - 1):
+          f.write(", \n")
+
+      f.write("\n    }, \n\n")
+
+      f.write("    std::vector<bond_info> {\n")
+      for j, b in enumerate(tn.bonds):
+        f.write(f"      bond_info {{ {b.i1}, {b.i2}, {{")
+        for k, w in enumerate(b.ws):
+          f.write(f"{{ {w[0]}, {w[1]} }}")
+          if (j < len(b.ws) - 1):
+            f.write(", ")
+        f.write("}}")
+        if (j < len(tn.bonds) - 1):
+          f.write(", \n")
+      f.write("\n    }\n")
+      f.write("  };\n\n")
+
+
+    # k = 1
+    # for (name, n) in groups:
+    #   f.write(f"  const std::vector<contraction_validation> {name} {{ ")
+    #   for i in range(n):
+    #     f.write(f"v{i+k}")
+    #     if i < n - 1:
+    #       f.write(", ")
+    #   f.write(" };\n")
+    #   k += n
+
+    f.write("}\n\n")
+    f.write("#endif")
+
 def main():
   np.random.seed(9457)
   random.seed(9457)
@@ -47,6 +106,8 @@ def main():
 
     tns.append(tn)
     res.append(contract(tn))
+  
+  gen_random_tn_header(tns)
 
 if __name__ == "__main__":
   main()
