@@ -24,11 +24,11 @@ struct bond_info {
   std::vector<qtnh::wire> wires;
 };
 
-struct tensor_network_validation {
+struct tn_validation {
   std::vector<tensor_info> t_infos;
-  tensor_info result_info;
+  std::vector<bond_info> b_infos;
 
-  std::vector<bond_info> con_order_info;
+  // tensor_info result_info;
 };
 
 #endif
