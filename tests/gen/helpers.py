@@ -2,12 +2,24 @@ import numpy as np
 import random
 import string
 
-
 from collections import namedtuple
+from dataclasses import dataclass
+import numpy.typing as npt
 
 
 Contraction = namedtuple("Contraction", "t1 t2 t3 ws")
+# TensorNetwork = namedtuple("TensorNetwork", "tensors bonds")
 
+@dataclass
+class Bond:
+  i1: int
+  i2: int
+  ws: list[tuple[int, int]]
+
+@dataclass
+class TensorNetwork:
+  tensors: list[npt.ArrayLike]
+  bonds: list[Bond]
 
 def random_dims(min_idxs : int, max_idxs : int, allowed_dims : list[int]):
   n = np.random.randint(min_idxs, max_idxs)
