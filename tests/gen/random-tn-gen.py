@@ -24,7 +24,7 @@ def contract(tn: TensorNetwork):
 
   return np.einsum(con_string, *tn.tensors)
 
-def gen_random_tn_header(tns : list[TensorNetwork]):
+def gen_random_tn_header(tns : list[TensorNetwork], groups : list[(str, int)]):
   this_dir = os.path.dirname(os.path.realpath(__file__))
   with open(this_dir + '/random-tn.hpp', 'w', encoding = "utf-8") as f:
     f.write("#ifndef RANDOM_TN_HPP\n#define RANDOM_TN_HPP\n\n")
@@ -66,19 +66,35 @@ def gen_random_tn_header(tns : list[TensorNetwork]):
         f.write("}}")
         if (j < len(tn.bonds) - 1):
           f.write(", \n")
-      f.write("\n    }\n")
+      f.write("\n    }, \n\n")
+
+      res = contract(tn)
+      f.write("    tensor_info {{ ")
+      for k, dim in enumerate(res.shape):
+        f.write(f"{dim}")
+        if (k < len(res.shape) - 1):
+          f.write(", ")
+
+      f.write(" }, { ")
+      for k, el in enumerate(res.flatten()):
+        plus = "+" if el.imag >= 0 else ""
+        f.write(f"{el.real: .2f}{plus}{el.imag:.2f}i")
+        if (k < res.size - 1):
+          f.write(", ")
+
+      f.write(" }}\n")
       f.write("  };\n\n")
 
 
-    # k = 1
-    # for (name, n) in groups:
-    #   f.write(f"  const std::vector<contraction_validation> {name} {{ ")
-    #   for i in range(n):
-    #     f.write(f"v{i+k}")
-    #     if i < n - 1:
-    #       f.write(", ")
-    #   f.write(" };\n")
-    #   k += n
+    k = 1
+    for (name, n) in groups:
+      f.write(f"  const std::vector<tn_validation> {name} {{ ")
+      for i in range(n):
+        f.write(f"v{i+k}")
+        if i < n - 1:
+          f.write(", ")
+      f.write(" };\n")
+      k += n
 
     f.write("}\n\n")
     f.write("#endif")
@@ -88,7 +104,6 @@ def main():
   random.seed(9457)
 
   tns = []
-  res = []
 
   # networks with single contraction
   for i in range(5):
@@ -105,9 +120,9 @@ def main():
     tn = TensorNetwork(tensors, bonds)
 
     tns.append(tn)
-    res.append(contract(tn))
   
-  gen_random_tn_header(tns)
+  groups = [("tn2_vals", 5)]
+  gen_random_tn_header(tns, groups)
 
 if __name__ == "__main__":
   main()
