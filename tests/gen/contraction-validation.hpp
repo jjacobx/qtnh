@@ -28,7 +28,7 @@ struct tn_validation {
   std::vector<tensor_info> t_infos;
   std::vector<bond_info> b_infos;
 
-  // tensor_info result_info;
+  tensor_info result_info;
 };
 
 #endif
