@@ -44,8 +44,8 @@ unsigned int RootReporter::counter = 0;
 
 CATCH_REGISTER_REPORTER("root", RootReporter)
 
-bool eq(qtnh::tel a, qtnh::tel b) {
-  return (std::abs(a.real() - b.real()) < 1E-5) && (std::abs(a.imag() - b.imag()) < 1E-5);
+bool eq(qtnh::tel a, qtnh::tel b, double delta = 1E-5) {
+  return (std::abs(a.real() - b.real()) < delta) && (std::abs(a.imag() - b.imag()) < delta);
 }
 
 TEST_CASE("distribute-tensor", "[mpi][2rank]") {
