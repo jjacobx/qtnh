@@ -33,6 +33,9 @@ def random_wires(dims1 : tuple[int, ...], dims2 : tuple[int, ...], nwires : int)
   ws = zip(w1, w2)
   return list(ws)
 
+def invert(ws : list[tuple[int, int]]):
+  return [(j, i) for i, j in ws]
+
 def make_compatible(dims1 : tuple[int, ...], dims2 : tuple[int, ...], wires : list[tuple[int, int]]):
   dims1 = list(dims1)
   dims2 = list(dims2)
