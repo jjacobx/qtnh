@@ -61,7 +61,7 @@ def gen_random_tn_header(tns : list[TensorNetwork], groups : list[(str, int)]):
         f.write(f"      bond_info {{ {b.i1}, {b.i2}, {{")
         for k, w in enumerate(b.ws):
           f.write(f"{{ {w[0]}, {w[1]} }}")
-          if (j < len(b.ws) - 1):
+          if (k < len(b.ws) - 1):
             f.write(", ")
         f.write("}}")
         if (j < len(tn.bonds) - 1):
@@ -120,8 +120,28 @@ def main():
     tn = TensorNetwork(tensors, bonds)
 
     tns.append(tn)
+
+  for i in range(5):
+    n = i % 3 + 1
+    
+    dims0 = random_dims(n + 1, 5, [2])
+    dims1 = random_dims(n + 1, 5, [2])
+    dims2 = random_dims(n + 1, 5, [2])
+    
+    ws01 = random_wires(dims0, dims1, n)
+    ws12 = random_wires(dims1, dims2, n)
+
+    dims0, dims1 = make_compatible(dims0, dims1, ws01)
+    dims2, dims1 = make_compatible(dims2, dims1, invert(ws12))
+
+    tensors = [random_tensor(dims0), random_tensor(dims1), random_tensor(dims2)]
+    bonds = [Bond(0, 1, ws01), Bond(1, 2, ws12)]
+
+    tn = TensorNetwork(tensors, bonds)
+
+    tns.append(tn)
   
-  groups = [("tn2_vals", 5)]
+  groups = [("tn2_vals", 5), ("tn3_vals", 5)]
   gen_random_tn_header(tns, groups)
 
 if __name__ == "__main__":
