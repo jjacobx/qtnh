@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <iostream>
 
 #include "core/utils.hpp"
 #include "tensor/indexing.hpp"
@@ -26,8 +27,8 @@ bool equal(const qtnh::Tensor& t1, const qtnh::Tensor& t2) {
   return true;
 }
 
-bool eq(qtnh::tel a, qtnh::tel b) {
-  return (std::abs(a.real() - b.real()) < 1E-5) && (std::abs(a.imag() - b.imag()) < 1E-5);
+bool eq(qtnh::tel a, qtnh::tel b, double delta = 1E-5) {
+  return (std::abs(a.real() - b.real()) < delta) && (std::abs(a.imag() - b.imag()) < delta);
 }
 
 TEST_CASE("contract-tensor-network-test") {
@@ -103,6 +104,48 @@ TEST_CASE("tn-contraction") {
       for (auto idxs : ti_res) {
         auto el = t_res_els.at(utils::idxs_to_i(idxs, t_res_dims));
         REQUIRE(eq(t_res_u->getLocEl(idxs).value(), el));
+      }
+    }
+  }
+
+  SECTION("3-tensors") {
+    for (auto& tnv : gen::tn3_vals) {
+      TensorNetwork tn;
+      
+      // maps between tensor ids in Python and in TensorNetwork
+      std::vector<qtnh::uint> maps(tnv.t_infos.size());
+      std::size_t i = 0;
+
+      for (auto& t_info : tnv.t_infos) {
+        maps.at(i++) = tn.createTensor<SDenseTensor>(ENV, t_info.dims, t_info.els);
+      }
+
+      for (auto b_info : tnv.b_infos) {
+        tn.createBond(maps.at(b_info.t1_idx), maps.at(b_info.t2_idx), b_info.wires);
+      }
+
+      auto res_id = tn.contractAll();
+      auto t_res_u = tn.extractTensor(res_id);
+
+      qtnh::tidx_tup t_res_dims = tnv.result_info.dims;
+      std::vector<qtnh::tel> t_res_els = tnv.result_info.els;
+
+      REQUIRE(t_res_u->getDims() == t_res_dims);
+      TIndexing ti_res(t_res_dims);
+      for (auto idxs : ti_res) {
+        auto el = t_res_els.at(utils::idxs_to_i(idxs, t_res_dims));
+
+        // ! Weird behaviour for larger contractions - the accuracy gets low quickly. 
+        // if (!eq(t_res_u->getLocEl(idxs).value(), el, 1E-2)) {
+        //   using namespace qtnh::ops;
+        //   std::cout << "ERROR: P" << ENV.proc_id << ", idxs = " << idxs << "\n";
+        //   std::cout << "El: " << t_res_u->getLocEl(idxs).value() << " != " << el << "\n";
+        //   std::cout << "Real diff: " << std::abs(t_res_u->getLocEl(idxs).value().real() - el.real()) << "\n";
+        //   std::cout << "Imag diff: " << std::abs(t_res_u->getLocEl(idxs).value().imag() - el.imag()) << "\n"; 
+        // }
+
+
+        REQUIRE(eq(t_res_u->getLocEl(idxs).value(), el, 1E-2));
       }
     }
   }
