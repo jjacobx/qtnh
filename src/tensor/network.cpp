@@ -112,7 +112,15 @@ namespace qtnh {
     tensors.erase(t2_id);
 
     auto t3_id = insertTensor(std::move(t3_p));
-    
+
+    // for (auto& [k, v]: t1_imaps) {
+    //   std::cout << "      t1_imaps[" << k << "] = " << v << "\n";
+    // }
+
+    // for (auto& [k, v]: t2_imaps) {
+    //   std::cout << "      t2_imaps[" << k << "] = " << v << "\n";
+    // }
+
     for (auto& [id, b] : bonds) {
       if (b.tensor_ids.first == t1_id) {
         b.tensor_ids.first = t3_id;
