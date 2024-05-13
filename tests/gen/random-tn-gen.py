@@ -131,6 +131,9 @@ def main():
     ws01 = random_wires(dims0, dims1, n)
     ws12 = random_wires(dims1, dims2, n)
 
+    # remove double wires
+    ws12 = [(i, j) for (i, j) in ws12 if not i in [x for (_, x) in ws01]]
+
     dims0, dims1 = make_compatible(dims0, dims1, ws01)
     dims2, dims1 = make_compatible(dims2, dims1, invert(ws12))
 
