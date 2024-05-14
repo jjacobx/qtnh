@@ -4,8 +4,10 @@
 #include "core/utils.hpp"
 #include "tensor/indexing.hpp"
 #include "tensor/network.hpp"
+#include "tensor/special.hpp"
 
 #include "gen/random-tn.hpp"
+#include "gen/qft-tensors.hpp"
 
 using namespace qtnh;
 using namespace std::complex_literals;
@@ -214,4 +216,62 @@ TEST_CASE("tn-contraction") {
       }
     }
   }
+}
+
+
+
+TEST_CASE("qft") {
+  unsigned int NQUBITS = 8;
+  TensorNetwork tn;
+
+  std::vector<qtnh::uint> con_ord(0);
+  std::vector<qtnh::uint> qid(NQUBITS);
+  std::vector<qtnh::tidx_tup_st> qidxi(NQUBITS);
+
+  for (unsigned int i = 0; i < NQUBITS; ++i) {
+    qid.at(i) = tn.createTensor<SDenseTensor>(ENV, gen::plus_state.dims, gen::plus_state.els);
+    qidxi.at(i) = 0;
+    if (i > 0) {
+      auto bid = tn.createBond(qid.at(i - 1), qid.at(i), {});
+      con_ord.push_back(bid);
+    }
+  }
+
+  for (int i = NQUBITS - 1; i >= 0; --i) {
+    auto tid = tn.createTensor<SDenseTensor>(ENV, gen::hadamard.dims, gen::hadamard.els);
+    auto bid = tn.createBond(qid.at(i), tid, {{ qidxi.at(i), 0 }});
+    con_ord.push_back(bid);
+
+    qid.at(i) = tid;
+    qidxi.at(i) = 1;
+
+    for (int j = i - 1; j >= 0; --j) {
+      auto cphase = gen::cphase(M_PI / std::pow(2, j - i));
+      auto tid = tn.createTensor<SDenseTensor>(ENV, cphase.dims, cphase.els);
+      auto bid0 = tn.createBond(qid.at(i), tid, {{ qidxi.at(i), 0 }});
+      auto bid1 = tn.createBond(qid.at(j), tid, {{ qidxi.at(j), 1 }});
+
+      con_ord.push_back(bid0); con_ord.push_back(bid1);
+      qid.at(i) = qid.at(j) = tid;
+      qidxi.at(i) = 2; qidxi.at(j) = 3;
+    }
+  }
+
+  for (unsigned int i = 0; i < NQUBITS / 2; ++i) {
+    auto i0 = i, i1 = NQUBITS - i - 1;
+
+    auto tid = tn.createTensor<SwapTensor>(ENV, 2, 2);
+    auto bid0 = tn.createBond(qid.at(i0), tid, {{ qidxi.at(i0), 0 }}, true);
+    auto bid1 = tn.createBond(qid.at(i1), tid, {{ qidxi.at(i1), 1 }}, true);
+
+    con_ord.push_back(bid0); con_ord.push_back(bid1);
+    qid.at(i0) = qid.at(i1) = tid;
+    qidxi.at(i0) = 2; qidxi.at(i1) = 3;
+  }
+
+  auto id = tn.contractAll(con_ord);
+  auto tfu = tn.extractTensor(id);
+
+  auto idxs = utils::i_to_idxs(0, tfu->getLocDims());
+  REQUIRE(eq(tfu->getLocEl(idxs).value(), 1, 1E-2));
 }
