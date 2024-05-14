@@ -218,11 +218,8 @@ TEST_CASE("tn-contraction") {
   }
 }
 
-
-
-TEST_CASE("qft") {
-  unsigned int NQUBITS = 8;
-  TensorNetwork tn;
+std::vector<qtnh::uint> qft(TensorNetwork& tn, unsigned int nq) {
+  auto NQUBITS = nq;
 
   std::vector<qtnh::uint> con_ord(0);
   std::vector<qtnh::uint> qid(NQUBITS);
@@ -269,9 +266,51 @@ TEST_CASE("qft") {
     qidxi.at(i0) = 2; qidxi.at(i1) = 3;
   }
 
-  auto id = tn.contractAll(con_ord);
-  auto tfu = tn.extractTensor(id);
+  return con_ord;
+}
 
-  auto idxs = utils::i_to_idxs(0, tfu->getLocDims());
-  REQUIRE(eq(tfu->getLocEl(idxs).value(), 1, 1E-2));
+TEST_CASE("qft") {
+  SECTION("2-qubits") {
+    TensorNetwork tn;
+    auto con_ord = qft(tn, 2);
+
+    auto id = tn.contractAll(con_ord);
+    auto tfu = tn.extractTensor(id);
+
+    auto idxs = utils::i_to_idxs(0, tfu->getLocDims());
+    REQUIRE(eq(tfu->getLocEl(idxs).value(), 1, 1E-2));
+  }
+
+  SECTION("3-qubits") {
+    TensorNetwork tn;
+    auto con_ord = qft(tn, 3);
+
+    auto id = tn.contractAll(con_ord);
+    auto tfu = tn.extractTensor(id);
+
+    auto idxs = utils::i_to_idxs(0, tfu->getLocDims());
+    REQUIRE(eq(tfu->getLocEl(idxs).value(), 1, 1E-2));
+  }
+
+  SECTION("4-qubits") {
+    TensorNetwork tn;
+    auto con_ord = qft(tn, 4);
+
+    auto id = tn.contractAll(con_ord);
+    auto tfu = tn.extractTensor(id);
+
+    auto idxs = utils::i_to_idxs(0, tfu->getLocDims());
+    REQUIRE(eq(tfu->getLocEl(idxs).value(), 1, 1E-2));
+  }
+
+  SECTION("5-qubits") {
+    TensorNetwork tn;
+    auto con_ord = qft(tn, 5);
+
+    auto id = tn.contractAll(con_ord);
+    auto tfu = tn.extractTensor(id);
+
+    auto idxs = utils::i_to_idxs(0, tfu->getLocDims());
+    REQUIRE(eq(tfu->getLocEl(idxs).value(), 1, 1E-2));
+  }
 }
