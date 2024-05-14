@@ -1,7 +1,7 @@
 #ifndef RANDOM_TN_HPP
 #define RANDOM_TN_HPP
 
-#include "contraction-validation.hpp"
+#include "validation-primitives.hpp"
 
 using namespace std::complex_literals;
 

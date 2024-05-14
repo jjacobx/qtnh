@@ -1,7 +1,7 @@
 #ifndef RANDOM_TENSORS_HPP
 #define RANDOM_TENSORS_HPP
 
-#include "contraction-validation.hpp"
+#include "validation-primitives.hpp"
 
 using namespace std::complex_literals;
 
