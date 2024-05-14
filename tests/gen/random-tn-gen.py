@@ -105,7 +105,7 @@ def main():
 
   tns = []
 
-  # networks with single contraction
+  # networks with two tensors and one contraction
   for i in range(5):
     n = i % 4
     
@@ -118,9 +118,9 @@ def main():
     bonds = [Bond(0, 1, ws)]
 
     tn = TensorNetwork(tensors, bonds)
-
     tns.append(tn)
 
+  # networks with three tensors and two contractions
   for i in range(5):
     n = i % 3 + 1
     
@@ -138,9 +138,9 @@ def main():
     bonds = [Bond(0, 1, ws01), Bond(1, 2, ws12)]
 
     tn = TensorNetwork(tensors, bonds)
-
     tns.append(tn)
 
+  # networks with four tensors and three contractions
   for i in range(5):
     n = i % 2 + 1
     
@@ -161,10 +161,32 @@ def main():
     bonds = [Bond(0, 1, ws01), Bond(1, 2, ws12), Bond(2, 3, ws23)]
 
     tn = TensorNetwork(tensors, bonds)
+    tns.append(tn)
 
+  # circular networks with four tensors and four contractions
+  for i in range(5):
+    dims0 = random_dims(n + 1, 4, [2])
+    dims1 = random_dims(n + 1, 4, [2])
+    dims2 = random_dims(n + 1, 4, [2])
+    dims3 = random_dims(n + 1, 4, [2])
+
+    ws01 = random_wires(dims0, dims1, n)
+    ws12 = random_wires(dims1, dims2, n)
+    ws23 = random_wires(dims2, dims3, n)
+    ws30 = random_wires(dims3, dims0, n)
+
+    # remove wires connecting to already used indices
+    ws12 = [(i, j) for (i, j) in ws12 if not i in [x for (_, x) in ws01]]
+    ws23 = [(i, j) for (i, j) in ws23 if not i in [x for (_, x) in ws12]]
+    ws30 = [(i, j) for (i, j) in ws30 if not i in [x for (_, x) in ws23] and not j in [x for (x, _) in ws01]]
+
+    tensors = [random_tensor(dims0), random_tensor(dims1), random_tensor(dims2), random_tensor(dims3)]
+    bonds = [Bond(0, 1, ws01), Bond(1, 2, ws12), Bond(2, 3, ws23), Bond(0, 3, invert(ws30))]
+
+    tn = TensorNetwork(tensors, bonds)
     tns.append(tn)
   
-  groups = [("tn2_vals", 5), ("tn3_vals", 5), ("tn4_vals", 5)]
+  groups = [("tn2_vals", 5), ("tn3_vals", 5), ("tn4_vals", 5), ("tn4c_vals", 5)]
   gen_random_tn_header(tns, groups)
 
 if __name__ == "__main__":
