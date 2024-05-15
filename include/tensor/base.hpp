@@ -132,7 +132,14 @@ namespace qtnh {
       SharedTensor() = delete;
       /// Copy constructor is invalid due to potential large tensor size. 
       SharedTensor(const SharedTensor&) = delete;
+      
+      /// Default destructor. 
+      virtual ~SharedTensor() = default;
 
+      virtual std::optional<qtnh::tel> getEl(const qtnh::tidx_tup&) const override;
+      virtual std::optional<qtnh::tel> getLocEl(const qtnh::tidx_tup&) const override;
+
+    protected:
       /// @brief Shared tensor constructor. 
       /// @param loc_dims Local index dimensions. 
       ///
@@ -140,12 +147,6 @@ namespace qtnh {
       /// Since %Tensor is inheritted from virtally, the environment needs to be set via
       /// separate call to its constructor. 
       SharedTensor(qtnh::tidx_tup loc_dims);
-      
-      /// Default destructor. 
-      virtual ~SharedTensor() = default;
-
-      virtual std::optional<qtnh::tel> getEl(const qtnh::tidx_tup&) const override;
-      virtual std::optional<qtnh::tel> getLocEl(const qtnh::tidx_tup&) const override;
   };
 
   /// Virtual tensor class that allows writing into tensor elements. 

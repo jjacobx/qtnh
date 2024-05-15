@@ -96,10 +96,10 @@ namespace qtnh {
   }
 
   std::optional<qtnh::tel> SharedTensor::getEl(const qtnh::tidx_tup& idxs) const {
-    return getLocEl(idxs); 
+    return getLocEl(idxs);
   }
 
   std::optional<qtnh::tel> SharedTensor::getLocEl(const qtnh::tidx_tup& idxs) const {
-    return (*this)[idxs]; 
+    return (*this)[idxs];
   }
 }
