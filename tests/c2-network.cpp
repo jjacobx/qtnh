@@ -33,51 +33,6 @@ bool eq(qtnh::tel a, qtnh::tel b, double delta = 1E-5) {
   return (std::abs(a.real() - b.real()) < delta) && (std::abs(a.imag() - b.imag()) < delta);
 }
 
-TEST_CASE("contract-tensor-network-test") {
-  qtnh::tidx_tup t1_dims = { 2, 2, 2 };
-  std::vector<qtnh::tel> t1_els = { 0.0 + 1.0i, 1.0 + 0.0i, 1.0 + 0.0i, 0.0 + 1.0i, 1.0 + 0.0i, 0.0 + 1.0i, 0.0 + 1.0i, 1.0 + 0.0i };
-  auto t1u = std::make_unique<qtnh::SDenseTensor>(ENV, t1_dims, t1_els);
-
-  qtnh::tidx_tup t2_dims = { 2, 4 };
-  std::vector<qtnh::tel> t2_els = { 1.0 + 1.0i, 2.0 + 2.0i, 3.0 + 3.0i, 4.0 + 4.0i, 1.0 - 1.0i, 2.0 - 2.0i, 3.0 - 3.0i, 4.0 - 4.0i };
-  auto t2u = std::make_unique<qtnh::SDenseTensor>(ENV, t2_dims, t2_els);
-
-  qtnh::TensorNetwork tn;
-  auto t1_id = tn.insertTensor(std::move(t1u));
-  auto t2_id = tn.insertTensor(std::move(t2u));
-
-  std::vector<qtnh::wire> wires1(1, {1, 0});
-  tn.createBond(t1_id, t2_id, wires1);
-
-  REQUIRE_NOTHROW(tn.contractAll());
-}
-
-TEST_CASE("contract-tensor-network-validation") {
-  qtnh::tidx_tup t1_dims = { 2, 2, 2 };
-  std::vector<qtnh::tel> t1_els = { 0.0 + 1.0i, 1.0 + 0.0i, 1.0 + 0.0i, 0.0 + 1.0i, 1.0 + 0.0i, 0.0 + 1.0i, 0.0 + 1.0i, 1.0 + 0.0i };
-  auto t1u = std::make_unique<qtnh::SDenseTensor>(ENV, t1_dims, t1_els);
-
-  qtnh::tidx_tup t2_dims = { 2, 4 };
-  std::vector<qtnh::tel> t2_els = { 1.0 + 1.0i, 2.0 + 2.0i, 3.0 + 3.0i, 4.0 + 4.0i, 1.0 - 1.0i, 2.0 - 2.0i, 3.0 - 3.0i, 4.0 - 4.0i };
-  auto t2u = std::make_unique<qtnh::SDenseTensor>(ENV, t2_dims, t2_els);
-
-  qtnh::tidx_tup tr_dims = { 2, 2, 4 };
-  std::vector<qtnh::tel> tr_els = { 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 2.0 + 2.0i, 4.0 + 4.0i, 6.0 + 6.0i, 8.0 + 8.0i, 
-                                    2.0 + 2.0i, 4.0 + 4.0i, 6.0 + 6.0i, 8.0 + 8.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i };
-  qtnh::SDenseTensor tr(ENV, tr_dims, tr_els);
-
-  qtnh::TensorNetwork tn;
-  auto t1_id = tn.insertTensor(std::move(t1u));
-  auto t2_id = tn.insertTensor(std::move(t2u));
-
-  std::vector<qtnh::wire> wires1(1, {1, 0});
-  tn.createBond(t1_id, t2_id, wires1);
-
-  auto res_id = tn.contractAll();
-
-  REQUIRE(equal(tr, tn.getTensor(res_id)));
-}
-
 TEST_CASE("tn-contraction") {
   SECTION("2-tensors") {
     for (auto& tnv : gen::tn2_vals) {
