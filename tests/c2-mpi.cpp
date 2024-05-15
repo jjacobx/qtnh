@@ -45,10 +45,6 @@ unsigned int RootReporter::counter = 0;
 
 CATCH_REGISTER_REPORTER("root", RootReporter)
 
-bool eq(qtnh::tel a, qtnh::tel b, double delta = 1E-5) {
-  return (std::abs(a.real() - b.real()) < delta) && (std::abs(a.imag() - b.imag()) < delta);
-}
-
 TEST_CASE("distribute-tensor", "[mpi][2rank]") {
   using namespace qtnh;
   using namespace std::complex_literals;
@@ -105,7 +101,7 @@ TEST_CASE("contract-tensor", "[mpi][2rank]") {
       auto el = t_r1_els.at(utils::idxs_to_i(idxs, t_r1_dims));
 
       idxs.erase(idxs.begin());
-      REQUIRE(eq(t_r1_u->getLocEl(idxs).value(), el));
+      REQUIRE(utils::equal(t_r1_u->getLocEl(idxs).value(), el));
     }
   }
 
@@ -130,7 +126,7 @@ TEST_CASE("contract-tensor", "[mpi][2rank]") {
       auto el = t_r1_els.at(utils::idxs_to_i(idxs, t_r1_dims));
 
       idxs.erase(idxs.begin());
-      REQUIRE(eq(t_r1_u->getLocEl(idxs).value(), el));
+      REQUIRE(utils::equal(t_r1_u->getLocEl(idxs).value(), el));
     }
   }
 }
@@ -158,7 +154,7 @@ TEST_CASE("contract-tensor", "[mpi][3rank]") {
       auto el = t_r1_els.at(utils::idxs_to_i(idxs, t_r1_dims));
 
       idxs.erase(idxs.begin());
-      REQUIRE(eq(t_r1_u->getLocEl(idxs).value(), el));
+      REQUIRE(utils::equal(t_r1_u->getLocEl(idxs).value(), el));
     }
   }
 
@@ -183,7 +179,7 @@ TEST_CASE("contract-tensor", "[mpi][3rank]") {
       auto el = t_r1_els.at(utils::idxs_to_i(idxs, t_r1_dims));
 
       idxs.erase(idxs.begin());
-      REQUIRE(eq(t_r1_u->getLocEl(idxs).value(), el));
+      REQUIRE(utils::equal(t_r1_u->getLocEl(idxs).value(), el));
     }
   }
 }
@@ -220,7 +216,7 @@ TEST_CASE("contract-tensor", "[mpi][4rank]") {
       auto el = t_r1_els.at(utils::idxs_to_i(idxs, t_r1_dims));
 
       idxs.erase(idxs.begin(), idxs.begin() + 2);
-      REQUIRE(eq(t_r1_u->getLocEl(idxs).value(), el));
+      REQUIRE(utils::equal(t_r1_u->getLocEl(idxs).value(), el));
     }
   }
 }
@@ -257,7 +253,7 @@ TEST_CASE("contract-tensor", "[mpi][6rank]") {
       auto el = t_r1_els.at(utils::idxs_to_i(idxs, t_r1_dims));
 
       idxs.erase(idxs.begin(), idxs.begin() + 2);
-      REQUIRE(eq(t_r1_u->getLocEl(idxs).value(), el));
+      REQUIRE(utils::equal(t_r1_u->getLocEl(idxs).value(), el));
     }
   }
 }
@@ -294,7 +290,7 @@ TEST_CASE("contract-tensor", "[mpi][8rank]") {
       auto el = t_r1_els.at(utils::idxs_to_i(idxs, t_r1_dims));
 
       idxs.erase(idxs.begin(), idxs.begin() + 3);
-      REQUIRE(eq(t_r1_u->getLocEl(idxs).value(), el));
+      REQUIRE(utils::equal(t_r1_u->getLocEl(idxs).value(), el));
     }
   }
 }
@@ -336,9 +332,9 @@ TEST_CASE("qft", "[mpi][4rank]") {
     auto idxs = utils::i_to_idxs(0, tfu->getLocDims());
 
     if (ENV.proc_id == 0) {
-      REQUIRE(eq(tfu->getLocEl(idxs).value(), 1, 1E-4));
+      REQUIRE(utils::equal(tfu->getLocEl(idxs).value(), 1, 1E-4));
     } else {
-      REQUIRE(eq(tfu->getLocEl(idxs).value(), 0, 1E-4));
+      REQUIRE(utils::equal(tfu->getLocEl(idxs).value(), 0, 1E-4));
     }
   }
 
@@ -352,9 +348,9 @@ TEST_CASE("qft", "[mpi][4rank]") {
     auto idxs = utils::i_to_idxs(0, tfu->getLocDims());
 
     if (ENV.proc_id == 0) {
-      REQUIRE(eq(tfu->getLocEl(idxs).value(), 1, 1E-4));
+      REQUIRE(utils::equal(tfu->getLocEl(idxs).value(), 1, 1E-4));
     } else {
-      REQUIRE(eq(tfu->getLocEl(idxs).value(), 0, 1E-4));
+      REQUIRE(utils::equal(tfu->getLocEl(idxs).value(), 0, 1E-4));
     }
   }
 }
@@ -372,9 +368,9 @@ TEST_CASE("qft", "[mpi][8rank]") {
     auto idxs = utils::i_to_idxs(0, tfu->getLocDims());
 
     if (ENV.proc_id == 0) {
-      REQUIRE(eq(tfu->getLocEl(idxs).value(), 1, 1E-4));
+      REQUIRE(utils::equal(tfu->getLocEl(idxs).value(), 1, 1E-4));
     } else {
-      REQUIRE(eq(tfu->getLocEl(idxs).value(), 0, 1E-4));
+      REQUIRE(utils::equal(tfu->getLocEl(idxs).value(), 0, 1E-4));
     }
   }
 
@@ -388,12 +384,11 @@ TEST_CASE("qft", "[mpi][8rank]") {
     auto idxs = utils::i_to_idxs(0, tfu->getLocDims());
 
     if (ENV.proc_id == 0) {
-      REQUIRE(eq(tfu->getLocEl(idxs).value(), 1, 1E-4));
+      REQUIRE(utils::equal(tfu->getLocEl(idxs).value(), 1, 1E-4));
     } else {
-      REQUIRE(eq(tfu->getLocEl(idxs).value(), 0, 1E-4));
+      REQUIRE(utils::equal(tfu->getLocEl(idxs).value(), 0, 1E-4));
     }
   }
 }
 
-// Create DDenseTensor
 // Swap local/distributed and distributed/distributed

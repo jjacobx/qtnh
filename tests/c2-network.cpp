@@ -14,25 +14,6 @@ using namespace std::complex_literals;
 
 QTNHEnv ENV;
 
-bool equal(const qtnh::Tensor& t1, const qtnh::Tensor& t2) {
-  if (t1.getLocDims() != t2.getLocDims()) { 
-    return false; 
-  }
-
-  qtnh::TIndexing ti(t1.getLocDims());
-  for (auto idxs : ti) {
-    if (t1.getLocEl(idxs) != t2.getLocEl(idxs)) { 
-      return false; 
-    }
-  }
-
-  return true;
-}
-
-bool eq(qtnh::tel a, qtnh::tel b, double delta = 1E-5) {
-  return (std::abs(a.real() - b.real()) < delta) && (std::abs(a.imag() - b.imag()) < delta);
-}
-
 TEST_CASE("tn-contraction") {
   SECTION("2-tensors") {
     for (auto& tnv : gen::tn2_vals) {
@@ -60,7 +41,7 @@ TEST_CASE("tn-contraction") {
       TIndexing ti_res(t_res_dims);
       for (auto idxs : ti_res) {
         auto el = t_res_els.at(utils::idxs_to_i(idxs, t_res_dims));
-        REQUIRE(eq(t_res_u->getLocEl(idxs).value(), el));
+        REQUIRE(utils::equal(t_res_u->getLocEl(idxs).value(), el));
       }
     }
   }
@@ -102,7 +83,7 @@ TEST_CASE("tn-contraction") {
         // }
 
 
-        REQUIRE(eq(t_res_u->getLocEl(idxs).value(), el, 1E-2));
+        REQUIRE(utils::equal(t_res_u->getLocEl(idxs).value(), el, 1E-2));
       }
     }
   }
@@ -133,7 +114,7 @@ TEST_CASE("tn-contraction") {
       TIndexing ti_res(t_res_dims);
       for (auto idxs : ti_res) {
         auto el = t_res_els.at(utils::idxs_to_i(idxs, t_res_dims));
-        REQUIRE(eq(t_res_u->getLocEl(idxs).value(), el, 1E-2));
+        REQUIRE(utils::equal(t_res_u->getLocEl(idxs).value(), el, 1E-2));
       }
     }
   }
@@ -167,7 +148,7 @@ TEST_CASE("tn-contraction") {
       TIndexing ti_res(t_res_dims);
       for (auto idxs : ti_res) {
         auto el = t_res_els.at(utils::idxs_to_i(idxs, t_res_dims));
-        REQUIRE(eq(t_res_u->getLocEl(idxs).value(), el, 1E-2));
+        REQUIRE(utils::equal(t_res_u->getLocEl(idxs).value(), el, 1E-2));
       }
     }
   }
@@ -182,7 +163,7 @@ TEST_CASE("qft") {
     auto tfu = tn.extractTensor(id);
 
     auto idxs = utils::i_to_idxs(0, tfu->getLocDims());
-    REQUIRE(eq(tfu->getLocEl(idxs).value(), 1, 1E-2));
+    REQUIRE(utils::equal(tfu->getLocEl(idxs).value(), 1, 1E-2));
   }
 
   SECTION("3-qubits") {
@@ -193,7 +174,7 @@ TEST_CASE("qft") {
     auto tfu = tn.extractTensor(id);
 
     auto idxs = utils::i_to_idxs(0, tfu->getLocDims());
-    REQUIRE(eq(tfu->getLocEl(idxs).value(), 1, 1E-2));
+    REQUIRE(utils::equal(tfu->getLocEl(idxs).value(), 1, 1E-2));
   }
 
   SECTION("4-qubits") {
@@ -204,7 +185,7 @@ TEST_CASE("qft") {
     auto tfu = tn.extractTensor(id);
 
     auto idxs = utils::i_to_idxs(0, tfu->getLocDims());
-    REQUIRE(eq(tfu->getLocEl(idxs).value(), 1, 1E-2));
+    REQUIRE(utils::equal(tfu->getLocEl(idxs).value(), 1, 1E-2));
   }
 
   SECTION("5-qubits") {
@@ -215,6 +196,6 @@ TEST_CASE("qft") {
     auto tfu = tn.extractTensor(id);
 
     auto idxs = utils::i_to_idxs(0, tfu->getLocDims());
-    REQUIRE(eq(tfu->getLocEl(idxs).value(), 1, 1E-2));
+    REQUIRE(utils::equal(tfu->getLocEl(idxs).value(), 1, 1E-2));
   }
 }
