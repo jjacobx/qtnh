@@ -8,6 +8,7 @@
 #include "qtnh.hpp"
 
 #include "gen/random-tensors.hpp"
+#include "gen/qft-tensors.hpp"
 
 qtnh::QTNHEnv ENV;
 
@@ -298,7 +299,7 @@ TEST_CASE("contract-tensor", "[mpi][8rank]") {
   }
 }
 
-TEST_CASE("new-tensor", "[mpi][4rank]") {
+TEST_CASE("collectives", "[mpi][4rank]") {
   using namespace qtnh;
   using namespace std::complex_literals;
   
@@ -314,14 +315,85 @@ TEST_CASE("new-tensor", "[mpi][4rank]") {
       REQUIRE(t2u->getLocEl({ 0 }).value() == 1.0 + 1.0i);
     } else if (ENV.proc_id == 1) {
       REQUIRE(t2u->getLocEl({ 0 }).value() == 3.0 + 3.0i);
-    } else if (ENV.proc_id == 1) {
+    } else if (ENV.proc_id == 2) {
       REQUIRE(t2u->getLocEl({ 0 }).value() == 5.0 + 5.0i);
-    } else if (ENV.proc_id == 1) {
+    } else if (ENV.proc_id == 3) {
       REQUIRE(t2u->getLocEl({ 0 }).value() == 7.0 + 7.0i);
+    }
+  }
+}
+
+TEST_CASE("qft", "[mpi][4rank]") {
+  using namespace qtnh;
+
+  SECTION("5-qubits") {
+    TensorNetwork tn;
+    auto con_ord = gen::qft(ENV, tn, 5, 2);
+
+    auto id = tn.contractAll(con_ord);
+    auto tfu = tn.extractTensor(id);
+
+    auto idxs = utils::i_to_idxs(0, tfu->getLocDims());
+
+    if (ENV.proc_id == 0) {
+      REQUIRE(eq(tfu->getLocEl(idxs).value(), 1, 1E-4));
+    } else {
+      REQUIRE(eq(tfu->getLocEl(idxs).value(), 0, 1E-4));
+    }
+  }
+
+  SECTION("6-qubits") {
+    TensorNetwork tn;
+    auto con_ord = gen::qft(ENV, tn, 6, 2);
+
+    auto id = tn.contractAll(con_ord);
+    auto tfu = tn.extractTensor(id);
+
+    auto idxs = utils::i_to_idxs(0, tfu->getLocDims());
+
+    if (ENV.proc_id == 0) {
+      REQUIRE(eq(tfu->getLocEl(idxs).value(), 1, 1E-4));
+    } else {
+      REQUIRE(eq(tfu->getLocEl(idxs).value(), 0, 1E-4));
+    }
+  }
+}
+
+TEST_CASE("qft", "[mpi][8rank]") {
+  using namespace qtnh;
+
+  SECTION("7-qubits") {
+    TensorNetwork tn;
+    auto con_ord = gen::qft(ENV, tn, 7, 3);
+
+    auto id = tn.contractAll(con_ord);
+    auto tfu = tn.extractTensor(id);
+
+    auto idxs = utils::i_to_idxs(0, tfu->getLocDims());
+
+    if (ENV.proc_id == 0) {
+      REQUIRE(eq(tfu->getLocEl(idxs).value(), 1, 1E-4));
+    } else {
+      REQUIRE(eq(tfu->getLocEl(idxs).value(), 0, 1E-4));
+    }
+  }
+
+  SECTION("8-qubits") {
+    TensorNetwork tn;
+    auto con_ord = gen::qft(ENV, tn, 8, 3);
+
+    auto id = tn.contractAll(con_ord);
+    auto tfu = tn.extractTensor(id);
+
+    auto idxs = utils::i_to_idxs(0, tfu->getLocDims());
+
+    if (ENV.proc_id == 0) {
+      REQUIRE(eq(tfu->getLocEl(idxs).value(), 1, 1E-4));
+    } else {
+      REQUIRE(eq(tfu->getLocEl(idxs).value(), 0, 1E-4));
     }
   }
 }
 
 // Create DDenseTensor
 // Swap local/distributed and distributed/distributed
-// Distributed tensor network tests
