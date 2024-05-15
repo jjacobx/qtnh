@@ -14,10 +14,6 @@ using namespace std::complex_literals;
 
 QTNHEnv ENV;
 
-bool eq(qtnh::tel a, qtnh::tel b, double delta = 1E-5) {
-  return (std::abs(a.real() - b.real()) < delta) && (std::abs(a.imag() - b.imag()) < delta);
-}
-
 TEST_CASE("tensor-construction") {
   SECTION("swap-tensor") {
     REQUIRE_NOTHROW(std::make_unique<SwapTensor>(ENV, 2, 2));
@@ -196,7 +192,7 @@ TEST_CASE("tensor-contraction") {
       TIndexing ti_r1(t_r1_dims);
       for (auto idxs : ti_r1) {
         auto el = t_r1_els.at(utils::idxs_to_i(idxs, t_r1_dims));
-        REQUIRE(eq(t_r1_u->getLocEl(idxs).value(), el));
+        REQUIRE(utils::equal(t_r1_u->getLocEl(idxs).value(), el));
       }
     }
 
@@ -214,7 +210,7 @@ TEST_CASE("tensor-contraction") {
       TIndexing ti_r1(t_r1_dims);
       for (auto idxs : ti_r1) {
         auto el = t_r1_els.at(utils::idxs_to_i(idxs, t_r1_dims));
-        REQUIRE(eq(t_r1_u->getLocEl(idxs).value(), el));
+        REQUIRE(utils::equal(t_r1_u->getLocEl(idxs).value(), el));
       }
     }
 
@@ -232,7 +228,7 @@ TEST_CASE("tensor-contraction") {
       TIndexing ti_r1(t_r1_dims);
       for (auto idxs : ti_r1) {
         auto el = t_r1_els.at(utils::idxs_to_i(idxs, t_r1_dims));
-        REQUIRE(eq(t_r1_u->getLocEl(idxs).value(), el));
+        REQUIRE(utils::equal(t_r1_u->getLocEl(idxs).value(), el));
       }
     }
 
@@ -250,7 +246,7 @@ TEST_CASE("tensor-contraction") {
       TIndexing ti_r1(t_r1_dims);
       for (auto idxs : ti_r1) {
         auto el = t_r1_els.at(utils::idxs_to_i(idxs, t_r1_dims));
-        REQUIRE(eq(t_r1_u->getLocEl(idxs).value(), el));
+        REQUIRE(utils::equal(t_r1_u->getLocEl(idxs).value(), el));
       }
     }
 
@@ -278,7 +274,7 @@ TEST_CASE("tensor-contraction") {
       TIndexing ti_r1(t_r1_dims);
       for (auto idxs : ti_r1) {
         auto el = t_r1_els.at(utils::idxs_to_i(idxs, t_r1_dims));
-        REQUIRE(eq(t_r1_u->getLocEl(idxs).value(), el));
+        REQUIRE(utils::equal(t_r1_u->getLocEl(idxs).value(), el));
       }
     }
 
@@ -306,7 +302,7 @@ TEST_CASE("tensor-contraction") {
       TIndexing ti_r1(t_r1_dims);
       for (auto idxs : ti_r1) {
         auto el = t_r1_els.at(utils::idxs_to_i(idxs, t_r1_dims));
-        REQUIRE(eq(t_r1_u->getLocEl(idxs).value(), el));
+        REQUIRE(utils::equal(t_r1_u->getLocEl(idxs).value(), el));
       }
     }
 
@@ -338,7 +334,7 @@ TEST_CASE("tensor-contraction") {
     TIndexing ti_r1(dims);
     for (auto idxs : ti_r1) {
       auto el = els.at(utils::idxs_to_i(idxs, dims));
-      REQUIRE(eq(t_r1_u->getLocEl(idxs).value(), el));
+      REQUIRE(utils::equal(t_r1_u->getLocEl(idxs).value(), el));
     }
 
     // DDenseTensor to SDenseTensor
@@ -350,7 +346,7 @@ TEST_CASE("tensor-contraction") {
     TIndexing ti_r2(dims);
     for (auto idxs : ti_r2) {
       auto el = els.at(utils::idxs_to_i(idxs, dims));
-      REQUIRE(eq(t_r2_u->getLocEl(idxs).value(), el));
+      REQUIRE(utils::equal(t_r2_u->getLocEl(idxs).value(), el));
     }
   }
 }
