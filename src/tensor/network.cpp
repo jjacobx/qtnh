@@ -112,7 +112,27 @@ namespace qtnh {
     tensors.erase(t2_id);
 
     auto t3_id = insertTensor(std::move(t3_p));
-    
+
+    #ifdef DEBUG
+      std::cout << "Remapping indices: \n";
+
+      int _i = 0;
+      std::cout << "T1: ";
+      for (auto& [k, v]: t1_imaps) {
+        if (_i++) std::cout << ", ";
+        std::cout << k << "->" << v;
+      }
+
+      _i = 0;
+      std::cout << "\nT2: ";
+      for (auto& [k, v]: t2_imaps) {
+        if (_i++) std::cout << ", ";
+        std::cout << k << "->" << v;
+      }
+
+      std::cout << "\n";
+    #endif
+
     for (auto& [id, b] : bonds) {
       if (b.tensor_ids.first == t1_id) {
         b.tensor_ids.first = t3_id;
@@ -143,13 +163,22 @@ namespace qtnh {
   }
 
   qtnh::uint TensorNetwork::contractAll() {
-    auto id = (*tensors.begin()).first;
+    auto tid = (*tensors.begin()).first;
     auto temp_bonds = bonds;
-    for (auto kv : temp_bonds) {
-      id = contractBond(kv.first);
+    for (auto& [bid, b] : temp_bonds) {
+      #ifdef DEBUG
+        using namespace qtnh::ops;
+        std::cout << "Contracting " << b << " in the followig tensor network: \n";
+
+        int proc_id;
+        MPI_Comm_rank(MPI_COMM_WORLD, &proc_id);
+        if (!proc_id) print();
+      #endif
+
+      tid = contractBond(bid);
     }
 
-    return id;
+    return tid;
   }
 
   qtnh::uint TensorNetwork::contractAll(std::vector<qtnh::uint> bonds_order) {
@@ -171,15 +200,14 @@ namespace qtnh {
 
       #ifdef DEBUG
         using namespace qtnh::ops;
-        std::cout << "Contracting " << bonds.at(b1_id) << "\n";
-      #endif
-      tid = contractBond(b1_id);
+        std::cout << "Contracting " << bonds.at(b1_id) << " in the followig tensor network: \n";
 
-      #ifdef DEBUG
         int proc_id;
         MPI_Comm_rank(MPI_COMM_WORLD, &proc_id);
-        if (proc_id == 0) print();
+        if (!proc_id) print();
       #endif
+
+      tid = contractBond(b1_id);
     }
 
     return tid;

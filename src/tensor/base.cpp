@@ -24,7 +24,14 @@ namespace qtnh {
     return utils::dims_to_size(getDistDims()); 
   }
 
-  std::unique_ptr<Tensor> Tensor::contract(std::unique_ptr<Tensor> t1u, std::unique_ptr<Tensor> t2u, const std::vector<qtnh::wire>& ws) { 
+  std::unique_ptr<Tensor> Tensor::contract(std::unique_ptr<Tensor> t1u, std::unique_ptr<Tensor> t2u, const std::vector<qtnh::wire>& ws) {
+    // Validate contraction dimensions
+    for (auto& w : ws) {
+      if (t1u->getDims().at(w.first) != t2u->getDims().at(w.second)) {
+        throw std::invalid_argument("Incompatible contraction dimensions.");
+      }
+    }
+
     auto* tp = t2u->contract_disp(t1u.get(), ws);
     
     // Check if one of the input objects is returned

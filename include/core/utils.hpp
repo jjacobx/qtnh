@@ -42,6 +42,13 @@ namespace qtnh {
     /// @param ws A vector of cotraction wires to invert. 
     /// @return A vector of cotraction wires, where each wire has a reversed direction. 
     std::vector<qtnh::wire> invert_wires(std::vector<qtnh::wire> ws);
+
+    /// @brief Compare two complex elements within given tolerance. 
+    /// @param a First complex element. 
+    /// @param b Second complex element. 
+    /// @param tol Maximum allowed magnitude of the difference between the elements (default 1E-5). 
+    /// @return True if elements are approximately equal and false otherwise. 
+    bool equal(qtnh::tel a, qtnh::tel b, double tol = 1E-5);
   }
 }
 

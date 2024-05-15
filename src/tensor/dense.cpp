@@ -83,8 +83,8 @@ namespace qtnh {
               break;
             }
 
-            ti1.reset(idxs1, TIdxT::closed, tag - 1);
-            ti2.reset(idxs2, TIdxT::closed, tag - 1);
+            idxs1 = ti1.reset(idxs1, TIdxT::closed, tag - 1);
+            idxs2 = ti2.reset(idxs2, TIdxT::closed, tag - 1);
           }
 
           if (tag >= ws_size) break;
@@ -93,14 +93,14 @@ namespace qtnh {
             std::cout << " + ";
           #endif
 
-          ti1.next(idxs1, TIdxT::closed, tag);
-          ti2.next(idxs2, TIdxT::closed, tag);
+          idxs1 = ti1.next(idxs1, TIdxT::closed, tag);
+          idxs2 = ti2.next(idxs2, TIdxT::closed, tag);
 
           tag = 0;
         }
 
         for (qtnh::tidx_tup_st t = 0; t < ws_size; ++t) {
-          ti1.reset(idxs1, TIdxT::closed, t);
+          idxs1 = ti1.reset(idxs1, TIdxT::closed, t);
         }
 
         ++it;
@@ -120,7 +120,7 @@ namespace qtnh {
 
       // Swaps only invoked n * (n - 1) / 2 times, instead of n * n
       for (qtnh::tidx i = 0; i < loc_dims.at(loc_idx1) - 1; ++i) {
-        idxs1.at(loc_idx1) = idxs2.at(loc_idx1) = i;
+        idxs1.at(loc_idx1) = idxs2.at(loc_idx2) = i;
         for (qtnh::tidx j = i + 1; j < loc_dims.at(loc_idx2); ++j) {
           idxs1.at(loc_idx2) = idxs2.at(loc_idx1) = j;
           std::swap((*tp)[idxs1], (*tp)[idxs2]);
@@ -259,8 +259,8 @@ namespace qtnh {
   }
 
   std::optional<qtnh::tel> DDenseTensor::getEl(const qtnh::tidx_tup& idxs) const {
-    qtnh::tidx_tup loc_idxs(idxs.begin(), idxs.begin() + dist_dims.size());
-    qtnh::tidx_tup dist_idxs(idxs.begin() + dist_dims.size(), idxs.end());
+    qtnh::tidx_tup dist_idxs(idxs.begin(), idxs.begin() + dist_dims.size());
+    qtnh::tidx_tup loc_idxs(idxs.begin() + dist_dims.size(), idxs.end());
     auto rank = utils::idxs_to_i(dist_idxs, getDistDims());
 
     if (env.proc_id == rank) {
@@ -278,9 +278,9 @@ namespace qtnh {
     }
   }
 
-  void DDenseTensor::setEl(const qtnh::tidx_tup& glob_idxs, qtnh::tel el) {
-    qtnh::tidx_tup loc_idxs(glob_idxs.begin(), glob_idxs.begin() + dist_dims.size());
-    qtnh::tidx_tup dist_idxs(glob_idxs.begin() + dist_dims.size(), glob_idxs.end());
+  void DDenseTensor::setEl(const qtnh::tidx_tup& idxs, qtnh::tel el) {
+    qtnh::tidx_tup dist_idxs(idxs.begin(), idxs.begin() + dist_dims.size());
+    qtnh::tidx_tup loc_idxs(idxs.begin() + dist_dims.size(), idxs.end());
     auto rank = utils::idxs_to_i(dist_idxs, getDistDims());
 
     if (env.proc_id == rank) {
@@ -562,8 +562,8 @@ namespace qtnh {
     if (env.proc_id < n1 * n2) els3.assign(nloc, 0.0);
     auto t3 = new DDenseTensor(this->env, dims3, els3, nidx);
 
-    this->rep_all(n2);
-    tp->rep_each(n1);
+    this->rep_each(n2);
+    tp->rep_all(n1);
 
     _set_els(this, tp, t3, ti1, ti2, ti3, ws.size());
 

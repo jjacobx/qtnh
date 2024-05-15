@@ -61,7 +61,7 @@ namespace qtnh{
       /// @return Next tensor index tuple. 
       ///
       /// Only indices with the given flag are updated. 
-      qtnh::tidx_tup& next(qtnh::tidx_tup& idxs, TIdxT type = TIdxT::open, qtnh::tidx_tup_st tag = 0);
+      qtnh::tidx_tup next(qtnh::tidx_tup idxs, TIdxT type = TIdxT::open, qtnh::tidx_tup_st tag = 0);
       /// @brief Go to previous tensor index tuple in current indexing, relative to the input tuple.  
       /// @param idxs Tensor index tuple to update. 
       /// @param type Type of the index flag to check. 
@@ -69,7 +69,7 @@ namespace qtnh{
       /// @return Previous tensor index tuple. 
       ///
       /// Only indices with the given flag are updated. 
-      qtnh::tidx_tup& prev(qtnh::tidx_tup& idxs, TIdxT type = TIdxT::open, qtnh::tidx_tup_st tag = 0);
+      qtnh::tidx_tup prev(qtnh::tidx_tup idxs, TIdxT type = TIdxT::open, qtnh::tidx_tup_st tag = 0);
       /// @brief Reset tensor index tuple to zero in current indexing.  
       /// @param idxs Tensor index tuple to update. 
       /// @param type Type of the index flag to check. 
@@ -77,7 +77,7 @@ namespace qtnh{
       /// @return Reset tensor index tuple. 
       ///
       /// Only indices with the given flag are updated. 
-      qtnh::tidx_tup& reset(qtnh::tidx_tup& idxs, TIdxT type = TIdxT::open, qtnh::tidx_tup_st tag = 0);
+      qtnh::tidx_tup reset(qtnh::tidx_tup idxs, TIdxT type = TIdxT::open, qtnh::tidx_tup_st tag = 0);
 
       /// @brief Cut given tensor index type out of the indexing. 
       /// @param type Tensor index type to cut out. 
