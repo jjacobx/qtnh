@@ -7,7 +7,7 @@
 #include "tensor/special.hpp"
 
 #include "gen/random-tn.hpp"
-#include "gen/qft-tensors.hpp"
+#include "gen/qft.hpp"
 
 using namespace qtnh;
 using namespace std::complex_literals;

@@ -8,7 +8,7 @@
 #include "qtnh.hpp"
 
 #include "gen/random-tensors.hpp"
-#include "gen/qft-tensors.hpp"
+#include "gen/qft.hpp"
 
 qtnh::QTNHEnv ENV;
 
