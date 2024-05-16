@@ -24,15 +24,6 @@ namespace qtnh {
       /// Copy constructor is invalid due to potential large tensor size. 
       Tensor(const Tensor&) = delete;
 
-      /// @brief Construct empty tensor of zero size within environment. 
-      /// @param env Environment to use for construction. 
-      Tensor(const QTNHEnv& env);
-      /// @brief Construct empty tensor with given local and distributed dimensions within environment. 
-      /// @param env Environment to use for construction. 
-      /// @param loc_dims Local index dimensions. 
-      /// @param dist_dims Distributed index dimensions. 
-      Tensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dist_dims);
-
       /// Default destructor. 
       virtual ~Tensor() = default;
 
@@ -87,6 +78,15 @@ namespace qtnh {
       static std::unique_ptr<Tensor> contract(std::unique_ptr<Tensor> t1u, std::unique_ptr<Tensor> t2u, const std::vector<qtnh::wire>& ws);
 
     protected:
+      /// @brief Construct empty tensor of zero size within environment. 
+      /// @param env Environment to use for construction. 
+      Tensor(const QTNHEnv& env);
+      /// @brief Construct empty tensor with given local and distributed dimensions within environment. 
+      /// @param env Environment to use for construction. 
+      /// @param loc_dims Local index dimensions. 
+      /// @param dist_dims Distributed index dimensions. 
+      Tensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dist_dims);
+
       const QTNHEnv& env;  ///< Environment to use MPI/OpenMP in. 
       bool active;         ///< Flag whether the tensor is valid on calling MPI rank. 
 
@@ -152,8 +152,6 @@ namespace qtnh {
   /// Virtual tensor class that allows writing into tensor elements. 
   class WritableTensor : public virtual Tensor {
     public:
-      /// Empty constructor is invalid due to undefined environment. 
-      WritableTensor() = default;
       /// Copy constructor is invalid due to potential large tensor size. 
       WritableTensor(const SharedTensor&) = delete;
       /// Default destructor. 
@@ -182,6 +180,10 @@ namespace qtnh {
       /// This method is identical to setLocEl, but is included for completion, to extend 
       /// the usefulness of the square brackets operator. 
       virtual qtnh::tel& operator[](const qtnh::tidx_tup& idxs) = 0;
+    
+    protected:
+      /// Writable tensor constructor. 
+      WritableTensor() = default;
   };
 }
 
