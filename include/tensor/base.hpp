@@ -8,6 +8,20 @@
 #include "../core/typedefs.hpp"
 
 namespace qtnh {
+  struct TensorDistributor {
+    unsigned int stretch;
+    unsigned int cycles;
+    unsigned int offset;
+    unsigned int base;
+
+    MPI_Comm group_comm;
+    bool active;
+
+    unsigned int getSpan() { return stretch * base * cycles; }
+    unsigned int getLowerRange() { return offset; }
+    unsigned int getUpperRange() { return offset + getSpan(); }
+  };
+
   class ConvertTensor;
   class SDenseTensor;
   class DDenseTensor;
