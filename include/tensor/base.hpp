@@ -153,7 +153,7 @@ namespace qtnh {
   class WritableTensor : public virtual Tensor {
     public:
       /// Copy constructor is invalid due to potential large tensor size. 
-      WritableTensor(const SharedTensor&) = delete;
+      WritableTensor(const WritableTensor&) = delete;
       /// Default destructor. 
       virtual ~WritableTensor() = default;
 
