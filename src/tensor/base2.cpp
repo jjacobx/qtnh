@@ -24,16 +24,17 @@ namespace qtnh {
 
   qtnh::Tensor::Distributor::Distributor(const QTNHEnv &env, qtnh::uint stretch, qtnh::uint cycles, qtnh::uint offset, qtnh::uint base) 
     : env(env), stretch(stretch), cycles(cycles), offset(offset), base(base) {
-      active = (env.proc_id >= offset) && (env.proc_id < offset + stretch * cycles * base);
+      int rel_id = env.proc_id - offset; // ! relative ID may be negative
+      active = (rel_id >= 0) && (rel_id < stretch * cycles * base);
       
       // Group active ranks into a single communicator
       MPI_Comm active_comm;
-      MPI_Comm_split(MPI_COMM_WORLD, active, env.proc_id, &active_comm);
+      MPI_Comm_split(MPI_COMM_WORLD, active, rel_id, &active_comm);
 
       // Group communicator will be uninitialised on inactive ranks
       if (active) {
-        int colour = (env.proc_id - offset) / base + (env.proc_id - offset) % stretch;
-        MPI_Comm_split(active_comm, colour, env.proc_id, &group_comm);
+        int colour = rel_id / base + rel_id % stretch;
+        MPI_Comm_split(active_comm, colour, rel_id, &group_comm);
       }
     }
 
