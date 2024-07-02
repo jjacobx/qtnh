@@ -44,14 +44,14 @@ namespace qtnh {
       /// This method requires ensuring the element is present (i.e. the tensor is active)
       /// on current rank. On all active ranks, it must return an element, but different ranks  
       /// might have different values. 
-      virtual qtnh::tel operator[](const qtnh::tidx_tup& idxs) const = 0;
+      virtual qtnh::tel operator[](const qtnh::tidx_tup& loc_idxs) const = 0;
       /// @brief Fetch element at global indices and broadcast it to every rank. 
       /// @param idxs Tensor index tuple indicating global position of the element. 
       /// @return Value of the element at given indices. 
       ///
       /// This method doesn't require checking if the value is present or if the tensor is active. 
       /// Because of the broadcast, it is inefficient to use it too often. 
-      virtual qtnh::tel fetch(const qtnh::tidx_tup& idxs) const;
+      virtual qtnh::tel fetch(const qtnh::tidx_tup& tot_idxs) const;
 
 
       /// @brief Contract two tensors via given wires. 
@@ -100,16 +100,16 @@ namespace qtnh {
       /// @brief Construct empty tensor with given local and distributed dimensions within environment with default distribution paremeters. 
       /// @param env Environment to use for construction. 
       /// @param loc_dims Local index dimensions. 
-      /// @param dist_dims Distributed index dimensions. 
-      Tensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dist_dims);
+      /// @param dis_dims Distributed index dimensions. 
+      Tensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims);
       /// @brief Construct empty tensor with given local and distributed dimensions within environment with given distribution paremeters. 
       /// @param env Environment to use for construction. 
       /// @param loc_dims Local index dimensions. 
-      /// @param dist_dims Distributed index dimensions. 
+      /// @param dis_dims Distributed index dimensions. 
       /// @param stretch Number of times each local tensor chunk is repeated across contiguous processes. 
       /// @param cycles Number of times the entire tensor structure is repeated. 
       /// @param offset Number of empty processes before the tensor begins. 
-      Tensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dist_dims, qtnh::uint stretch, qtnh::uint cycles, qtnh::uint offset);
+      Tensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::uint stretch, qtnh::uint cycles, qtnh::uint offset);
 
       qtnh::tidx_tup loc_dims_;  ///< Local index dimensions. 
       qtnh::tidx_tup dis_dims_;  ///< Distributed index dimensions. 
@@ -124,6 +124,8 @@ namespace qtnh {
         const QTNHEnv& env;   ///< Environment to use MPI/OpenMP in. 
         MPI_Comm group_comm;  ///< Communicator that contains exactly one copy of the tensor. 
         bool active;          ///< Flag whether the tensor is stored on calling MPI rank. 
+
+        Distributor(const QTNHEnv& env, qtnh::uint stretch, qtnh::uint cycles, qtnh::uint offset, qtnh::uint base);
 
         /// @brief Helper to calculate span of the entire tensor across contiguous ranks. 
         /// @return Number of contiguous ranks that store the tensor. 
