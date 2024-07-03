@@ -34,7 +34,7 @@ namespace qtnh {
 
       // Group communicator will be uninitialised on inactive ranks
       if (active) {
-        int colour = rel_id / base + rel_id % stretch;
+        int colour = (rel_id / (base * stretch)) * stretch + rel_id % stretch;
         MPI_Comm_split(active_comm, colour, rel_id, &group_comm);
       }
     }
