@@ -17,25 +17,26 @@ namespace qtnh {
       Tensor(const Tensor&) = delete;
       ~Tensor() = default;
 
+      // This can be made constexpr in C++ 20
       virtual TT type() const noexcept { return TT::tensor; }
       
-      const qtnh::tidx_tup& locDims() const noexcept { return loc_dims_; }
-      const qtnh::tidx_tup& disDims() const noexcept { return dis_dims_; }
+      qtnh::tidx_tup locDims() const noexcept { return loc_dims_; }
+      qtnh::tidx_tup disDims() const noexcept { return dis_dims_; }
       const Distributor& dist() const noexcept { return dist_; }
       
       /// @brief Helper to access complete tensor dimensions. 
       /// @return Concatenated distributed and local dimensions. 
-      const qtnh::tidx_tup& totDims() const noexcept { return utils::concat_dims(dis_dims_, loc_dims_); }
+      qtnh::tidx_tup totDims() const { return utils::concat_dims(dis_dims_, loc_dims_); }
       
       /// @brief Helper to calculate size of the local part of the tensor. 
-      /// @return Number of local eements in the tensor. 
-      std::size_t locSize() const noexcept { return utils::dims_to_size(loc_dims_); }
+      /// @return Number of local elements in the tensor. 
+      std::size_t locSize() const { return utils::dims_to_size(loc_dims_); }
       /// @brief Helper to calculate size of the distributed part of the tensor. 
       /// @return Number of ranks to which one instance of the tensor is distributed. 
-      std::size_t disSize() const noexcept { return utils::dims_to_size(dis_dims_); }
+      std::size_t disSize() const { return utils::dims_to_size(dis_dims_); }
       /// @brief Helper to calculate size of the entire tensor. 
       /// @return Number of elements in the entire tensor. 
-      std::size_t totSize() const noexcept { return utils::dims_to_size(totDims()); }
+      std::size_t totSize() const { return utils::dims_to_size(totDims()); }
 
       /// @brief Rank-unsafe method to get element and given local indices. 
       /// @param idxs Tensor index tuple indicating local position of the element. 
