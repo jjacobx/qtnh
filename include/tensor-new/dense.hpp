@@ -1,7 +1,6 @@
-#ifndef _TENSOR__DENSE2_HPP
-#define _TENSOR__DENSE2_HPP
+#ifndef _TENSOR_NEW__DENSE_HPP
+#define _TENSOR_NEW__DENSE_HPP
 
-#include "core/typedefs.hpp"
 #include "tensor-new/tensor.hpp"
 
 namespace qtnh {

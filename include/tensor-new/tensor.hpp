@@ -1,11 +1,11 @@
-#ifndef _TENSOR__TENSOR_HPP
-#define _TENSOR__TENSOR_HPP
+#ifndef _TENSOR_NEW__TENSOR_HPP
+#define _TENSOR_NEW__TENSOR_HPP
 
 #include <memory>
 
-#include "../core/env.hpp"
-#include "../core/typedefs.hpp"
-#include "../core/utils.hpp"
+#include "core/env.hpp"
+#include "core/typedefs.hpp"
+#include "core/utils.hpp"
 
 namespace qtnh {
   class Tensor {
