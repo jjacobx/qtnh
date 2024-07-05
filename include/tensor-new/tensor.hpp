@@ -16,6 +16,8 @@ namespace qtnh {
       Tensor() = delete;
       Tensor(const Tensor&) = delete;
       ~Tensor() = default;
+
+      virtual TT type() const noexcept { return TT::tensor; }
       
       const qtnh::tidx_tup& locDims() const noexcept { return loc_dims_; }
       const qtnh::tidx_tup& disDims() const noexcept { return dis_dims_; }

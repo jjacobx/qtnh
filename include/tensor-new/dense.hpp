@@ -19,6 +19,8 @@ namespace qtnh {
       /// Default destructor. 
       virtual ~DenseTensorBase() = default;
 
+      virtual TT type() const noexcept override { return TT::denseTensorBase; }
+
       static std::unique_ptr<DenseTensor> toDense(std::unique_ptr<DenseTensorBase> tu) noexcept {
         return std::unique_ptr<DenseTensor>(tu->toDense());
       }
@@ -80,6 +82,8 @@ namespace qtnh {
 
       /// Default destructor. 
       virtual ~DenseTensor() = default;
+
+      virtual TT type() const noexcept override { return TT::denseTensor; }
 
       /// @brief Rank-unsafe method to get element and given local indices. 
       /// @param idxs Tensor index tuple indicating local position of the element. 
