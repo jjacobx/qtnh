@@ -16,22 +16,6 @@ namespace qtnh {
       /// Copy constructor is invalid due to potential large tensor size. 
       DenseTensorBase(const DenseTensorBase&) = delete;
 
-      /// @brief Construct empty tensor with given local and distributed dimensions within environment with default distribution paremeters. 
-      /// @param env Environment to use for construction. 
-      /// @param loc_dims Local index dimensions. 
-      /// @param dis_dims Distributed index dimensions. 
-      /// @param els Complex vector of local elements. 
-      DenseTensorBase(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, std::vector<qtnh::tel> els);
-      /// @brief Construct empty tensor with given local and distributed dimensions within environment with given distribution paremeters. 
-      /// @param env Environment to use for construction. 
-      /// @param loc_dims Local index dimensions. 
-      /// @param dis_dims Distributed index dimensions. 
-      /// @param els Complex vector of local elements. 
-      /// @param stretch Number of times each local tensor chunk is repeated across contiguous processes. 
-      /// @param cycles Number of times the entire tensor structure is repeated. 
-      /// @param offset Number of empty processes before the tensor begins. 
-      DenseTensorBase(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, std::vector<qtnh::tel> els, qtnh::uint stretch, qtnh::uint cycles, qtnh::uint offset);
-
       /// Default destructor. 
       virtual ~DenseTensorBase() = default;
 
@@ -40,6 +24,20 @@ namespace qtnh {
       }
     
     protected:
+      /// @brief Construct empty tensor with given local and distributed dimensions within environment with default distribution paremeters. 
+      /// @param env Environment to use for construction. 
+      /// @param loc_dims Local index dimensions. 
+      /// @param dis_dims Distributed index dimensions. 
+      /// @param els Complex vector of local elements. 
+      DenseTensorBase(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims);
+      /// @brief Construct empty tensor with given local and distributed dimensions within environment with given distribution paremeters. 
+      /// @param env Environment to use for construction. 
+      /// @param loc_dims Local index dimensions. 
+      /// @param dis_dims Distributed index dimensions. 
+      /// @param els Complex vector of local elements. 
+      /// @param params Distribution parameters of the tensor (stretch, cycles, offset)
+      DenseTensorBase(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, DistParams params);
+
       /// @brief Convert tensor to dense tensor format, which is most general. 
       /// @return Pointer to equivalent dense tensor. 
       virtual DenseTensor* toDense() noexcept;
@@ -50,17 +48,13 @@ namespace qtnh {
       /// @return Pointer to swapped tensor, which might be of a different derived type. 
       Tensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) override;
       /// @brief Redistribute current tensor. 
-      /// @param stretch Number of times each local tensor chunk is repeated across contiguous processes. 
-      /// @param cycles Number of times the entire tensor structure is repeated. 
-      /// @param offset Number of empty processes before the tensor begins. 
+      /// @param params Distribution parameters of the tensor (stretch, cycles, offset)
       /// @return Pointer to redistributed tensor, which might be of a different derived type. 
-      Tensor* redistribute(qtnh::uint stretch, qtnh::uint cycles, qtnh::uint offset) override;
+      Tensor* redistribute(DistParams params) override;
       /// @brief Move local indices to distributed pile and distributed indices to local pile. 
       /// @param idx_locs Locations of indices to move. 
       /// @return Pointer to repiled tensor, which might be of a different derived type. 
       Tensor* repile(std::vector<qtnh::tidx_tup_st> idx_locs) override;
-
-      std::vector<qtnh::tel> loc_els; ///< Local elements. 
   };
 
     class DenseTensor : public DenseTensorBase {
@@ -81,10 +75,8 @@ namespace qtnh {
       /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
       /// @param els Complex vector of local elements. 
-      /// @param stretch Number of times each local tensor chunk is repeated across contiguous processes. 
-      /// @param cycles Number of times the entire tensor structure is repeated. 
-      /// @param offset Number of empty processes before the tensor begins. 
-      DenseTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, std::vector<qtnh::tel> els, qtnh::uint stretch, qtnh::uint cycles, qtnh::uint offset);
+      /// @param params Distribution parameters of the tensor (stretch, cycles, offset)
+      DenseTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, std::vector<qtnh::tel> els, DistParams params);
 
       /// Default destructor. 
       virtual ~DenseTensor() = default;
@@ -115,11 +107,9 @@ namespace qtnh {
       /// @return Pointer to swapped tensor, which might be of a different derived type. 
       Tensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) override;
       /// @brief Redistribute current tensor. 
-      /// @param stretch Number of times each local tensor chunk is repeated across contiguous processes. 
-      /// @param cycles Number of times the entire tensor structure is repeated. 
-      /// @param offset Number of empty processes before the tensor begins. 
+      /// @param params Distribution parameters of the tensor (stretch, cycles, offset)
       /// @return Pointer to redistributed tensor, which might be of a different derived type. 
-      Tensor* redistribute(qtnh::uint stretch, qtnh::uint cycles, qtnh::uint offset) override;
+      Tensor* redistribute(DistParams params) override;
       /// @brief Move local indices to distributed pile and distributed indices to local pile. 
       /// @param idx_locs Locations of indices to move. 
       /// @return Pointer to repiled tensor, which might be of a different derived type. 

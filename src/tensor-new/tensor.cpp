@@ -9,10 +9,10 @@ namespace qtnh {
     : Tensor(env, qtnh::tidx_tup(), qtnh::tidx_tup()) {}
 
   Tensor::Tensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims)
-    : Tensor(env, loc_dims, dis_dims, 1, 1, 0) {}
+    : Tensor(env, loc_dims, dis_dims, DistParams { 1, 1, 0 }) {}
 
-  Tensor::Tensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::uint stretch, qtnh::uint cycles, qtnh::uint offset)
-    : dist_(env, stretch, cycles, offset, utils::dims_to_size(dis_dims)), loc_dims_(loc_dims), dis_dims_(dis_dims) {}
+  Tensor::Tensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, DistParams params)
+    : dist_(env, utils::dims_to_size(dis_dims), params), loc_dims_(loc_dims), dis_dims_(dis_dims) {}
 
 
   qtnh::tel Tensor::fetch(const qtnh::tidx_tup& tot_idxs) const {
@@ -21,8 +21,8 @@ namespace qtnh {
     return (*this)[loc_idxs]; // Temporary – return local element
   }
 
-  qtnh::Tensor::Distributor::Distributor(const QTNHEnv &env, qtnh::uint stretch, qtnh::uint cycles, qtnh::uint offset, qtnh::uint base) 
-    : env(env), stretch(stretch), cycles(cycles), offset(offset), base(base) {
+  qtnh::Tensor::Distributor::Distributor(const QTNHEnv &env, qtnh::uint base, DistParams params) 
+    : env(env), base(base), stretch(params.stretch), cycles(params.cycles), offset(params.offset) {
       int rel_id = env.proc_id - offset; // ! relative ID may be negative
       active = (rel_id >= 0) && (rel_id < stretch * cycles * base);
       

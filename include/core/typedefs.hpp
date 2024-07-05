@@ -36,6 +36,15 @@ namespace qtnh {
   typedef std::complex<double> tel;  ///< Tensor element type. 
 
   typedef std::pair<qtnh::tidx_tup_st, qtnh::tidx_tup_st> wire; ///< A pair of contracted indices. 
+
+  struct DistParams {
+    qtnh::uint stretch;
+    qtnh::uint cycles;
+    qtnh::uint offset;
+
+    DistParams(qtnh::uint stretch, qtnh::uint cycles, qtnh::uint offset) 
+      : stretch(stretch), cycles(cycles), offset(offset) {}
+  };
 }
 
 #endif
