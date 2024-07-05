@@ -166,33 +166,33 @@ namespace qtnh {
   };
 
   /// Virtual tensor class that allows writing into tensor elements. 
-  class WritableTensor : public Tensor {
-    public:
-      WritableTensor(const WritableTensor&) = delete;
-      ~WritableTensor() = default;
+  // class WritableTensor : public Tensor {
+  //   public:
+  //     WritableTensor(const WritableTensor&) = delete;
+  //     ~WritableTensor() = default;
 
-      using Tensor::operator[];
+  //     using Tensor::operator[];
 
-      /// @brief Insert element on given local indices. 
-      /// @param idxs Tensor index tuple indicating local position to be updated. 
-      /// @param el Complex number to be written at the given position. 
-      ///
-      /// The index update is executed on all active ranks, and different values might be
-      /// passed to the method on different ranks. 
-      virtual qtnh::tel& operator[](const qtnh::tidx_tup& loc_idxs) = 0;
-      /// @brief Insert element on given global indices. 
-      /// @param idxs Tensor index tuple indicating global position to be updated. 
-      /// @param el Complex number to be written at the given position. 
-      ///
-      /// The index update is only executed on ranks that contain the global position. 
-      /// Other ranks are unaffacted by the write. 
-      virtual void insert(const qtnh::tidx_tup& tot_idxs, qtnh::tel el);
+  //     /// @brief Insert element on given local indices. 
+  //     /// @param idxs Tensor index tuple indicating local position to be updated. 
+  //     /// @param el Complex number to be written at the given position. 
+  //     ///
+  //     /// The index update is executed on all active ranks, and different values might be
+  //     /// passed to the method on different ranks. 
+  //     virtual qtnh::tel& operator[](const qtnh::tidx_tup& loc_idxs) = 0;
+  //     /// @brief Insert element on given global indices. 
+  //     /// @param idxs Tensor index tuple indicating global position to be updated. 
+  //     /// @param el Complex number to be written at the given position. 
+  //     ///
+  //     /// The index update is only executed on ranks that contain the global position. 
+  //     /// Other ranks are unaffacted by the write. 
+  //     virtual void insert(const qtnh::tidx_tup& tot_idxs, qtnh::tel el);
 
     
-    protected:
-      /// Writable tensor constructor. 
-      WritableTensor() = default;
-  };
+  //   protected:
+  //     /// Writable tensor constructor. 
+  //     WritableTensor() = default;
+  // };
 }
 
 #endif

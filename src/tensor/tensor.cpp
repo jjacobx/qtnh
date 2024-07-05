@@ -2,7 +2,7 @@
 #include <mpi.h>
 
 #include "core/utils.hpp"
-#include "tensor/base2.hpp"
+#include "tensor/tensor.hpp"
 #include "tensor/dense2.hpp"
 #include "tensor/indexing.hpp"
 
@@ -39,18 +39,18 @@ namespace qtnh {
       }
     }
 
-  Tensor* Tensor::densify() noexcept {
-    std::vector<qtnh::tel> els;
-    els.reserve(locSize());
+  // Tensor* Tensor::densify() noexcept {
+  //   std::vector<qtnh::tel> els;
+  //   els.reserve(locSize());
 
-    TIndexing ti(locDims());
-    for (auto idxs : ti) {
-      els.push_back((*this)[idxs]);
-    }
+  //   TIndexing ti(locDims());
+  //   for (auto idxs : ti) {
+  //     els.push_back((*this)[idxs]);
+  //   }
 
-    // ? Is it better to use local members or accessors? 
-    return new DenseTensor(dist_.env, loc_dims_, dis_dims_, els, dist_.stretch, dist_.cycles, dist_.offset);
-  }
+  //   // ? Is it better to use local members or accessors? 
+  //   return new DenseTensor(dist_.env, loc_dims_, dis_dims_, els, dist_.stretch, dist_.cycles, dist_.offset);
+  // }
 
   namespace ops {
     std::ostream& operator<<(std::ostream& out, const Tensor& o) {
