@@ -2,8 +2,8 @@
 #include <mpi.h>
 
 #include "core/utils.hpp"
-#include "tensor/tensor.hpp"
-#include "tensor/dense2.hpp"
+#include "tensor-new/tensor.hpp"
+#include "tensor-new/dense.hpp"
 #include "tensor/indexing.hpp"
 
 namespace qtnh {

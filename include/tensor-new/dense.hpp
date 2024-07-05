@@ -2,7 +2,7 @@
 #define _TENSOR__DENSE2_HPP
 
 #include "core/typedefs.hpp"
-#include "tensor/tensor.hpp"
+#include "tensor-new/tensor.hpp"
 
 namespace qtnh {
   class DenseTensorBase;
