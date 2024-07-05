@@ -1,5 +1,5 @@
-#ifndef _TENSOR__BASE2_HPP
-#define _TENSOR__BASE2_HPP
+#ifndef _TENSOR__TENSOR_HPP
+#define _TENSOR__TENSOR_HPP
 
 #include <memory>
 
@@ -8,8 +8,6 @@
 #include "../core/utils.hpp"
 
 namespace qtnh {
-  // class DenseTensor; 
-
   class Tensor {
     protected:
       struct Distributor;
@@ -61,12 +59,6 @@ namespace qtnh {
       /// @return Contracted tensor unique pointer. 
       static std::unique_ptr<Tensor> contract(std::unique_ptr<Tensor> t1u, std::unique_ptr<Tensor> t2u, const std::vector<qtnh::wire>& ws);
 
-      /// @brief Convert tensor to dense tensor format, which is most general. 
-      /// @param tu Unique pointer to the tensor. 
-      /// @return Unique pointer to equivalent dense tensor. 
-      static std::unique_ptr<Tensor> densify(std::unique_ptr<Tensor> tu) noexcept { 
-        return std::unique_ptr<Tensor>(tu->densify()); 
-      }
       /// @brief Swap indices on current tensor. 
       /// @param tu Unique pointer to the tensor. 
       /// @param idx1 First index to swap. 
@@ -137,62 +129,23 @@ namespace qtnh {
 
       Distributor dist_;  ///< Tensor distributor. 
 
-      /// @brief Convert tensor to dense tensor format, which is most general. 
-      /// @return Pointer to equivalent dense tensor. 
-      virtual Tensor* densify() noexcept;
-
       // ! The following methods only work if DenseTensor overrides all of them
       /// @brief Swap indices on current tensor. 
       /// @param idx1 First index to swap. 
       /// @param idx2 Second index to swap. 
       /// @return Pointer to swapped tensor, which might be of a different derived type. 
-      virtual Tensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) { 
-        return this->densify()->swap(idx1, idx2); 
-      }
+      virtual Tensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) = 0;
       /// @brief Redistribute current tensor. 
       /// @param stretch Number of times each local tensor chunk is repeated across contiguous processes. 
       /// @param cycles Number of times the entire tensor structure is repeated. 
       /// @param offset Number of empty processes before the tensor begins. 
       /// @return Pointer to redistributed tensor, which might be of a different derived type. 
-      virtual Tensor* redistribute(qtnh::uint stretch, qtnh::uint cycles, qtnh::uint offset) {
-        return this->densify()->redistribute(stretch, cycles, offset); 
-      }
+      virtual Tensor* redistribute(qtnh::uint stretch, qtnh::uint cycles, qtnh::uint offset) = 0;
       /// @brief Move local indices to distributed pile and distributed indices to local pile. 
       /// @param idx_locs Locations of indices to move. 
       /// @return Pointer to repiled tensor, which might be of a different derived type. 
-      virtual Tensor* repile(std::vector<qtnh::tidx_tup_st> idx_locs) {
-        return this->densify()->repile(idx_locs);
-      };
+      virtual Tensor* repile(std::vector<qtnh::tidx_tup_st> idx_locs) = 0;
   };
-
-  /// Virtual tensor class that allows writing into tensor elements. 
-  // class WritableTensor : public Tensor {
-  //   public:
-  //     WritableTensor(const WritableTensor&) = delete;
-  //     ~WritableTensor() = default;
-
-  //     using Tensor::operator[];
-
-  //     /// @brief Insert element on given local indices. 
-  //     /// @param idxs Tensor index tuple indicating local position to be updated. 
-  //     /// @param el Complex number to be written at the given position. 
-  //     ///
-  //     /// The index update is executed on all active ranks, and different values might be
-  //     /// passed to the method on different ranks. 
-  //     virtual qtnh::tel& operator[](const qtnh::tidx_tup& loc_idxs) = 0;
-  //     /// @brief Insert element on given global indices. 
-  //     /// @param idxs Tensor index tuple indicating global position to be updated. 
-  //     /// @param el Complex number to be written at the given position. 
-  //     ///
-  //     /// The index update is only executed on ranks that contain the global position. 
-  //     /// Other ranks are unaffacted by the write. 
-  //     virtual void insert(const qtnh::tidx_tup& tot_idxs, qtnh::tel el);
-
-    
-  //   protected:
-  //     /// Writable tensor constructor. 
-  //     WritableTensor() = default;
-  // };
 }
 
 #endif
