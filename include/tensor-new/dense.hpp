@@ -44,20 +44,28 @@ namespace qtnh {
       /// @param idx1 First index to swap. 
       /// @param idx2 Second index to swap. 
       /// @return Pointer to swapped tensor, which might be of a different derived type. 
-      virtual Tensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) override;
+      virtual Tensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) override {
+        return this->toDense()->swap(idx1, idx2);
+      }
       /// @brief Redistribute current tensor. 
       /// @param params Distribution parameters of the tensor (stretch, cycles, offset)
       /// @return Pointer to redistributed tensor, which might be of a different derived type. 
-      virtual Tensor* redistribute(DistParams params) override;
+      virtual Tensor* redistribute(DistParams params) override {
+        return this->toDense()->redistribute(params);
+      }
       /// @brief Move local indices to distributed pile and distributed indices to local pile. 
       /// @param idx_locs Locations of indices to move. 
       /// @return Pointer to re-piled tensor, which might be of a different derived type. 
-      virtual Tensor* repile(std::vector<qtnh::tidx_tup_st> idx_locs) override;
+      virtual Tensor* repile(std::vector<qtnh::tidx_tup_st> idx_locs) override {
+        return this->toDense()->repile(idx_locs);
+      }
   };
 
   /// Writable dense tensor class, which allows direct access to all elements. 
   class DenseTensor : public DenseTensorBase {
     public:
+      friend class DenseTensorBase;
+
       DenseTensor() = delete;
       DenseTensor(const DenseTensor&) = delete;
       ~DenseTensor() = default;
