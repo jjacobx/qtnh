@@ -42,15 +42,15 @@ namespace qtnh {
       /// @param idx1 First index to swap. 
       /// @param idx2 Second index to swap. 
       /// @return Pointer to swapped tensor, which might be of a different derived type. 
-      Tensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) override;
+      virtual Tensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) override;
       /// @brief Redistribute current tensor. 
       /// @param params Distribution parameters of the tensor (stretch, cycles, offset)
       /// @return Pointer to redistributed tensor, which might be of a different derived type. 
-      Tensor* redistribute(DistParams params) override;
+      virtual Tensor* redistribute(DistParams params) override;
       /// @brief Move local indices to distributed pile and distributed indices to local pile. 
       /// @param idx_locs Locations of indices to move. 
       /// @return Pointer to repiled tensor, which might be of a different derived type. 
-      Tensor* repile(std::vector<qtnh::tidx_tup_st> idx_locs) override;
+      virtual Tensor* repile(std::vector<qtnh::tidx_tup_st> idx_locs) override;
   };
 
     class DenseTensor : public DenseTensorBase {
@@ -84,7 +84,7 @@ namespace qtnh {
       /// This method requires ensuring the element is present (i.e. the tensor is active)
       /// on current rank. On all active ranks, it must return an element, but different ranks  
       /// might have different values. 
-      qtnh::tel operator[](const qtnh::tidx_tup& loc_idxs) const override;
+      virtual qtnh::tel operator[](const qtnh::tidx_tup& loc_idxs) const override;
       /// @brief Set element on given local indices. 
       /// @param idxs Tensor index tuple indicating local position to be updated. 
       ///
@@ -107,16 +107,17 @@ namespace qtnh {
       /// @param idx1 First index to swap. 
       /// @param idx2 Second index to swap. 
       /// @return Pointer to swapped tensor, which might be of a different derived type. 
-      Tensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) override;
+      virtual Tensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) override;
       /// @brief Redistribute current tensor. 
       /// @param params Distribution parameters of the tensor (stretch, cycles, offset)
       /// @return Pointer to redistributed tensor, which might be of a different derived type. 
-      Tensor* redistribute(DistParams params) override;
+      virtual Tensor* redistribute(DistParams params) override;
       /// @brief Move local indices to distributed pile and distributed indices to local pile. 
       /// @param idx_locs Locations of indices to move. 
       /// @return Pointer to repiled tensor, which might be of a different derived type. 
-      Tensor* repile(std::vector<qtnh::tidx_tup_st> idx_locs) override;
+      virtual Tensor* repile(std::vector<qtnh::tidx_tup_st> idx_locs) override;
 
+    private:
       std::vector<qtnh::tel> loc_els; ///< Local elements. 
   };
 }
