@@ -39,6 +39,19 @@ namespace qtnh {
 
       MPI_Comm_free(&active_comm);
     }
+
+  Tensor::Distributor& Tensor::Distributor::operator=(Distributor&& d) {
+    base = d.base;
+    stretch = d.stretch;
+    cycles = d.cycles;
+    offset = d.offset;
+
+    group_comm = MPI_COMM_NULL;
+    std::swap(group_comm, d.group_comm);
+
+    group_id = d.group_id;
+    active = d.active;
+  }
   
   // In case there is a limited communicator pool, they should be actively freed
   Tensor::Distributor::~Distributor() {

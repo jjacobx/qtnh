@@ -124,6 +124,8 @@ namespace qtnh {
         Distributor(const QTNHEnv& env, qtnh::uint base, DistParams params);
         ~Distributor();
 
+        Distributor& operator=(Distributor&& d) noexcept;
+
         /// @brief Helper to calculate span of the entire tensor across contiguous ranks. 
         /// @return Number of contiguous ranks that store the tensor. 
         qtnh::uint span() const noexcept { return stretch * base * cycles; }
