@@ -9,7 +9,7 @@ namespace qtnh {
   class SwapTensor;
 
   /// Symmetric tensor base virtual class, which restricts dense tensors by assuming dimensions can be split into equal input and output. 
-  /// While in/out local and distributed dimension may differ, the concatenaded in/out parts have to be exactly the same. 
+  /// While in/out local and distributed dimension may differ, the concatenated in/out parts have to be exactly the same. 
   class SymmTensorBase : public DenseTensorBase {
     public: 
       SymmTensorBase() = delete;
@@ -52,13 +52,13 @@ namespace qtnh {
       }
 
     protected:
-      /// @brief Construct empty tensor with given local and distributed dimensions within environment with default distribution paremeters. 
+      /// @brief Construct empty tensor with given local and distributed dimensions within environment with default distribution parameters. 
       /// @param env Environment to use for construction. 
       /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
       /// @param n_dis_in_dims Number of distributed input dimensions
       SymmTensorBase(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims);
-      /// @brief Construct empty tensor with given local and distributed dimensions within environment with given distribution paremeters. 
+      /// @brief Construct empty tensor with given local and distributed dimensions within environment with given distribution parameters. 
       /// @param env Environment to use for construction. 
       /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
@@ -81,7 +81,7 @@ namespace qtnh {
       virtual Tensor* redistribute(DistParams params) override;
       /// @brief Move local indices to distributed pile and distributed indices to local pile. 
       /// @param idx_locs Locations of indices to move. 
-      /// @return Pointer to repiled tensor, which might be of a different derived type. 
+      /// @return Pointer to re-piled tensor, which might be of a different derived type. 
       virtual Tensor* repile(std::vector<qtnh::tidx_tup_st> idx_locs) override;
 
       qtnh::tidx_tup_st n_dis_in_dims_;  ///< Number of distributed input dimensions. 
@@ -94,14 +94,14 @@ namespace qtnh {
       SymmTensor(const SymmTensor&) = delete;
       ~SymmTensor() = default;
 
-      /// @brief Construct empty tensor with given local and distributed dimensions within environment with default distribution paremeters. 
+      /// @brief Construct empty tensor with given local and distributed dimensions within environment with default distribution parameters. 
       /// @param env Environment to use for construction. 
       /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
       /// @param n_dis_in_dims Number of distributed input dimensions
       /// @param els Complex vector of local elements. 
       SymmTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, std::vector<qtnh::tel> els);
-      /// @brief Construct empty tensor with given local and distributed dimensions within environment with given distribution paremeters. 
+      /// @brief Construct empty tensor with given local and distributed dimensions within environment with given distribution parameters. 
       /// @param env Environment to use for construction. 
       /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
@@ -149,7 +149,7 @@ namespace qtnh {
       virtual Tensor* redistribute(DistParams params) override;
       /// @brief Move local indices to distributed pile and distributed indices to local pile. 
       /// @param idx_locs Locations of indices to move. 
-      /// @return Pointer to repiled tensor, which might be of a different derived type. 
+      /// @return Pointer to re-piled tensor, which might be of a different derived type. 
       virtual Tensor* repile(std::vector<qtnh::tidx_tup_st> idx_locs) override;
 
     private:
@@ -163,11 +163,11 @@ namespace qtnh {
       SwapTensor(const SymmTensor&) = delete;
       ~SwapTensor() = default;
 
-      /// @brief Construct rank 4 swap tensor with given single index size within environment with default distribution paremeters. 
+      /// @brief Construct rank 4 swap tensor with given single index size within environment with default distribution parameters. 
       /// @param env Environment to use for construction. 
       /// @param n Dimension of swapped indices (both are expected to have the same size)
       SwapTensor(const QTNHEnv& env, std::size_t n);
-      /// @brief Construct rank 4 swap tensor with given index size within environment with given distribution paremeters. 
+      /// @brief Construct rank 4 swap tensor with given index size within environment with given distribution parameters. 
       /// @param env Environment to use for construction. 
       /// @param n Dimension of swapped indices (both are expected to have the same size)
       /// @param params Distribution parameters of the tensor (stretch, cycles, offset)

@@ -26,13 +26,13 @@ namespace qtnh {
       }
 
     protected:
-      /// @brief Construct empty tensor with given local and distributed dimensions within environment with default distribution paremeters. 
+      /// @brief Construct empty tensor with given local and distributed dimensions within environment with default distribution parameters. 
       /// @param env Environment to use for construction. 
       /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
       /// @param n_dis_in_dims Number of distributed input dimensions
       DiagTensorBase(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims);
-      /// @brief Construct empty tensor with given local and distributed dimensions within environment with given distribution paremeters. 
+      /// @brief Construct empty tensor with given local and distributed dimensions within environment with given distribution parameters. 
       /// @param env Environment to use for construction. 
       /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
@@ -55,7 +55,7 @@ namespace qtnh {
       virtual Tensor* redistribute(DistParams params) override;
       /// @brief Move local indices to distributed pile and distributed indices to local pile. 
       /// @param idx_locs Locations of indices to move. 
-      /// @return Pointer to repiled tensor, which might be of a different derived type. 
+      /// @return Pointer to re-piled tensor, which might be of a different derived type. 
       virtual Tensor* repile(std::vector<qtnh::tidx_tup_st> idx_locs) override;
   };
 
@@ -67,14 +67,14 @@ namespace qtnh {
       DiagTensor(const DiagTensor&) = delete;
       ~DiagTensor() = default;
 
-      /// @brief Construct empty tensor with given local and distributed dimensions within environment with default distribution paremeters. 
+      /// @brief Construct empty tensor with given local and distributed dimensions within environment with default distribution parameters. 
       /// @param env Environment to use for construction. 
       /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
       /// @param n_dis_in_dims Number of distributed input dimensions
       /// @param diag_els Complex vector of local diagonal elements. 
       DiagTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, std::vector<qtnh::tel> diag_els);
-      /// @brief Construct empty tensor with given local and distributed dimensions within environment with given distribution paremeters. 
+      /// @brief Construct empty tensor with given local and distributed dimensions within environment with given distribution parameters. 
       /// @param env Environment to use for construction. 
       /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
@@ -123,7 +123,7 @@ namespace qtnh {
       virtual Tensor* redistribute(DistParams params) override;
       /// @brief Move local indices to distributed pile and distributed indices to local pile. 
       /// @param idx_locs Locations of indices to move. 
-      /// @return Pointer to repiled tensor, which might be of a different derived type. 
+      /// @return Pointer to re-piled tensor, which might be of a different derived type. 
       virtual Tensor* repile(std::vector<qtnh::tidx_tup_st> idx_locs) override;
 
     private: 

@@ -83,22 +83,22 @@ namespace qtnh {
       /// @brief Move local indices to distributed pile and distributed indices to local pile. 
       /// @param tu Unique pointer to the tensor. 
       /// @param idx_locs Locations of indices to move. 
-      /// @return Unique pointer to repiled tensor, which might be of a different derived type. 
+      /// @return Unique pointer to re-piled tensor, which might be of a different derived type. 
       static std::unique_ptr<Tensor> repile(std::unique_ptr<Tensor> tu, std::vector<qtnh::tidx_tup_st> idx_locs) {
         return std::unique_ptr<Tensor>(tu->repile(idx_locs));
       }
 
 
     protected:
-      /// @brief Construct empty tensor of zero size within environment and with default distribution paremeters. 
+      /// @brief Construct empty tensor of zero size within environment and with default distribution parameters. 
       /// @param env Environment to use for construction. 
       Tensor(const QTNHEnv& env);
-      /// @brief Construct empty tensor with given local and distributed dimensions within environment with default distribution paremeters. 
+      /// @brief Construct empty tensor with given local and distributed dimensions within environment with default distribution parameters. 
       /// @param env Environment to use for construction. 
       /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
       Tensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims);
-      /// @brief Construct empty tensor with given local and distributed dimensions within environment with given distribution paremeters. 
+      /// @brief Construct empty tensor with given local and distributed dimensions within environment with given distribution parameters. 
       /// @param env Environment to use for construction. 
       /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
@@ -145,7 +145,7 @@ namespace qtnh {
       virtual Tensor* redistribute(DistParams params) = 0;
       /// @brief Move local indices to distributed pile and distributed indices to local pile. 
       /// @param idx_locs Locations of indices to move. 
-      /// @return Pointer to repiled tensor, which might be of a different derived type. 
+      /// @return Pointer to re-piled tensor, which might be of a different derived type. 
       virtual Tensor* repile(std::vector<qtnh::tidx_tup_st> idx_locs) = 0;
   };
 }
