@@ -34,6 +34,7 @@ namespace qtnh {
       if (active) {
         int colour = (rel_id / (base * stretch)) * stretch + rel_id % stretch;
         MPI_Comm_split(active_comm, colour, rel_id, &group_comm);
+        MPI_Comm_rank(group_comm, &group_id);
       }
 
       MPI_Comm_free(&active_comm);

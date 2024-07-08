@@ -117,6 +117,7 @@ namespace qtnh {
 
         const QTNHEnv& env;   ///< Environment to use MPI/OpenMP in. 
         MPI_Comm group_comm;  ///< Communicator that contains exactly one copy of the tensor. 
+        int group_id;         ///< Rank ID within current group. 
         bool active;          ///< Flag whether the tensor is stored on calling MPI rank. 
 
         Distributor() = delete;

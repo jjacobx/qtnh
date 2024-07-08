@@ -51,11 +51,12 @@ namespace qtnh {
   }
 
   Tensor* DenseTensor::swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) {
+    if (!dist_.active) return;
     if (idx1 > idx2) std::swap(idx1, idx2);
 
     // Case: asymmetric swap
     if (totDims().at(idx1) != totDims().at(idx2)) {
-      throw std::runtime_error("Asymmetric swaps are not allowed");
+      throw std::runtime_error("Asymmetric swaps are currently not allowed");
     }
 
     #ifdef DEBUG
@@ -67,16 +68,12 @@ namespace qtnh {
 
     // Case: local swap
     if (idx1 >= dis_dims_.size()) {
-      if (dist_.active) _local_swap(this, idx1 - dis_dims_.size(), idx2 - dis_dims_.size());
+      _local_swap(this, idx1 - dis_dims_.size(), idx2 - dis_dims_.size());
       return;
     }
 
     // Case: mixed local/distributed swap
     if (idx1 < dis_dims_.size() && idx2 >= dis_dims_.size()) {
-      // Splitting communication causes global synchronisation
-      // Need to split active and inactive processes before quitting
-      if (!dist_.active) return;
-
       auto dims = totDims();
       qtnh::tidx_tup trail_dims(dims.begin() + idx2 + 1, dims.end());
       auto block_length = utils::dims_to_size(trail_dims);
@@ -88,10 +85,7 @@ namespace qtnh {
       qtnh::tidx_tup mid_dist_dims(dis_dims_.begin() + idx1 + 1, dis_dims_.end());
       auto dist_stride = utils::dims_to_size(mid_dist_dims);
 
-      int call_id;
-      MPI_Comm_rank(dist_.group_comm, &call_id);
-
-      auto dist_idxs = utils::i_to_idxs(call_id, dis_dims_);
+      auto dist_idxs = utils::i_to_idxs(dist_.group_id, dis_dims_);
       auto rank_idx = dist_idxs.at(idx1);
 
       MPI_Datatype strided, restrided;
@@ -100,11 +94,7 @@ namespace qtnh {
       MPI_Type_commit(&restrided);
 
       MPI_Comm swap_comm;
-      MPI_Comm_split(dist_.group_comm, call_id - rank_idx * dist_stride, call_id, &swap_comm);
-
-      int swap_rank, swap_size;
-      MPI_Comm_rank(swap_comm, &swap_rank);
-      MPI_Comm_size(swap_comm, &swap_size);
+      MPI_Comm_split(dist_.group_comm, dist_.group_id - rank_idx * dist_stride, dist_.group_id, &swap_comm);
 
       std::vector<qtnh::tel> new_els(loc_els.size());
       for (std::size_t i = 0; i < dims.at(idx1); ++i) {
@@ -123,12 +113,7 @@ namespace qtnh {
 
     // Case: distributed swap
     if (idx2 < dis_dims_.size()) {
-      if (!dist_.active) return;
-
-      int call_id;
-      MPI_Comm_rank(dist_.group_comm, &call_id);
-
-      auto target_idxs = utils::i_to_idxs(call_id, dis_dims_);
+      auto target_idxs = utils::i_to_idxs(dist_.group_id, dis_dims_);
       std::swap(target_idxs.at(idx1), target_idxs.at(idx2));
       auto target = utils::idxs_to_i(target_idxs, dis_dims_);
 
