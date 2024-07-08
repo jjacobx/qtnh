@@ -129,6 +129,46 @@ namespace qtnh {
     private: 
       std::vector<qtnh::tel> loc_diag_els;  ///< Local diagonal elements. 
   };
+
+  /// Identity diagonal tensor class. Has symmetric total dimensions and 1s on a diagonal – all other elements are zero. 
+  /// Can be used for making indices local/distributed by using different input/output local-distributed dimension splits. 
+  class IdenTensor : public DiagTensorBase {
+    public:
+      IdenTensor() = delete;
+      IdenTensor(const IdenTensor&) = delete;
+      ~IdenTensor() = default;
+
+      /// @brief Construct empty tensor with given local and distributed dimensions within environment with default distribution parameters. 
+      /// @param env Environment to use for construction. 
+      /// @param loc_dims Local index dimensions. 
+      /// @param dis_dims Distributed index dimensions. 
+      /// @param n_dis_in_dims Number of distributed input dimensions
+      IdenTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims);
+      /// @brief Construct empty tensor with given local and distributed dimensions within environment with given distribution parameters. 
+      /// @param env Environment to use for construction. 
+      /// @param loc_dims Local index dimensions. 
+      /// @param dis_dims Distributed index dimensions. 
+      /// @param n_dis_in_dims Number of distributed input dimensions
+      /// @param params Distribution parameters of the tensor (stretch, cycles, offset). 
+      IdenTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, DistParams params);
+
+      virtual TT type() const noexcept override { return TT::idenTensor; }
+
+      /// @brief Rank-unsafe method to get element and given local indices. 
+      /// @param idxs Tensor index tuple indicating local position of the element. 
+      /// @return Value of the element at given indices. Throws error if value is not present. 
+      ///
+      /// This method requires ensuring the element is present (i.e. the tensor is active)
+      /// on current rank. On all active ranks, it must return an element, but different ranks  
+      /// might have different values. 
+      virtual qtnh::tel operator[](const qtnh::tidx_tup& loc_idxs) const override;
+
+    protected:
+      /// @brief Redistribute current tensor. 
+      /// @param params Distribution parameters of the tensor (stretch, cycles, offset)
+      /// @return Pointer to redistributed tensor, which might be of a different derived type. 
+      virtual Tensor* redistribute(DistParams params) override;
+  };
 }
 
 #endif
