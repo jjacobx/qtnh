@@ -93,19 +93,19 @@ namespace qtnh {
       /// This method requires ensuring the element is present (i.e. the tensor is active)
       /// on current rank. On all active ranks, it must return an element, but different ranks  
       /// might have different values. 
-      virtual qtnh::tel operator[](const qtnh::tidx_tup& loc_idxs) const override;
+      virtual qtnh::tel operator[](qtnh::tidx_tup loc_idxs) const override;
       /// @brief Set element on given local indices. 
       /// @param idxs Tensor index tuple indicating local position to be updated. 
       ///
       /// The index update is executed on all active ranks, and different values might be
       /// passed to the method on different ranks. 
-      qtnh::tel& operator[](const qtnh::tidx_tup& loc_idxs);
+      qtnh::tel& operator[](qtnh::tidx_tup loc_idxs);
       /// @brief Set element on given global indices. 
-      /// @param idxs Tensor index tuple indicating local position to be updated. 
+      /// @param tot_idxs Tensor index tuple indicating global position to be updated. 
       /// @param el Complex number to be written at the given position. 
       ///
       /// The index update will do nothing on ranks that do not contain the element on given indices. 
-      void put(const qtnh::tidx_tup& loc_idxs, qtnh::tel el);
+      void put(qtnh::tidx_tup tot_idxs, qtnh::tel el);
     
     protected:
       /// @brief Convert any derived tensor to writable dense tensor. 
