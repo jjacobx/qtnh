@@ -173,6 +173,8 @@ namespace qtnh {
       /// @param params Distribution parameters of the tensor (stretch, cycles, offset)
       SwapTensor(const QTNHEnv& env, std::size_t n, DistParams params);
 
+      virtual TT type() const noexcept override { return TT::swapTensor; }
+
       /// @brief Rank-unsafe method to get element and given local indices. 
       /// @param idxs Tensor index tuple indicating local position of the element. 
       /// @return Value of the element at given indices. Throws error if value is not present. 
