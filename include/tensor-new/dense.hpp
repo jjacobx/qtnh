@@ -7,8 +7,7 @@ namespace qtnh {
   class DenseTensorBase;
   class DenseTensor;
 
-  /// Virtual tensor class which assumes that all elements are stored in a vector. 
-  /// Local elements can be the same on all ranks (shared tensor) or different (distributed tensor). 
+  /// Dense tensor base virtual class, which assumes that all local elements can be stored in a vector. 
   class DenseTensorBase : public Tensor {
     public:
       DenseTensorBase() = delete;
@@ -17,6 +16,9 @@ namespace qtnh {
 
       virtual TT type() const noexcept override { return TT::denseTensorBase; }
 
+      /// @brief Convert any derived tensor to writable dense tensor
+      /// @param tu Unique pointer to derived dense tensor to convert. 
+      /// @return Unique pointer to an equivalent writable dense tensor. 
       static std::unique_ptr<DenseTensor> toDense(std::unique_ptr<DenseTensorBase> tu) {
         return std::unique_ptr<DenseTensor>(tu->toDense());
       }
@@ -34,8 +36,8 @@ namespace qtnh {
       /// @param params Distribution parameters of the tensor (stretch, cycles, offset)
       DenseTensorBase(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, DistParams params);
 
-      /// @brief Convert tensor to dense tensor format, which is most general. 
-      /// @return Pointer to equivalent dense tensor. 
+      /// @brief Convert any derived tensor to writable dense tensor. 
+      /// @return Pointer to equivalent writable dense tensor. 
       virtual DenseTensor* toDense();
 
       /// @brief Swap indices on current tensor. 
@@ -53,7 +55,8 @@ namespace qtnh {
       virtual Tensor* repile(std::vector<qtnh::tidx_tup_st> idx_locs) override;
   };
 
-    class DenseTensor : public DenseTensorBase {
+  /// Writable dense tensor class, which allows direct access to all elements. 
+  class DenseTensor : public DenseTensorBase {
     public:
       DenseTensor() = delete;
       DenseTensor(const DenseTensor&) = delete;
@@ -72,8 +75,6 @@ namespace qtnh {
       /// @param els Complex vector of local elements. 
       /// @param params Distribution parameters of the tensor (stretch, cycles, offset)
       DenseTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, std::vector<qtnh::tel> els, DistParams params);
-
-      
 
       virtual TT type() const noexcept override { return TT::denseTensor; }
 
@@ -97,11 +98,10 @@ namespace qtnh {
       ///
       /// The index update will do nothing on ranks that do not contain the element on given indices. 
       void put(const qtnh::tidx_tup& loc_idxs, qtnh::tel el);
-
     
     protected:
-      /// @brief Convert tensor to dense tensor format, which is most general. 
-      /// @return Pointer to equivalent dense tensor. 
+      /// @brief Convert any derived tensor to writable dense tensor. 
+      /// @return Pointer to equivalent writable dense tensor. 
       virtual DenseTensor* toDense() noexcept override { return this; }
       /// @brief Swap indices on current tensor. 
       /// @param idx1 First index to swap. 
@@ -118,7 +118,7 @@ namespace qtnh {
       virtual Tensor* repile(std::vector<qtnh::tidx_tup_st> idx_locs) override;
 
     private:
-      std::vector<qtnh::tel> loc_els; ///< Local elements. 
+      std::vector<qtnh::tel> loc_els;  ///< Local elements. 
   };
 }
 

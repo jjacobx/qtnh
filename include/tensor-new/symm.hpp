@@ -8,6 +8,8 @@ namespace qtnh {
   class SymmTensor;
   class SwapTensor;
 
+  /// Symmetric tensor base virtual class, which restricts dense tensors by assuming dimensions can be split into equal input and output. 
+  /// While in/out local and distributed dimension may differ, the concatenaded in/out parts have to be exactly the same. 
   class SymmTensorBase : public DenseTensorBase {
     public: 
       SymmTensorBase() = delete;
@@ -16,26 +18,35 @@ namespace qtnh {
 
       virtual TT type() const noexcept override { return TT::symmTensorBase; }
 
+      /// Get distributed input dimensions. 
       qtnh::tidx_tup disInDims() const {
         return qtnh::tidx_tup(dis_dims_.begin(), dis_dims_.begin() + n_dis_in_dims_);
       }
+      /// Get local input dimensions. 
       qtnh::tidx_tup locInDims() const {
         return qtnh::tidx_tup(loc_dims_.begin(), loc_dims_.begin() + (loc_dims_.size() / 2) - n_dis_in_dims_);
       }
+      /// Get input dimensions, which must be equal to output dimensions. 
       qtnh::tidx_tup totInDims() const {
         return utils::concat_dims(disInDims(), locInDims());
       }
 
+      /// Get distributed output dimensions. 
       qtnh::tidx_tup disOutDims() const {
         return qtnh::tidx_tup(dis_dims_.begin() + n_dis_in_dims_, dis_dims_.end());
       }
+      /// Get local output dimensions. 
       qtnh::tidx_tup locOutDims() const {
         return qtnh::tidx_tup(loc_dims_.begin() + (loc_dims_.size() / 2) - n_dis_in_dims_, loc_dims_.end());
       }
+      /// Get output dimensions, which must be equal to input dimensions. 
       qtnh::tidx_tup totOutDims() const {
         return utils::concat_dims(disOutDims(), locOutDims());
       }
 
+      /// @brief Convert any derived tensor to writable symmetric tensor
+      /// @param tu Unique pointer to derived symmetric tensor to convert. 
+      /// @return Unique pointer to an equivalent writable symmetric tensor. 
       static std::unique_ptr<SymmTensor> toSymm(std::unique_ptr<SymmTensorBase> tu) {
         return std::unique_ptr<SymmTensor>(tu->toSymm());
       }
@@ -55,8 +66,8 @@ namespace qtnh {
       /// @param params Distribution parameters of the tensor (stretch, cycles, offset)
       SymmTensorBase(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, DistParams params);
 
-      /// @brief Convert any derived tensor to symmetric tensor
-      /// @return Symmetric tensor equivalent to calling tensor
+      /// @brief Convert any derived tensor to writable symmetric tensor
+      /// @return Pointer to an equivalent writable symmetric tensor. 
       virtual SymmTensor* toSymm();
 
       /// @brief Swap indices on current tensor. 
@@ -73,10 +84,10 @@ namespace qtnh {
       /// @return Pointer to repiled tensor, which might be of a different derived type. 
       virtual Tensor* repile(std::vector<qtnh::tidx_tup_st> idx_locs) override;
 
-      qtnh::tidx_tup_st n_dis_in_dims_;
+      qtnh::tidx_tup_st n_dis_in_dims_;  ///< Number of distributed input dimensions. 
   };
 
-  /// Writable general symmetric tensor class
+  /// Writable general symmetric tensor class, which allows direct access to all elements. Restrictions for symmetric tensors apply. 
   class SymmTensor : public SymmTensorBase {
     public:
       SymmTensor() = delete;
@@ -142,10 +153,10 @@ namespace qtnh {
       virtual Tensor* repile(std::vector<qtnh::tidx_tup_st> idx_locs) override;
 
     private:
-      std::vector<qtnh::tel> loc_els;
+      std::vector<qtnh::tel> loc_els;  ///< Local elements. 
   };
 
-  /// Symmetric swap tensor for swapping two indices with the same dimensions
+  /// Rank 4 symmetric swap tensor for swapping two indices with dimension n. The swap tensor must have dimensions (n, n, n, n). 
   class SwapTensor : public SymmTensorBase {
     public:
       SwapTensor() = delete;

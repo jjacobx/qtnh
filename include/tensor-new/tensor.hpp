@@ -8,6 +8,7 @@
 #include "core/utils.hpp"
 
 namespace qtnh {
+  /// General virtual tensor class
   class Tensor {
     protected:
       struct Distributor;
