@@ -46,14 +46,14 @@ namespace qtnh {
       /// This method requires ensuring the element is present (i.e. the tensor is active)
       /// on current rank. On all active ranks, it must return an element, but different ranks  
       /// might have different values. 
-      virtual qtnh::tel operator[](const qtnh::tidx_tup& loc_idxs) const = 0;
+      virtual qtnh::tel operator[](qtnh::tidx_tup loc_idxs) const = 0;
       /// @brief Fetch element at global indices and broadcast it to every rank. 
       /// @param idxs Tensor index tuple indicating global position of the element. 
       /// @return Value of the element at given indices. 
       ///
       /// This method doesn't require checking if the value is present or if the tensor is active. 
       /// Because of the broadcast, it is inefficient to use it too often. 
-      virtual qtnh::tel fetch(const qtnh::tidx_tup& tot_idxs) const;
+      virtual qtnh::tel fetch(qtnh::tidx_tup tot_idxs) const;
 
 
       /// @brief Contract two tensors via given wires. 

@@ -15,7 +15,7 @@ namespace qtnh {
     : dist_(env, utils::dims_to_size(dis_dims), params), loc_dims_(loc_dims), dis_dims_(dis_dims) {}
 
 
-  qtnh::tel Tensor::fetch(const qtnh::tidx_tup& tot_idxs) const {
+  qtnh::tel Tensor::fetch(qtnh::tidx_tup tot_idxs) const {
     // TODO: MPI_Send of nearest element
     auto [dis_idxs, loc_idxs] = utils::split_dims(tot_idxs, dis_dims_.size());
     return (*this)[loc_idxs]; // Temporary – return local element
@@ -43,20 +43,6 @@ namespace qtnh {
   Tensor::Distributor::~Distributor() {
     MPI_Comm_free(&group_comm);
   }
-  
-
-  // Tensor* Tensor::densify() noexcept {
-  //   std::vector<qtnh::tel> els;
-  //   els.reserve(locSize());
-
-  //   TIndexing ti(locDims());
-  //   for (auto idxs : ti) {
-  //     els.push_back((*this)[idxs]);
-  //   }
-
-  //   // ? Is it better to use local members or accessors? 
-  //   return new DenseTensor(dist_.env, loc_dims_, dis_dims_, els, dist_.stretch, dist_.cycles, dist_.offset);
-  // }
 
   namespace ops {
     std::ostream& operator<<(std::ostream& out, const Tensor& o) {
