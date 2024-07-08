@@ -133,7 +133,46 @@ namespace qtnh {
   }
 
   Tensor* DenseTensor::redistribute(DistParams params) {
-    // TODO
+    Distributor new_dist(dist_.env, dist_.base, params);
+    std::vector<MPI_Request> send_reqs(params.stretch * params.cycles);
+
+    if (dist_.active) {
+      std::vector<int> send_sources;
+      std::vector<int> send_targets;
+
+      for (int i = 0; i < dist_.stretch; ++i) {
+        for (int j = 0; j < dist_.cycles; ++j) {
+          send_sources.push_back(i + (dist_.base * j + dist_.group_id) * dist_.stretch + dist_.offset);
+        }
+      }
+
+      for (int i = 0; i < params.stretch; ++i) {
+        for (int j = 0; j < params.cycles; ++j) {
+          send_targets.push_back(i + (dist_.base * j + dist_.group_id) * params.stretch + params.offset);
+        }
+      }
+
+      // TODO: optimisation where if data is already present at target, it is not sent. 
+      if (dist_.env.proc_id == send_sources.at(0)) {
+        for (int i = 0; i < send_targets.size(); ++i) {
+          MPI_Isend(loc_els.data(), loc_els.size(), MPI_C_DOUBLE_COMPLEX, send_targets.at(i), 0, MPI_COMM_WORLD, &send_reqs.at(i));
+        }
+      }
+    }
+
+    std::vector<qtnh::tel> new_els(utils::dims_to_size(loc_dims_));
+    if (new_dist.active) {
+      int recv_source = new_dist.group_id * dist_.stretch + dist_.offset;
+      MPI_Recv(new_els.data(), new_els.size(), MPI_C_DOUBLE_COMPLEX, recv_source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      loc_els = std::move(new_els);
+    }
+
+    MPI_Waitall(send_reqs.size(), send_reqs.data(), MPI_STATUSES_IGNORE);
+
+    if (!new_dist.active) loc_els.clear();
+    dist_ = std::move(new_dist);
+
+    return this;
   }
 
   Tensor* DenseTensor::repile(std::vector<qtnh::tidx_tup_st> idx_locs) {
