@@ -18,14 +18,14 @@ namespace qtnh {
     }
 
     // ? Is it better to use local members or accessors? 
-    return new DenseTensor(dist_.env, loc_dims_, dis_dims_, els, DistParams { dist_.stretch, dist_.cycles, dist_.offset });
+    return new DenseTensor(dist_.env, loc_dims_, dis_dims_, std::move(els), DistParams { dist_.stretch, dist_.cycles, dist_.offset });
   }
 
-  DenseTensor::DenseTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, std::vector<qtnh::tel> els)
-    : DenseTensorBase(env, loc_dims, dis_dims), loc_els(els) {}
+  DenseTensor::DenseTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, std::vector<qtnh::tel>&& els)
+    : DenseTensorBase(env, loc_dims, dis_dims), loc_els(std::move(els)) {}
 
-  DenseTensor::DenseTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, std::vector<qtnh::tel> els, DistParams params)
-    : DenseTensorBase(env, loc_dims, dis_dims, params), loc_els(els) {}
+  DenseTensor::DenseTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, std::vector<qtnh::tel>&& els, DistParams params)
+    : DenseTensorBase(env, loc_dims, dis_dims, params), loc_els(std::move(els)) {}
 
   qtnh::tel DenseTensor::operator[](qtnh::tidx_tup loc_idxs) const {
     auto i = utils::idxs_to_i(loc_idxs, loc_dims_);
