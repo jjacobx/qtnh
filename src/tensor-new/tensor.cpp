@@ -1,9 +1,7 @@
 #include <iomanip>
 #include <mpi.h>
 
-#include "core/utils.hpp"
-#include "tensor/base2.hpp"
-#include "tensor/dense2.hpp"
+#include "tensor-new/tensor.hpp"
 #include "tensor/indexing.hpp"
 
 namespace qtnh {
@@ -11,10 +9,10 @@ namespace qtnh {
     : Tensor(env, qtnh::tidx_tup(), qtnh::tidx_tup()) {}
 
   Tensor::Tensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims)
-    : Tensor(env, loc_dims, dis_dims, 1, 1, 0) {}
+    : Tensor(env, loc_dims, dis_dims, DistParams { 1, 1, 0 }) {}
 
-  Tensor::Tensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::uint stretch, qtnh::uint cycles, qtnh::uint offset)
-    : dist_(env, stretch, cycles, offset, utils::dims_to_size(dis_dims)), loc_dims_(loc_dims), dis_dims_(dis_dims) {}
+  Tensor::Tensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, DistParams params)
+    : dist_(env, utils::dims_to_size(dis_dims), params), loc_dims_(loc_dims), dis_dims_(dis_dims) {}
 
 
   qtnh::tel Tensor::fetch(const qtnh::tidx_tup& tot_idxs) const {
@@ -23,8 +21,8 @@ namespace qtnh {
     return (*this)[loc_idxs]; // Temporary – return local element
   }
 
-  qtnh::Tensor::Distributor::Distributor(const QTNHEnv &env, qtnh::uint stretch, qtnh::uint cycles, qtnh::uint offset, qtnh::uint base) 
-    : env(env), stretch(stretch), cycles(cycles), offset(offset), base(base) {
+  Tensor::Distributor::Distributor(const QTNHEnv &env, qtnh::uint base, DistParams params) 
+    : env(env), base(base), stretch(params.stretch), cycles(params.cycles), offset(params.offset) {
       int rel_id = env.proc_id - offset; // ! relative ID may be negative
       active = (rel_id >= 0) && (rel_id < stretch * cycles * base);
       
@@ -37,20 +35,28 @@ namespace qtnh {
         int colour = (rel_id / (base * stretch)) * stretch + rel_id % stretch;
         MPI_Comm_split(active_comm, colour, rel_id, &group_comm);
       }
+
+      MPI_Comm_free(&active_comm);
     }
-
-  Tensor* Tensor::densify() noexcept {
-    std::vector<qtnh::tel> els;
-    els.reserve(locSize());
-
-    TIndexing ti(locDims());
-    for (auto idxs : ti) {
-      els.push_back((*this)[idxs]);
-    }
-
-    // ? Is it better to use local members or accessors? 
-    return new DenseTensor(dist_.env, loc_dims_, dis_dims_, els, dist_.stretch, dist_.cycles, dist_.offset);
+  
+  // In case there is a limited communicator pool, they should be actively freed
+  Tensor::Distributor::~Distributor() {
+    MPI_Comm_free(&group_comm);
   }
+  
+
+  // Tensor* Tensor::densify() noexcept {
+  //   std::vector<qtnh::tel> els;
+  //   els.reserve(locSize());
+
+  //   TIndexing ti(locDims());
+  //   for (auto idxs : ti) {
+  //     els.push_back((*this)[idxs]);
+  //   }
+
+  //   // ? Is it better to use local members or accessors? 
+  //   return new DenseTensor(dist_.env, loc_dims_, dis_dims_, els, dist_.stretch, dist_.cycles, dist_.offset);
+  // }
 
   namespace ops {
     std::ostream& operator<<(std::ostream& out, const Tensor& o) {

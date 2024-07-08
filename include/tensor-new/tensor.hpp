@@ -1,15 +1,14 @@
-#ifndef _TENSOR__BASE2_HPP
-#define _TENSOR__BASE2_HPP
+#ifndef _TENSOR_NEW__TENSOR_HPP
+#define _TENSOR_NEW__TENSOR_HPP
 
 #include <memory>
 
-#include "../core/env.hpp"
-#include "../core/typedefs.hpp"
-#include "../core/utils.hpp"
+#include "core/env.hpp"
+#include "core/typedefs.hpp"
+#include "core/utils.hpp"
 
 namespace qtnh {
-  // class DenseTensor; 
-
+  /// General virtual tensor class
   class Tensor {
     protected:
       struct Distributor;
@@ -18,24 +17,27 @@ namespace qtnh {
       Tensor() = delete;
       Tensor(const Tensor&) = delete;
       ~Tensor() = default;
+
+      // This can be made constexpr in C++ 20
+      virtual TT type() const noexcept { return TT::tensor; }
       
-      const qtnh::tidx_tup& locDims() const noexcept { return loc_dims_; }
-      const qtnh::tidx_tup& disDims() const noexcept { return dis_dims_; }
+      qtnh::tidx_tup locDims() const noexcept { return loc_dims_; }
+      qtnh::tidx_tup disDims() const noexcept { return dis_dims_; }
       const Distributor& dist() const noexcept { return dist_; }
       
       /// @brief Helper to access complete tensor dimensions. 
       /// @return Concatenated distributed and local dimensions. 
-      const qtnh::tidx_tup& totDims() const noexcept { return utils::concat_dims(dis_dims_, loc_dims_); }
+      qtnh::tidx_tup totDims() const { return utils::concat_dims(dis_dims_, loc_dims_); }
       
       /// @brief Helper to calculate size of the local part of the tensor. 
-      /// @return Number of local eements in the tensor. 
-      std::size_t locSize() const noexcept { return utils::dims_to_size(loc_dims_); }
+      /// @return Number of local elements in the tensor. 
+      std::size_t locSize() const { return utils::dims_to_size(loc_dims_); }
       /// @brief Helper to calculate size of the distributed part of the tensor. 
       /// @return Number of ranks to which one instance of the tensor is distributed. 
-      std::size_t disSize() const noexcept { return utils::dims_to_size(dis_dims_); }
+      std::size_t disSize() const { return utils::dims_to_size(dis_dims_); }
       /// @brief Helper to calculate size of the entire tensor. 
       /// @return Number of elements in the entire tensor. 
-      std::size_t totSize() const noexcept { return utils::dims_to_size(totDims()); }
+      std::size_t totSize() const { return utils::dims_to_size(totDims()); }
 
       /// @brief Rank-unsafe method to get element and given local indices. 
       /// @param idxs Tensor index tuple indicating local position of the element. 
@@ -61,12 +63,6 @@ namespace qtnh {
       /// @return Contracted tensor unique pointer. 
       static std::unique_ptr<Tensor> contract(std::unique_ptr<Tensor> t1u, std::unique_ptr<Tensor> t2u, const std::vector<qtnh::wire>& ws);
 
-      /// @brief Convert tensor to dense tensor format, which is most general. 
-      /// @param tu Unique pointer to the tensor. 
-      /// @return Unique pointer to equivalent dense tensor. 
-      static std::unique_ptr<Tensor> densify(std::unique_ptr<Tensor> tu) noexcept { 
-        return std::unique_ptr<Tensor>(tu->densify()); 
-      }
       /// @brief Swap indices on current tensor. 
       /// @param tu Unique pointer to the tensor. 
       /// @param idx1 First index to swap. 
@@ -81,35 +77,33 @@ namespace qtnh {
       /// @param cycles Number of times the entire tensor structure is repeated. 
       /// @param offset Number of empty processes before the tensor begins. 
       /// @return Unique pointer to redistributed tensor, which might be of a different derived type. 
-      static std::unique_ptr<Tensor> redistribute(std::unique_ptr<Tensor> tu, qtnh::uint stretch, qtnh::uint cycles, qtnh::uint offset) {
-        return std::unique_ptr<Tensor>(tu->redistribute(stretch, cycles, offset));
+      static std::unique_ptr<Tensor> redistribute(std::unique_ptr<Tensor> tu, DistParams params) {
+        return std::unique_ptr<Tensor>(tu->redistribute(params));
       }
       /// @brief Move local indices to distributed pile and distributed indices to local pile. 
       /// @param tu Unique pointer to the tensor. 
       /// @param idx_locs Locations of indices to move. 
-      /// @return Unique pointer to repiled tensor, which might be of a different derived type. 
+      /// @return Unique pointer to re-piled tensor, which might be of a different derived type. 
       static std::unique_ptr<Tensor> repile(std::unique_ptr<Tensor> tu, std::vector<qtnh::tidx_tup_st> idx_locs) {
         return std::unique_ptr<Tensor>(tu->repile(idx_locs));
       }
 
 
     protected:
-      /// @brief Construct empty tensor of zero size within environment and with default distribution paremeters. 
+      /// @brief Construct empty tensor of zero size within environment and with default distribution parameters. 
       /// @param env Environment to use for construction. 
       Tensor(const QTNHEnv& env);
-      /// @brief Construct empty tensor with given local and distributed dimensions within environment with default distribution paremeters. 
+      /// @brief Construct empty tensor with given local and distributed dimensions within environment with default distribution parameters. 
       /// @param env Environment to use for construction. 
       /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
       Tensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims);
-      /// @brief Construct empty tensor with given local and distributed dimensions within environment with given distribution paremeters. 
+      /// @brief Construct empty tensor with given local and distributed dimensions within environment with given distribution parameters. 
       /// @param env Environment to use for construction. 
       /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
-      /// @param stretch Number of times each local tensor chunk is repeated across contiguous processes. 
-      /// @param cycles Number of times the entire tensor structure is repeated. 
-      /// @param offset Number of empty processes before the tensor begins. 
-      Tensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::uint stretch, qtnh::uint cycles, qtnh::uint offset);
+      /// @param params Distribution parameters of the tensor (stretch, cycles, offset)
+      Tensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, DistParams params);
 
       qtnh::tidx_tup loc_dims_;  ///< Local index dimensions. 
       qtnh::tidx_tup dis_dims_;  ///< Distributed index dimensions. 
@@ -125,7 +119,9 @@ namespace qtnh {
         MPI_Comm group_comm;  ///< Communicator that contains exactly one copy of the tensor. 
         bool active;          ///< Flag whether the tensor is stored on calling MPI rank. 
 
-        Distributor(const QTNHEnv& env, qtnh::uint stretch, qtnh::uint cycles, qtnh::uint offset, qtnh::uint base);
+        Distributor() = delete;
+        Distributor(const QTNHEnv& env, qtnh::uint base, DistParams params);
+        ~Distributor();
 
         /// @brief Helper to calculate span of the entire tensor across contiguous ranks. 
         /// @return Number of contiguous ranks that store the tensor. 
@@ -137,61 +133,20 @@ namespace qtnh {
 
       Distributor dist_;  ///< Tensor distributor. 
 
-      /// @brief Convert tensor to dense tensor format, which is most general. 
-      /// @return Pointer to equivalent dense tensor. 
-      virtual Tensor* densify() noexcept;
-
       // ! The following methods only work if DenseTensor overrides all of them
       /// @brief Swap indices on current tensor. 
       /// @param idx1 First index to swap. 
       /// @param idx2 Second index to swap. 
       /// @return Pointer to swapped tensor, which might be of a different derived type. 
-      virtual Tensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) { 
-        return this->densify()->swap(idx1, idx2); 
-      }
+      virtual Tensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) = 0;
       /// @brief Redistribute current tensor. 
-      /// @param stretch Number of times each local tensor chunk is repeated across contiguous processes. 
-      /// @param cycles Number of times the entire tensor structure is repeated. 
-      /// @param offset Number of empty processes before the tensor begins. 
+      /// @param params Distribution parameters of the tensor (stretch, cycles, offset)
       /// @return Pointer to redistributed tensor, which might be of a different derived type. 
-      virtual Tensor* redistribute(qtnh::uint stretch, qtnh::uint cycles, qtnh::uint offset) {
-        return this->densify()->redistribute(stretch, cycles, offset); 
-      }
+      virtual Tensor* redistribute(DistParams params) = 0;
       /// @brief Move local indices to distributed pile and distributed indices to local pile. 
       /// @param idx_locs Locations of indices to move. 
-      /// @return Pointer to repiled tensor, which might be of a different derived type. 
-      virtual Tensor* repile(std::vector<qtnh::tidx_tup_st> idx_locs) {
-        return this->densify()->repile(idx_locs);
-      };
-  };
-
-  /// Virtual tensor class that allows writing into tensor elements. 
-  class WritableTensor : public Tensor {
-    public:
-      WritableTensor(const WritableTensor&) = delete;
-      ~WritableTensor() = default;
-
-      using Tensor::operator[];
-
-      /// @brief Insert element on given local indices. 
-      /// @param idxs Tensor index tuple indicating local position to be updated. 
-      /// @param el Complex number to be written at the given position. 
-      ///
-      /// The index update is executed on all active ranks, and different values might be
-      /// passed to the method on different ranks. 
-      virtual qtnh::tel& operator[](const qtnh::tidx_tup& loc_idxs) = 0;
-      /// @brief Insert element on given global indices. 
-      /// @param idxs Tensor index tuple indicating global position to be updated. 
-      /// @param el Complex number to be written at the given position. 
-      ///
-      /// The index update is only executed on ranks that contain the global position. 
-      /// Other ranks are unaffacted by the write. 
-      virtual void insert(const qtnh::tidx_tup& tot_idxs, qtnh::tel el);
-
-    
-    protected:
-      /// Writable tensor constructor. 
-      WritableTensor() = default;
+      /// @return Pointer to re-piled tensor, which might be of a different derived type. 
+      virtual Tensor* repile(std::vector<qtnh::tidx_tup_st> idx_locs) = 0;
   };
 }
 
