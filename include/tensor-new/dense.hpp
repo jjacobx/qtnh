@@ -115,7 +115,7 @@ namespace qtnh {
       /// @param idx1 First index to swap. 
       /// @param idx2 Second index to swap. 
       /// @return Pointer to swapped tensor, which might be of a different derived type. 
-      virtual Tensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) override;
+      virtual DenseTensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) override;
       /// @brief Redistribute current tensor. 
       /// @param params Distribution parameters of the tensor (stretch, cycles, offset)
       /// @return Pointer to redistributed tensor, which might be of a different derived type. 

@@ -50,7 +50,7 @@ namespace qtnh {
     }
   }
 
-  Tensor* DenseTensor::swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) {
+  DenseTensor* DenseTensor::swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) {
     if (!dist_.active) return;
     if (idx1 > idx2) std::swap(idx1, idx2);
 
@@ -176,7 +176,23 @@ namespace qtnh {
   }
 
   Tensor* DenseTensor::repile(std::vector<qtnh::tidx_tup_st> idx_locs) {
-    // TODO
+    std::vector<qtnh::tidx_tup_st> dis_idx_locs;
+    std::vector<qtnh::tidx_tup_st> loc_idx_locs;
+    
+    for (auto l : idx_locs) {
+      if (l < dis_dims_.size()) {
+        dis_idx_locs.push_back(l);
+      } else {
+        loc_idx_locs.push_back(l);
+      }
+    }
+
+    DenseTensor* tp = this;
+    for (int i = 0; i < std::min(dis_idx_locs.size(), loc_idx_locs.size()); ++i) {
+      tp = tp->swap(dis_idx_locs.at(i), loc_idx_locs.at(i));
+    }
+
+    int diff = dis_idx_locs.size() - loc_idx_locs.size();
   }
 
   void _local_swap(DenseTensor* tp, qtnh::tidx_tup_st loc_idx1, qtnh::tidx_tup_st loc_idx2) {
