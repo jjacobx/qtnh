@@ -76,6 +76,7 @@ namespace qtnh {
       qtnh::tidx_tup_st n_dis_in_dims_;
   };
 
+  /// Writable general symmetric tensor class
   class SymmTensor : public SymmTensorBase {
     public:
       SymmTensor() = delete;
@@ -142,6 +143,39 @@ namespace qtnh {
 
     private:
       std::vector<qtnh::tel> loc_els;
+  };
+
+  /// Symmetric swap tensor for swapping two indices with the same dimensions
+  class SwapTensor : public SymmTensorBase {
+    public:
+      SwapTensor() = delete;
+      SwapTensor(const SymmTensor&) = delete;
+      ~SwapTensor() = default;
+
+      /// @brief Construct rank 4 swap tensor with given single index size within environment with default distribution paremeters. 
+      /// @param env Environment to use for construction. 
+      /// @param n Dimension of swapped indices (both are expected to have the same size)
+      SwapTensor(const QTNHEnv& env, std::size_t n);
+      /// @brief Construct rank 4 swap tensor with given index size within environment with given distribution paremeters. 
+      /// @param env Environment to use for construction. 
+      /// @param n Dimension of swapped indices (both are expected to have the same size)
+      /// @param params Distribution parameters of the tensor (stretch, cycles, offset)
+      SwapTensor(const QTNHEnv& env, std::size_t n, DistParams params);
+
+      /// @brief Rank-unsafe method to get element and given local indices. 
+      /// @param idxs Tensor index tuple indicating local position of the element. 
+      /// @return Value of the element at given indices. Throws error if value is not present. 
+      ///
+      /// This method requires ensuring the element is present (i.e. the tensor is active)
+      /// on current rank. On all active ranks, it must return an element, but different ranks  
+      /// might have different values. 
+      virtual qtnh::tel operator[](const qtnh::tidx_tup& loc_idxs) const override;
+
+    protected:
+      /// @brief Redistribute current tensor. 
+      /// @param params Distribution parameters of the tensor (stretch, cycles, offset)
+      /// @return Pointer to redistributed tensor, which might be of a different derived type. 
+      virtual Tensor* redistribute(DistParams params) override;
   };
 }
 
