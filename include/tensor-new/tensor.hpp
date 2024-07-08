@@ -118,7 +118,9 @@ namespace qtnh {
         MPI_Comm group_comm;  ///< Communicator that contains exactly one copy of the tensor. 
         bool active;          ///< Flag whether the tensor is stored on calling MPI rank. 
 
+        Distributor() = delete;
         Distributor(const QTNHEnv& env, qtnh::uint base, DistParams params);
+        ~Distributor();
 
         /// @brief Helper to calculate span of the entire tensor across contiguous ranks. 
         /// @return Number of contiguous ranks that store the tensor. 

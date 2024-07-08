@@ -21,7 +21,7 @@ namespace qtnh {
     return (*this)[loc_idxs]; // Temporary – return local element
   }
 
-  qtnh::Tensor::Distributor::Distributor(const QTNHEnv &env, qtnh::uint base, DistParams params) 
+  Tensor::Distributor::Distributor(const QTNHEnv &env, qtnh::uint base, DistParams params) 
     : env(env), base(base), stretch(params.stretch), cycles(params.cycles), offset(params.offset) {
       int rel_id = env.proc_id - offset; // ! relative ID may be negative
       active = (rel_id >= 0) && (rel_id < stretch * cycles * base);
@@ -35,7 +35,15 @@ namespace qtnh {
         int colour = (rel_id / (base * stretch)) * stretch + rel_id % stretch;
         MPI_Comm_split(active_comm, colour, rel_id, &group_comm);
       }
+
+      MPI_Comm_free(&active_comm);
     }
+  
+  // In case there is a limited communicator pool, they should be actively freed
+  Tensor::Distributor::~Distributor() {
+    MPI_Comm_free(&group_comm);
+  }
+  
 
   // Tensor* Tensor::densify() noexcept {
   //   std::vector<qtnh::tel> els;
