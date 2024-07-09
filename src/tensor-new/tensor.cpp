@@ -9,10 +9,10 @@ namespace qtnh {
     : Tensor(env, qtnh::tidx_tup(), qtnh::tidx_tup()) {}
 
   Tensor::Tensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims)
-    : Tensor(env, loc_dims, dis_dims, DistParams { 1, 1, 0 }) {}
+    : Tensor(env, loc_dims, dis_dims, BcParams { 1, 1, 0 }) {}
 
-  Tensor::Tensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, DistParams params)
-    : dist_(env, utils::dims_to_size(dis_dims), params), loc_dims_(loc_dims), dis_dims_(dis_dims) {}
+  Tensor::Tensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, BcParams params)
+    : bc_(env, utils::dims_to_size(dis_dims), params), loc_dims_(loc_dims), dis_dims_(dis_dims) {}
 
 
   qtnh::tel Tensor::fetch(qtnh::tidx_tup tot_idxs) const {
@@ -21,10 +21,10 @@ namespace qtnh {
     return (*this)[loc_idxs]; // Temporary – return local element
   }
 
-  Tensor::Distributor::Distributor(const QTNHEnv &env, qtnh::uint base, DistParams params) 
-    : env(env), base(base), stretch(params.stretch), cycles(params.cycles), offset(params.offset) {
-      int rel_id = env.proc_id - offset; // ! relative ID may be negative
-      active = (rel_id >= 0) && (rel_id < stretch * cycles * base);
+  Tensor::Broadcaster::Broadcaster(const QTNHEnv &env, qtnh::uint base, BcParams params) 
+    : env(env), base(base), str(params.str), cyc(params.cyc), off(params.off) {
+      int rel_id = env.proc_id - off; // ! relative ID may be negative
+      active = (rel_id >= 0) && (rel_id < str * cyc * base);
       
       // Group active ranks into a single communicator
       MPI_Comm active_comm;
@@ -32,7 +32,7 @@ namespace qtnh {
 
       // Group communicator will be uninitialised on inactive ranks
       if (active) {
-        int colour = (rel_id / (base * stretch)) * stretch + rel_id % stretch;
+        int colour = (rel_id / (base * str)) * str + rel_id % str;
         MPI_Comm_split(active_comm, colour, rel_id, &group_comm);
         MPI_Comm_rank(group_comm, &group_id);
       }
@@ -40,21 +40,21 @@ namespace qtnh {
       MPI_Comm_free(&active_comm);
     }
 
-  Tensor::Distributor& Tensor::Distributor::operator=(Distributor&& d) {
-    base = d.base;
-    stretch = d.stretch;
-    cycles = d.cycles;
-    offset = d.offset;
+  Tensor::Broadcaster& Tensor::Broadcaster::operator=(Broadcaster&& b) {
+    base = b.base;
+    str = b.str;
+    cyc = b.cyc;
+    off = b.off;
 
     group_comm = MPI_COMM_NULL;
-    std::swap(group_comm, d.group_comm);
+    std::swap(group_comm, b.group_comm);
 
-    group_id = d.group_id;
-    active = d.active;
+    group_id = b.group_id;
+    active = b.active;
   }
   
   // In case there is a limited communicator pool, they should be actively freed
-  Tensor::Distributor::~Distributor() {
+  Tensor::Broadcaster::~Broadcaster() {
     MPI_Comm_free(&group_comm);
   }
 

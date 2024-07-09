@@ -11,7 +11,7 @@ namespace qtnh {
   /// General virtual tensor class
   class Tensor {
     protected:
-      struct Distributor;
+      struct Broadcaster;
 
     public:
       Tensor() = delete;
@@ -23,7 +23,7 @@ namespace qtnh {
       
       qtnh::tidx_tup locDims() const noexcept { return loc_dims_; }
       qtnh::tidx_tup disDims() const noexcept { return dis_dims_; }
-      const Distributor& dist() const noexcept { return dist_; }
+      const Broadcaster& dist() const noexcept { return bc_; }
       
       /// @brief Helper to access complete tensor dimensions. 
       /// @return Concatenated distributed and local dimensions. 
@@ -73,19 +73,19 @@ namespace qtnh {
       }
       /// @brief Redistribute tensor to a different distribution pattern. 
       /// @param tu Unique pointer to the tensor. 
-      /// @param stretch Number of times each local tensor chunk is repeated across contiguous processes. 
-      /// @param cycles Number of times the entire tensor structure is repeated. 
-      /// @param offset Number of empty processes before the tensor begins. 
+      /// @param str Number of times each local tensor chunk is repeated across contiguous processes. 
+      /// @param cyc Number of times the entire tensor structure is repeated. 
+      /// @param off Number of empty processes before the tensor begins. 
       /// @return Unique pointer to redistributed tensor, which might be of a different derived type. 
-      static std::unique_ptr<Tensor> redistribute(std::unique_ptr<Tensor> tu, DistParams params) {
-        return std::unique_ptr<Tensor>(tu->redistribute(params));
+      static std::unique_ptr<Tensor> rebcast(std::unique_ptr<Tensor> tu, BcParams params) {
+        return std::unique_ptr<Tensor>(tu->rebcast(params));
       }
       /// @brief Move local indices to distributed pile and distributed indices to local pile. 
       /// @param tu Unique pointer to the tensor. 
       /// @param idx_i Locations of the index to move. 
       /// @return Unique pointer to re-piled tensor, which might be of a different derived type. 
-      static std::unique_ptr<Tensor> repile(std::unique_ptr<Tensor> tu, qtnh::tidx_tup_st idx_i) {
-        return std::unique_ptr<Tensor>(tu->repile(idx_i));
+      static std::unique_ptr<Tensor> rescatter(std::unique_ptr<Tensor> tu, qtnh::tidx_tup_st idx_i) {
+        return std::unique_ptr<Tensor>(tu->rescatter(idx_i));
       }
 
 
@@ -102,39 +102,39 @@ namespace qtnh {
       /// @param env Environment to use for construction. 
       /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
-      /// @param params Distribution parameters of the tensor (stretch, cycles, offset)
-      Tensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, DistParams params);
+      /// @param params Distribution parameters of the tensor (str, cyc, off)
+      Tensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, BcParams params);
 
       qtnh::tidx_tup loc_dims_;  ///< Local index dimensions. 
       qtnh::tidx_tup dis_dims_;  ///< Distributed index dimensions. 
 
-      /// @brief Tensor distributor class responsible for handling how tensor is stored in distributed memory. 
-      struct Distributor {
-        qtnh::uint stretch;  ///< Number of times each local tensor chunk is repeated across contiguous processes. 
-        qtnh::uint cycles;   ///< Number of times the entire tensor structure is repeated. 
-        qtnh::uint offset;   ///< Number of empty processes before the tensor begins. 
-        qtnh::uint base;     ///< Base distributed size of the tensor. 
+      /// @brief Tensor broadcaster class responsible for handling how tensor is shared in distributed memory. 
+      struct Broadcaster {
+        qtnh::uint str;   ///< Number of times each local tensor chunk is repeated across contiguous processes. 
+        qtnh::uint cyc;   ///< Number of times the entire tensor structure is repeated. 
+        qtnh::uint off;   ///< Number of empty processes before the tensor begins. 
+        qtnh::uint base;  ///< Base distributed size of the tensor. 
 
         const QTNHEnv& env;   ///< Environment to use MPI/OpenMP in. 
         MPI_Comm group_comm;  ///< Communicator that contains exactly one copy of the tensor. 
         int group_id;         ///< Rank ID within current group. 
         bool active;          ///< Flag whether the tensor is stored on calling MPI rank. 
 
-        Distributor() = delete;
-        Distributor(const QTNHEnv& env, qtnh::uint base, DistParams params);
-        ~Distributor();
+        Broadcaster() = delete;
+        Broadcaster(const QTNHEnv& env, qtnh::uint base, BcParams params);
+        ~Broadcaster();
 
-        Distributor& operator=(Distributor&& d) noexcept;
+        Broadcaster& operator=(Broadcaster&& b) noexcept;
 
         /// @brief Helper to calculate span of the entire tensor across contiguous ranks. 
         /// @return Number of contiguous ranks that store the tensor. 
-        qtnh::uint span() const noexcept { return stretch * base * cycles; }
+        qtnh::uint span() const noexcept { return str * base * cyc; }
         /// @brief Helper to calculate between which ranks the tensor is contained. 
         /// @return A tuple containing first and last rank that store the tensor. 
-        std::pair<qtnh::uint, qtnh::uint> range() const noexcept { return { offset, offset + span() }; }
+        std::pair<qtnh::uint, qtnh::uint> range() const noexcept { return { off, off + span() }; }
       };
 
-      Distributor dist_;  ///< Tensor distributor. 
+      Broadcaster bc_;  ///< Tensor distributor. 
 
       // ! The following methods only work if DenseTensor overrides all of them
       /// @brief Swap indices on current tensor. 
@@ -143,13 +143,13 @@ namespace qtnh {
       /// @return Pointer to swapped tensor, which might be of a different derived type. 
       virtual Tensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) = 0;
       /// @brief Redistribute current tensor. 
-      /// @param params Distribution parameters of the tensor (stretch, cycles, offset)
+      /// @param params Distribution parameters of the tensor (str, cyc, off)
       /// @return Pointer to redistributed tensor, which might be of a different derived type. 
-      virtual Tensor* redistribute(DistParams params) = 0;
+      virtual Tensor* rebcast(BcParams params) = 0;
       /// @brief Move local indices to distributed pile and distributed indices to local pile. 
       /// @param idx_i Location of the index to move. 
       /// @return Pointer to re-piled tensor, which might be of a different derived type. 
-      virtual Tensor* repile(qtnh::tidx_tup_st idx_i) = 0;
+      virtual Tensor* rescatter(qtnh::tidx_tup_st idx_i) = 0;
   };
 }
 

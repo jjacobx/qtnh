@@ -37,15 +37,15 @@ namespace qtnh {
 
   typedef std::pair<qtnh::tidx_tup_st, qtnh::tidx_tup_st> wire; ///< A pair of contracted indices. 
 
-  /// Distribution parameters container for distributing tensors across processes
-  struct DistParams {
-    qtnh::uint stretch;  ///< Number of times each local tensor chunk is repeated across contiguous processes. 
-    qtnh::uint cycles;   ///< Number of times the entire tensor structure is repeated. 
-    qtnh::uint offset;   ///< Number of empty processes before the tensor begins. 
+  /// Broadcaster parameters container for sharing tensors across processes
+  struct BcParams {
+    qtnh::uint str;  ///< Number of times each local tensor chunk is repeated across contiguous processes. 
+    qtnh::uint cyc;  ///< Number of times the entire tensor structure is repeated. 
+    qtnh::uint off;  ///< Number of empty processes before the tensor begins. 
 
     /// Simple constructor of all tensor parameters
-    DistParams(qtnh::uint stretch, qtnh::uint cycles, qtnh::uint offset) 
-      : stretch(stretch), cycles(cycles), offset(offset) {}
+    BcParams(qtnh::uint str, qtnh::uint cyc, qtnh::uint off) 
+      : str(str), cyc(cyc), off(off) {}
   };
 
   /// Tensor type labels for determining contraction function to use

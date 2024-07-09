@@ -63,8 +63,8 @@ namespace qtnh {
       /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
       /// @param n_dis_in_dims Number of distributed input dimensions
-      /// @param params Distribution parameters of the tensor (stretch, cycles, offset)
-      SymmTensorBase(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, DistParams params);
+      /// @param params Distribution parameters of the tensor (str, cyc, off)
+      SymmTensorBase(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, BcParams params);
 
       /// @brief Convert any derived tensor to writable symmetric tensor
       /// @return Pointer to an equivalent writable symmetric tensor. 
@@ -76,13 +76,13 @@ namespace qtnh {
       /// @return Pointer to swapped tensor, which might be of a different derived type. 
       virtual Tensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) override;
       /// @brief Redistribute current tensor. 
-      /// @param params Distribution parameters of the tensor (stretch, cycles, offset)
+      /// @param params Distribution parameters of the tensor (str, cyc, off)
       /// @return Pointer to redistributed tensor, which might be of a different derived type. 
-      virtual Tensor* redistribute(DistParams params) override;
+      virtual Tensor* rebcast(BcParams params) override;
       /// @brief Move local indices to distributed pile and distributed indices to local pile. 
       /// @param idx_i Location of the index to move. 
       /// @return Pointer to re-piled tensor, which might be of a different derived type. 
-      virtual Tensor* repile(qtnh::tidx_tup_st idx_i) override;
+      virtual Tensor* rescatter(qtnh::tidx_tup_st idx_i) override;
 
       qtnh::tidx_tup_st n_dis_in_dims_;  ///< Number of distributed input dimensions. 
   };
@@ -107,8 +107,8 @@ namespace qtnh {
       /// @param dis_dims Distributed index dimensions. 
       /// @param n_dis_in_dims Number of distributed input dimensions
       /// @param els Complex vector of local elements. 
-      /// @param params Distribution parameters of the tensor (stretch, cycles, offset)
-      SymmTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, std::vector<qtnh::tel>&& els, DistParams params);
+      /// @param params Distribution parameters of the tensor (str, cyc, off)
+      SymmTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, std::vector<qtnh::tel>&& els, BcParams params);
 
       virtual TT type() const noexcept override { return TT::symmTensor; }
 
@@ -144,13 +144,13 @@ namespace qtnh {
       /// @return Pointer to swapped tensor, which might be of a different derived type. 
       virtual Tensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) override;
       /// @brief Redistribute current tensor. 
-      /// @param params Distribution parameters of the tensor (stretch, cycles, offset)
+      /// @param params Distribution parameters of the tensor (str, cyc, off)
       /// @return Pointer to redistributed tensor, which might be of a different derived type. 
-      virtual Tensor* redistribute(DistParams params) override;
+      virtual Tensor* rebcast(BcParams params) override;
       /// @brief Move local indices to distributed pile and distributed indices to local pile. 
       /// @param idx_i Location of the index to move. 
       /// @return Pointer to re-piled tensor, which might be of a different derived type. 
-      virtual Tensor* repile(qtnh::tidx_tup_st idx_i) override;
+      virtual Tensor* rescatter(qtnh::tidx_tup_st idx_i) override;
 
     private:
       std::vector<qtnh::tel> loc_els;  ///< Local elements. 
@@ -170,8 +170,8 @@ namespace qtnh {
       /// @brief Construct rank 4 swap tensor with given index size within environment with given distribution parameters. 
       /// @param env Environment to use for construction. 
       /// @param n Dimension of swapped indices (both are expected to have the same size)
-      /// @param params Distribution parameters of the tensor (stretch, cycles, offset)
-      SwapTensor(const QTNHEnv& env, std::size_t n, DistParams params);
+      /// @param params Distribution parameters of the tensor (str, cyc, off)
+      SwapTensor(const QTNHEnv& env, std::size_t n, BcParams params);
 
       virtual TT type() const noexcept override { return TT::swapTensor; }
 
@@ -186,9 +186,9 @@ namespace qtnh {
 
     protected:
       /// @brief Redistribute current tensor. 
-      /// @param params Distribution parameters of the tensor (stretch, cycles, offset)
+      /// @param params Distribution parameters of the tensor (str, cyc, off)
       /// @return Pointer to redistributed tensor, which might be of a different derived type. 
-      virtual Tensor* redistribute(DistParams params) override;
+      virtual Tensor* rebcast(BcParams params) override;
   };
 }
 

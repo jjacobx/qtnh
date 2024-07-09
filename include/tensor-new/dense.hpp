@@ -33,8 +33,8 @@ namespace qtnh {
       /// @param env Environment to use for construction. 
       /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
-      /// @param params Distribution parameters of the tensor (stretch, cycles, offset)
-      DenseTensorBase(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, DistParams params);
+      /// @param params Distribution parameters of the tensor (str, cyc, off)
+      DenseTensorBase(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, BcParams params);
 
       /// @brief Convert any derived tensor to writable dense tensor. 
       /// @return Pointer to equivalent writable dense tensor. 
@@ -48,16 +48,16 @@ namespace qtnh {
         return this->toDense()->swap(idx1, idx2);
       }
       /// @brief Redistribute current tensor. 
-      /// @param params Distribution parameters of the tensor (stretch, cycles, offset)
+      /// @param params Distribution parameters of the tensor (str, cyc, off)
       /// @return Pointer to redistributed tensor, which might be of a different derived type. 
-      virtual Tensor* redistribute(DistParams params) override {
-        return this->toDense()->redistribute(params);
+      virtual Tensor* rebcast(BcParams params) override {
+        return this->toDense()->rebcast(params);
       }
       /// @brief Move local indices to distributed pile and distributed indices to local pile. 
       /// @param idx_i Location of the index to move. 
       /// @return Pointer to re-piled tensor, which might be of a different derived type. 
-      virtual Tensor* repile(qtnh::tidx_tup_st idx_i) override {
-        return this->toDense()->repile(idx_i);
+      virtual Tensor* rescatter(qtnh::tidx_tup_st idx_i) override {
+        return this->toDense()->rescatter(idx_i);
       }
   };
 
@@ -81,8 +81,8 @@ namespace qtnh {
       /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
       /// @param els Complex vector of local elements. 
-      /// @param params Distribution parameters of the tensor (stretch, cycles, offset)
-      DenseTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, std::vector<qtnh::tel>&& els, DistParams params);
+      /// @param params Distribution parameters of the tensor (str, cyc, off)
+      DenseTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, std::vector<qtnh::tel>&& els, BcParams params);
 
       virtual TT type() const noexcept override { return TT::denseTensor; }
 
@@ -117,13 +117,13 @@ namespace qtnh {
       /// @return Pointer to swapped tensor, which might be of a different derived type. 
       virtual DenseTensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) override;
       /// @brief Redistribute current tensor. 
-      /// @param params Distribution parameters of the tensor (stretch, cycles, offset)
+      /// @param params Distribution parameters of the tensor (str, cyc, off)
       /// @return Pointer to redistributed tensor, which might be of a different derived type. 
-      virtual DenseTensor* redistribute(DistParams params) override;
+      virtual DenseTensor* rebcast(BcParams params) override;
       /// @brief Move local indices to distributed pile and distributed indices to local pile. 
       /// @param idx_locs Locations of the index to move. 
       /// @return Pointer to re-piled tensor, which might be of a different derived type. 
-      virtual DenseTensor* repile(qtnh::tidx_tup_st idx_i) override;
+      virtual DenseTensor* rescatter(qtnh::tidx_tup_st idx_i) override;
 
     private:
       std::vector<qtnh::tel> loc_els_;  ///< Local elements. 

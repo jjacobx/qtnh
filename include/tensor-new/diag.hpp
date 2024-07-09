@@ -37,8 +37,8 @@ namespace qtnh {
       /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
       /// @param n_dis_in_dims Number of distributed input dimensions
-      /// @param params Distribution parameters of the tensor (stretch, cycles, offset). 
-      DiagTensorBase(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, DistParams params);
+      /// @param params Distribution parameters of the tensor (str, cyc, off). 
+      DiagTensorBase(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, BcParams params);
 
       /// @brief Convert any derived tensor to writable diagonal tensor
       /// @return Pointer to an equivalent writable diagonal tensor. 
@@ -50,13 +50,13 @@ namespace qtnh {
       /// @return Pointer to swapped tensor, which might be of a different derived type. 
       virtual Tensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) override;
       /// @brief Redistribute current tensor. 
-      /// @param params Distribution parameters of the tensor (stretch, cycles, offset)
+      /// @param params Distribution parameters of the tensor (str, cyc, off)
       /// @return Pointer to redistributed tensor, which might be of a different derived type. 
-      virtual Tensor* redistribute(DistParams params) override;
+      virtual Tensor* rebcast(BcParams params) override;
       /// @brief Move local indices to distributed pile and distributed indices to local pile. 
       /// @param idx_i Location of the index to move. 
       /// @return Pointer to re-piled tensor, which might be of a different derived type. 
-      virtual Tensor* repile(qtnh::tidx_tup_st idx_i) override;
+      virtual Tensor* rescatter(qtnh::tidx_tup_st idx_i) override;
   };
 
   /// Writable diagonal tensor class, which allows direct access to diagonal elements. 
@@ -80,8 +80,8 @@ namespace qtnh {
       /// @param dis_dims Distributed index dimensions. 
       /// @param n_dis_in_dims Number of distributed input dimensions
       /// @param diag_els Complex vector of local diagonal elements. 
-      /// @param params Distribution parameters of the tensor (stretch, cycles, offset). 
-      DiagTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, std::vector<qtnh::tel>&& diag_els, DistParams params);
+      /// @param params Distribution parameters of the tensor (str, cyc, off). 
+      DiagTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, std::vector<qtnh::tel>&& diag_els, BcParams params);
 
       virtual TT type() const noexcept override { return TT::diagTensor; }
 
@@ -118,13 +118,13 @@ namespace qtnh {
       /// @return Pointer to swapped tensor, which might be of a different derived type. 
       virtual Tensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) override;
       /// @brief Redistribute current tensor. 
-      /// @param params Distribution parameters of the tensor (stretch, cycles, offset)
+      /// @param params Distribution parameters of the tensor (str, cyc, off)
       /// @return Pointer to redistributed tensor, which might be of a different derived type. 
-      virtual Tensor* redistribute(DistParams params) override;
+      virtual Tensor* rebcast(BcParams params) override;
       /// @brief Move local indices to distributed pile and distributed indices to local pile. 
       /// @param idx_i Location of the index to move. 
       /// @return Pointer to re-piled tensor, which might be of a different derived type. 
-      virtual Tensor* repile(qtnh::tidx_tup_st idx_i) override;
+      virtual Tensor* rescatter(qtnh::tidx_tup_st idx_i) override;
 
     private: 
       std::vector<qtnh::tel> loc_diag_els;  ///< Local diagonal elements. 
@@ -149,8 +149,8 @@ namespace qtnh {
       /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
       /// @param n_dis_in_dims Number of distributed input dimensions
-      /// @param params Distribution parameters of the tensor (stretch, cycles, offset). 
-      IdenTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, DistParams params);
+      /// @param params Distribution parameters of the tensor (str, cyc, off). 
+      IdenTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, BcParams params);
 
       virtual TT type() const noexcept override { return TT::idenTensor; }
 
@@ -165,9 +165,9 @@ namespace qtnh {
 
     protected:
       /// @brief Redistribute current tensor. 
-      /// @param params Distribution parameters of the tensor (stretch, cycles, offset)
+      /// @param params Distribution parameters of the tensor (str, cyc, off)
       /// @return Pointer to redistributed tensor, which might be of a different derived type. 
-      virtual Tensor* redistribute(DistParams params) override;
+      virtual Tensor* rebcast(BcParams params) override;
   };
 }
 
