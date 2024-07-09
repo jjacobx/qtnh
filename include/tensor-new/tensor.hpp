@@ -10,20 +10,43 @@
 namespace qtnh {
   /// General virtual tensor class
   class Tensor {
-    protected:
-      struct Broadcaster;
-
     public:
       Tensor() = delete;
       Tensor(const Tensor&) = delete;
       ~Tensor() = default;
+
+      /// @brief Tensor broadcaster class responsible for handling how tensor is shared in distributed memory. 
+      struct Broadcaster {
+        qtnh::uint str;   ///< Number of times each local tensor chunk is repeated across contiguous processes. 
+        qtnh::uint cyc;   ///< Number of times the entire tensor structure is repeated. 
+        qtnh::uint off;   ///< Number of empty processes before the tensor begins. 
+        qtnh::uint base;  ///< Base distributed size of the tensor. 
+
+        const QTNHEnv& env;   ///< Environment to use MPI/OpenMP in. 
+        MPI_Comm group_comm;  ///< Communicator that contains exactly one copy of the tensor. 
+        int group_id;         ///< Rank ID within current group. 
+        bool active;          ///< Flag whether the tensor is stored on calling MPI rank. 
+
+        Broadcaster() = delete;
+        Broadcaster(const QTNHEnv& env, qtnh::uint base, BcParams params);
+        ~Broadcaster();
+
+        Broadcaster& operator=(Broadcaster&& b) noexcept;
+
+        /// @brief Helper to calculate span of the entire tensor across contiguous ranks. 
+        /// @return Number of contiguous ranks that store the tensor. 
+        qtnh::uint span() const noexcept { return str * base * cyc; }
+        /// @brief Helper to calculate between which ranks the tensor is contained. 
+        /// @return A tuple containing first and last rank that store the tensor. 
+        std::pair<qtnh::uint, qtnh::uint> range() const noexcept { return { off, off + span() }; }
+      };
 
       // This can be made constexpr in C++ 20
       virtual TT type() const noexcept { return TT::tensor; }
       
       qtnh::tidx_tup locDims() const noexcept { return loc_dims_; }
       qtnh::tidx_tup disDims() const noexcept { return dis_dims_; }
-      const Broadcaster& dist() const noexcept { return bc_; }
+      const Broadcaster& bc() const noexcept { return bc_; }
       
       /// @brief Helper to access complete tensor dimensions. 
       /// @return Concatenated distributed and local dimensions. 
@@ -107,32 +130,6 @@ namespace qtnh {
 
       qtnh::tidx_tup loc_dims_;  ///< Local index dimensions. 
       qtnh::tidx_tup dis_dims_;  ///< Distributed index dimensions. 
-
-      /// @brief Tensor broadcaster class responsible for handling how tensor is shared in distributed memory. 
-      struct Broadcaster {
-        qtnh::uint str;   ///< Number of times each local tensor chunk is repeated across contiguous processes. 
-        qtnh::uint cyc;   ///< Number of times the entire tensor structure is repeated. 
-        qtnh::uint off;   ///< Number of empty processes before the tensor begins. 
-        qtnh::uint base;  ///< Base distributed size of the tensor. 
-
-        const QTNHEnv& env;   ///< Environment to use MPI/OpenMP in. 
-        MPI_Comm group_comm;  ///< Communicator that contains exactly one copy of the tensor. 
-        int group_id;         ///< Rank ID within current group. 
-        bool active;          ///< Flag whether the tensor is stored on calling MPI rank. 
-
-        Broadcaster() = delete;
-        Broadcaster(const QTNHEnv& env, qtnh::uint base, BcParams params);
-        ~Broadcaster();
-
-        Broadcaster& operator=(Broadcaster&& b) noexcept;
-
-        /// @brief Helper to calculate span of the entire tensor across contiguous ranks. 
-        /// @return Number of contiguous ranks that store the tensor. 
-        qtnh::uint span() const noexcept { return str * base * cyc; }
-        /// @brief Helper to calculate between which ranks the tensor is contained. 
-        /// @return A tuple containing first and last rank that store the tensor. 
-        std::pair<qtnh::uint, qtnh::uint> range() const noexcept { return { off, off + span() }; }
-      };
 
       Broadcaster bc_;  ///< Tensor distributor. 
 

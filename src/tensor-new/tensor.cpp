@@ -60,7 +60,7 @@ namespace qtnh {
 
   namespace ops {
     std::ostream& operator<<(std::ostream& out, const Tensor& o) {
-      if (!o.dist().active) {
+      if (!o.bc().active) {
         out << "Inactive";
         return out;
       }
