@@ -153,7 +153,7 @@ namespace qtnh {
       virtual Tensor* rescatter(int offset) override;
 
     private:
-      std::vector<qtnh::tel> loc_els;  ///< Local elements. 
+      std::vector<qtnh::tel> loc_els_;  ///< Local elements. 
   };
 
   /// Rank 4 symmetric swap tensor for swapping two indices with dimension n. The swap tensor must have dimensions (n, n, n, n). 
