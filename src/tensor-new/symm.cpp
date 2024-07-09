@@ -50,9 +50,28 @@ namespace qtnh {
     }
   }
 
-  SymmTensor* SymmTensor::swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) {
+  SymmTensor* SymmTensor::swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2, TIdxIO io) {
     if (!bc_.active) return this;
     if (idx1 > idx2) std::swap(idx1, idx2);
+
+    // Convert to general swap indices
+    if (io == TIdxIO::in) {
+      if (idx1 >= disInDims().size()) { 
+        idx1 += disOutDims().size();
+      }
+      if (idx2 >= disInDims().size()) { 
+        idx2 += disOutDims().size();
+      }
+    } else {
+      if (idx1 >= disOutDims().size()) { 
+        idx1 += locInDims().size();
+      }
+      if (idx2 >= disInDims().size()) { 
+        idx2 += locInDims().size();
+      }
+      idx1 += disInDims().size();
+      idx2 += disInDims().size();
+    }
 
     // Case: asymmetric swap
     if (totDims().at(idx1) != totDims().at(idx2)) {
@@ -133,7 +152,7 @@ namespace qtnh {
   }
 
   SymmTensor* SymmTensor::rebcast(BcParams params) {
-    Broadcaster new_bro(bc_.env, bc_.base, params);
+    Broadcaster new_bc(bc_.env, bc_.base, params);
     std::vector<MPI_Request> send_reqs(params.str * params.cyc);
 
     if (bc_.active) {
@@ -161,21 +180,21 @@ namespace qtnh {
     }
 
     std::vector<qtnh::tel> new_els(utils::dims_to_size(loc_dims_));
-    if (new_bro.active) {
-      int recv_source = new_bro.group_id * bc_.str + bc_.off;
+    if (new_bc.active) {
+      int recv_source = new_bc.group_id * bc_.str + bc_.off;
       MPI_Recv(new_els.data(), new_els.size(), MPI_C_DOUBLE_COMPLEX, recv_source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
       loc_els_ = std::move(new_els);
     }
 
     MPI_Waitall(send_reqs.size(), send_reqs.data(), MPI_STATUSES_IGNORE);
 
-    if (!new_bro.active) loc_els_.clear();
-    bc_ = std::move(new_bro);
+    if (!new_bc.active) loc_els_.clear();
+    bc_ = std::move(new_bc);
 
     return this;
   }
 
-  SymmTensor* SymmTensor::rescatter(int offset) {
+  SymmTensor* SymmTensor::rescatter(int offset, TIdxIO io) {
     if (offset == 0) {
       return this;
     } else if (offset < 0) {
@@ -194,8 +213,8 @@ namespace qtnh {
       dis_dims_.erase(dis_dims_.end() + offset, dis_dims_.end());
       loc_dims_.insert(loc_dims_.begin(), loc_dims2.begin(), loc_dims2.end());
 
-      Broadcaster new_bro(bc_.env, locSize(), { bc_.str * shift, bc_.cyc, bc_.off });
-      bc_ = std::move(new_bro);
+      Broadcaster new_bc(bc_.env, locSize(), { bc_.str * shift, bc_.cyc, bc_.off });
+      bc_ = std::move(new_bc);
 
       return this;
     } else {
@@ -214,8 +233,8 @@ namespace qtnh {
       loc_dims_.erase(loc_dims_.begin(), loc_dims_.begin() + offset);
       dis_dims_.insert(dis_dims_.end(), dis_dims2.begin(), dis_dims2.end());
 
-      Broadcaster new_bro(bc_.env, locSize(), { bc_.str / shift, bc_.cyc, bc_.off });
-      bc_ = std::move(new_bro);
+      Broadcaster new_bc(bc_.env, locSize(), { bc_.str / shift, bc_.cyc, bc_.off });
+      bc_ = std::move(new_bc);
 
       return this;
     }
