@@ -22,19 +22,19 @@ namespace qtnh {
   }
 
   DenseTensor::DenseTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, std::vector<qtnh::tel>&& els)
-    : DenseTensorBase(env, loc_dims, dis_dims), loc_els(std::move(els)) {}
+    : DenseTensorBase(env, loc_dims, dis_dims), loc_els_(std::move(els)) {}
 
   DenseTensor::DenseTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, std::vector<qtnh::tel>&& els, DistParams params)
-    : DenseTensorBase(env, loc_dims, dis_dims, params), loc_els(std::move(els)) {}
+    : DenseTensorBase(env, loc_dims, dis_dims, params), loc_els_(std::move(els)) {}
 
   qtnh::tel DenseTensor::operator[](qtnh::tidx_tup loc_idxs) const {
     auto i = utils::idxs_to_i(loc_idxs, loc_dims_);
-    return loc_els.at(i);
+    return loc_els_.at(i);
   }
 
   qtnh::tel& DenseTensor::operator[](qtnh::tidx_tup loc_idxs) {
     auto i = utils::idxs_to_i(loc_idxs, loc_dims_);
-    return loc_els.at(i);
+    return loc_els_.at(i);
   }
 
   void DenseTensor::put(qtnh::tidx_tup tot_idxs, qtnh::tel el) {
@@ -46,12 +46,12 @@ namespace qtnh {
 
     if (call_id == target_id) {
       auto i = utils::idxs_to_i(loc_idxs, loc_dims_);
-      loc_els.at(i) = el;
+      loc_els_.at(i) = el;
     }
   }
 
   DenseTensor* DenseTensor::swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) {
-    if (!dist_.active) return;
+    if (!dist_.active) return this;
     if (idx1 > idx2) std::swap(idx1, idx2);
 
     // Case: asymmetric swap
@@ -64,12 +64,12 @@ namespace qtnh {
     #endif
 
     // Case: same-index swap
-    if (idx1 == idx2) return;
+    if (idx1 == idx2) return this;
 
     // Case: local swap
     if (idx1 >= dis_dims_.size()) {
       _local_swap(this, idx1 - dis_dims_.size(), idx2 - dis_dims_.size());
-      return;
+      return this;
     }
 
     // Case: mixed local/distributed swap
@@ -96,19 +96,19 @@ namespace qtnh {
       MPI_Comm swap_comm;
       MPI_Comm_split(dist_.group_comm, dist_.group_id - rank_idx * dist_stride, dist_.group_id, &swap_comm);
 
-      std::vector<qtnh::tel> new_els(loc_els.size());
+      std::vector<qtnh::tel> new_els(loc_els_.size());
       for (std::size_t i = 0; i < dims.at(idx1); ++i) {
         // TODO: Consider MPI message size limit. 
         // * A scatter might already take it into account
-        MPI_Scatter(loc_els.data(), 1, restrided, new_els.data() + i * block_length, 1, restrided, i, swap_comm);
+        MPI_Scatter(loc_els_.data(), 1, restrided, new_els.data() + i * block_length, 1, restrided, i, swap_comm);
       }
 
       // ! new_els should not be copied, and original loc_els should be destroyed. 
-      loc_els = std::move(new_els);
+      loc_els_ = std::move(new_els);
 
       MPI_Comm_free(&swap_comm);
       MPI_Type_free(&restrided);
-      return;
+      return this;
     }
 
     // Case: distributed swap
@@ -117,14 +117,14 @@ namespace qtnh {
       std::swap(target_idxs.at(idx1), target_idxs.at(idx2));
       auto target = utils::idxs_to_i(target_idxs, dis_dims_);
 
-      std::vector<qtnh::tel> new_els(loc_els.size());
+      std::vector<qtnh::tel> new_els(loc_els_.size());
       // TODO: Consider MPI message size limit – not a scatter. 
-      MPI_Sendrecv(loc_els.data(), loc_els.size(), MPI_C_DOUBLE_COMPLEX, target, 0, 
+      MPI_Sendrecv(loc_els_.data(), loc_els_.size(), MPI_C_DOUBLE_COMPLEX, target, 0, 
                    new_els.data(), new_els.size(), MPI_C_DOUBLE_COMPLEX, target, 0, dist_.group_comm, MPI_STATUS_IGNORE);
       
       // ! new_els should not be copied, and original loc_els should be destroyed
-      loc_els = std::move(new_els);
-      return;
+      loc_els_ = std::move(new_els);
+      return this;
     }
 
     // * This should not be reached
@@ -132,7 +132,7 @@ namespace qtnh {
     return;
   }
 
-  Tensor* DenseTensor::redistribute(DistParams params) {
+  DenseTensor* DenseTensor::redistribute(DistParams params) {
     Distributor new_dist(dist_.env, dist_.base, params);
     std::vector<MPI_Request> send_reqs(params.stretch * params.cycles);
 
@@ -155,7 +155,7 @@ namespace qtnh {
       // TODO: optimisation where if data is already present at target, it is not sent. 
       if (dist_.env.proc_id == send_sources.at(0)) {
         for (int i = 0; i < send_targets.size(); ++i) {
-          MPI_Isend(loc_els.data(), loc_els.size(), MPI_C_DOUBLE_COMPLEX, send_targets.at(i), 0, MPI_COMM_WORLD, &send_reqs.at(i));
+          MPI_Isend(loc_els_.data(), loc_els_.size(), MPI_C_DOUBLE_COMPLEX, send_targets.at(i), 0, MPI_COMM_WORLD, &send_reqs.at(i));
         }
       }
     }
@@ -164,35 +164,60 @@ namespace qtnh {
     if (new_dist.active) {
       int recv_source = new_dist.group_id * dist_.stretch + dist_.offset;
       MPI_Recv(new_els.data(), new_els.size(), MPI_C_DOUBLE_COMPLEX, recv_source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-      loc_els = std::move(new_els);
+      loc_els_ = std::move(new_els);
     }
 
     MPI_Waitall(send_reqs.size(), send_reqs.data(), MPI_STATUSES_IGNORE);
 
-    if (!new_dist.active) loc_els.clear();
+    if (!new_dist.active) loc_els_.clear();
     dist_ = std::move(new_dist);
 
     return this;
   }
 
-  Tensor* DenseTensor::repile(std::vector<qtnh::tidx_tup_st> idx_locs) {
-    std::vector<qtnh::tidx_tup_st> dis_idx_locs;
-    std::vector<qtnh::tidx_tup_st> loc_idx_locs;
-    
-    for (auto l : idx_locs) {
-      if (l < dis_dims_.size()) {
-        dis_idx_locs.push_back(l);
-      } else {
-        loc_idx_locs.push_back(l);
-      }
-    }
+  DenseTensor* DenseTensor::repile(qtnh::tidx_tup_st idx_i) {
+    if (idx_i < dis_dims_.size()) {
+      if (!dist_.active) return this;
+      // Should happen in-place despite return pointer
+      swap(idx_i, dis_dims_.size() - 1);
+      
+      MPI_Comm gath_comm;
+      auto back = dis_dims_.back();
+      MPI_Comm_split(dist_.group_comm, dist_.group_id / back, dist_.group_id, &gath_comm);
 
-    DenseTensor* tp = this;
-    for (int i = 0; i < std::min(dis_idx_locs.size(), loc_idx_locs.size()); ++i) {
-      tp = tp->swap(dis_idx_locs.at(i), loc_idx_locs.at(i));
-    }
+      loc_els_.resize(locSize() * back);
+      MPI_Allgather(loc_els_.data(), locSize(), MPI_C_DOUBLE_COMPLEX, 
+                    loc_els_.data(), locSize(), MPI_C_DOUBLE_COMPLEX, gath_comm);
+      
+      dis_dims_.pop_back();
+      loc_dims_.insert(loc_dims_.begin(), back);
 
-    int diff = dis_idx_locs.size() - loc_idx_locs.size();
+      Distributor new_dist(dist_.env, locSize(), { dist_.stretch * back, dist_.cycles, dist_.offset });
+      dist_ = std::move(new_dist);
+
+      return this;
+    } else if (idx_i < totDims().size()) {
+      // Should happen in-place despite return pointer
+      swap(idx_i, dis_dims_.size());
+      
+      auto front = loc_dims_.at(0);
+      // Align with multiples of front
+      redistribute({ std::max(front, (dist_.stretch / front) * front), dist_.cycles, dist_.offset });
+
+      if (!dist_.active) return this;
+
+      auto split_id = (((dist_.env.proc_id - dist_.offset) % (dist_.base * dist_.stretch)) / (dist_.stretch / front)) % front;
+      loc_els_.erase(loc_els_.begin(), loc_els_.begin() + locSize() / front * split_id);
+      loc_els_.erase(loc_els_.begin() + locSize() / front, loc_els_.end());
+
+      loc_dims_.erase(loc_dims_.begin());
+      dis_dims_.push_back(front);
+
+      Distributor new_dist(dist_.env, locSize(), { dist_.stretch / front, dist_.cycles, dist_.offset });
+      dist_ = std::move(new_dist);
+
+      return this;
+    }
   }
 
   void _local_swap(DenseTensor* tp, qtnh::tidx_tup_st loc_idx1, qtnh::tidx_tup_st loc_idx2) {
