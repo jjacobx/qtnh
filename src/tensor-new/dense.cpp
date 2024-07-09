@@ -175,45 +175,46 @@ namespace qtnh {
     return this;
   }
 
-  DenseTensor* DenseTensor::rescatter(qtnh::tidx_tup_st idx_i) {
-    if (idx_i < dis_dims_.size()) {
+  DenseTensor* DenseTensor::rescatter(int offset) {
+    if (offset == 0) {
+      return this;
+    } else if (offset < 0) {
       if (!bc_.active) return this;
-      // Should happen in-place despite return pointer
-      swap(idx_i, dis_dims_.size() - 1);
       
-      MPI_Comm gath_comm;
-      auto back = dis_dims_.back();
-      MPI_Comm_split(bc_.group_comm, bc_.group_id / back, bc_.group_id, &gath_comm);
+      auto loc_dims2 = qtnh::tidx_tup(dis_dims_.end() + offset, dis_dims_.end());
+      auto shift = utils::dims_to_size(loc_dims2);
 
-      loc_els_.resize(locSize() * back);
+      MPI_Comm gath_comm;
+      MPI_Comm_split(bc_.group_comm, bc_.group_id / shift, bc_.group_id, &gath_comm);
+
+      loc_els_.resize(locSize() * shift);
       MPI_Allgather(loc_els_.data(), locSize(), MPI_C_DOUBLE_COMPLEX, 
                     loc_els_.data(), locSize(), MPI_C_DOUBLE_COMPLEX, gath_comm);
       
-      dis_dims_.pop_back();
-      loc_dims_.insert(loc_dims_.begin(), back);
+      dis_dims_.erase(dis_dims_.end() + offset, dis_dims_.end());
+      loc_dims_.insert(loc_dims_.begin(), loc_dims2.begin(), loc_dims2.end());
 
-      Broadcaster new_bro(bc_.env, locSize(), { bc_.str * back, bc_.cyc, bc_.off });
+      Broadcaster new_bro(bc_.env, locSize(), { bc_.str * shift, bc_.cyc, bc_.off });
       bc_ = std::move(new_bro);
 
       return this;
-    } else if (idx_i < totDims().size()) {
-      // Should happen in-place despite return pointer
-      swap(idx_i, dis_dims_.size());
-      
-      auto front = loc_dims_.at(0);
-      // Align with multiples of front
-      rebcast({ std::max(front, (bc_.str / front) * front), bc_.cyc, bc_.off });
+    } else {
+      auto dis_dims2 = qtnh::tidx_tup(loc_dims_.begin(), loc_dims_.begin() + offset);
+      auto shift = utils::dims_to_size(dis_dims2);
+
+      // Align with multiples of front – should happen in place
+      rebcast({ std::max(shift, (bc_.str / shift) * shift), bc_.cyc, bc_.off });
 
       if (!bc_.active) return this;
 
-      auto split_id = (((bc_.env.proc_id - bc_.off) % (bc_.base * bc_.str)) / (bc_.str / front)) % front;
-      loc_els_.erase(loc_els_.begin(), loc_els_.begin() + locSize() / front * split_id);
-      loc_els_.erase(loc_els_.begin() + locSize() / front, loc_els_.end());
+      auto split_id = (((bc_.env.proc_id - bc_.off) % (bc_.base * bc_.str)) / (bc_.str / shift)) % shift;
+      loc_els_.erase(loc_els_.begin(), loc_els_.begin() + locSize() / shift * split_id);
+      loc_els_.erase(loc_els_.begin() + locSize() / shift, loc_els_.end());
 
-      loc_dims_.erase(loc_dims_.begin());
-      dis_dims_.push_back(front);
+      loc_dims_.erase(loc_dims_.begin(), loc_dims_.begin() + offset);
+      dis_dims_.insert(dis_dims_.end(), dis_dims2.begin(), dis_dims2.end());
 
-      Broadcaster new_bro(bc_.env, locSize(), { bc_.str / front, bc_.cyc, bc_.off });
+      Broadcaster new_bro(bc_.env, locSize(), { bc_.str / shift, bc_.cyc, bc_.off });
       bc_ = std::move(new_bro);
 
       return this;

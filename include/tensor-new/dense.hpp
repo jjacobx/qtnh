@@ -54,10 +54,10 @@ namespace qtnh {
         return this->toDense()->rebcast(params);
       }
       /// @brief Move local indices to distributed pile and distributed indices to local pile. 
-      /// @param idx_i Location of the index to move. 
+      /// @param offset New offset between distributed and local dimensions – negative gathers, while positive scatters. 
       /// @return Pointer to re-piled tensor, which might be of a different derived type. 
-      virtual Tensor* rescatter(qtnh::tidx_tup_st idx_i) override {
-        return this->toDense()->rescatter(idx_i);
+      virtual Tensor* rescatter(int offset) override {
+        return this->toDense()->rescatter(offset);
       }
   };
 
@@ -121,9 +121,9 @@ namespace qtnh {
       /// @return Pointer to redistributed tensor, which might be of a different derived type. 
       virtual DenseTensor* rebcast(BcParams params) override;
       /// @brief Move local indices to distributed pile and distributed indices to local pile. 
-      /// @param idx_locs Locations of the index to move. 
+      /// @param offset New offset between distributed and local dimensions – negative gathers, while positive scatters. 
       /// @return Pointer to re-piled tensor, which might be of a different derived type. 
-      virtual DenseTensor* rescatter(qtnh::tidx_tup_st idx_i) override;
+      virtual DenseTensor* rescatter(int offset) override;
 
     private:
       std::vector<qtnh::tel> loc_els_;  ///< Local elements. 
