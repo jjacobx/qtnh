@@ -96,7 +96,7 @@ namespace qtnh {
   };
 
   /// Writable general symmetric tensor class, which allows direct access to all elements. Restrictions for symmetric tensors apply. 
-  class SymmTensor : public SymmTensorBase {
+  class SymmTensor : public SymmTensorBase, private TIDense {
     public:
       friend class SymmTensorBase;
 
@@ -163,9 +163,6 @@ namespace qtnh {
       /// @param io Tensor index input/output label to indicate which indices to scatter. 
       /// @return Pointer to re-scattered tensor, which might be of a different derived type. 
       virtual SymmTensor* rescatter(int offset, TIdxIO io) override;
-
-    private:
-      std::vector<qtnh::tel> loc_els_;  ///< Local elements. 
   };
 
   /// Rank 4 symmetric swap tensor for swapping two indices with dimension n. The swap tensor must have dimensions (n, n, n, n). 
