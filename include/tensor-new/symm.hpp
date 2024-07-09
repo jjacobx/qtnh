@@ -136,7 +136,7 @@ namespace qtnh {
     protected:
       /// @brief Convert any derived tensor to symmetric tensor
       /// @return Symmetric tensor equivalent to calling tensor
-      virtual SymmTensor* toSymm() override { return this; }
+      virtual SymmTensor* toSymm() noexcept override { return this; }
 
       /// @brief Swap indices on current tensor. 
       /// @param idx1 First index to swap. 
