@@ -139,9 +139,6 @@ namespace qtnh {
       /// @param offset New offset between distributed and local dimensions – negative gathers, while positive scatters. 
       /// @return Pointer to re-scattered tensor, which might be of a different derived type. 
       virtual DenseTensor* rescatter(int offset) override;
-
-    // private:
-    //   std::vector<qtnh::tel> loc_els_;  ///< Local elements. 
   };
 }
 
