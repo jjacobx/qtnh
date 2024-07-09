@@ -82,10 +82,10 @@ namespace qtnh {
       }
       /// @brief Move local indices to distributed pile and distributed indices to local pile. 
       /// @param tu Unique pointer to the tensor. 
-      /// @param idx_locs Locations of indices to move. 
+      /// @param idx_i Locations of the index to move. 
       /// @return Unique pointer to re-piled tensor, which might be of a different derived type. 
-      static std::unique_ptr<Tensor> repile(std::unique_ptr<Tensor> tu, std::vector<qtnh::tidx_tup_st> idx_locs) {
-        return std::unique_ptr<Tensor>(tu->repile(idx_locs));
+      static std::unique_ptr<Tensor> repile(std::unique_ptr<Tensor> tu, qtnh::tidx_tup_st idx_i) {
+        return std::unique_ptr<Tensor>(tu->repile(idx_i));
       }
 
 
@@ -147,9 +147,9 @@ namespace qtnh {
       /// @return Pointer to redistributed tensor, which might be of a different derived type. 
       virtual Tensor* redistribute(DistParams params) = 0;
       /// @brief Move local indices to distributed pile and distributed indices to local pile. 
-      /// @param idx_locs Locations of indices to move. 
+      /// @param idx_i Location of the index to move. 
       /// @return Pointer to re-piled tensor, which might be of a different derived type. 
-      virtual Tensor* repile(std::vector<qtnh::tidx_tup_st> idx_locs) = 0;
+      virtual Tensor* repile(qtnh::tidx_tup_st idx_i) = 0;
   };
 }
 

@@ -54,10 +54,10 @@ namespace qtnh {
         return this->toDense()->redistribute(params);
       }
       /// @brief Move local indices to distributed pile and distributed indices to local pile. 
-      /// @param idx_locs Locations of indices to move. 
+      /// @param idx_i Location of the index to move. 
       /// @return Pointer to re-piled tensor, which might be of a different derived type. 
-      virtual Tensor* repile(std::vector<qtnh::tidx_tup_st> idx_locs) override {
-        return this->toDense()->repile(idx_locs);
+      virtual Tensor* repile(qtnh::tidx_tup_st idx_i) override {
+        return this->toDense()->repile(idx_i);
       }
   };
 
@@ -119,14 +119,14 @@ namespace qtnh {
       /// @brief Redistribute current tensor. 
       /// @param params Distribution parameters of the tensor (stretch, cycles, offset)
       /// @return Pointer to redistributed tensor, which might be of a different derived type. 
-      virtual Tensor* redistribute(DistParams params) override;
+      virtual DenseTensor* redistribute(DistParams params) override;
       /// @brief Move local indices to distributed pile and distributed indices to local pile. 
-      /// @param idx_locs Locations of indices to move. 
+      /// @param idx_locs Locations of the index to move. 
       /// @return Pointer to re-piled tensor, which might be of a different derived type. 
-      virtual Tensor* repile(std::vector<qtnh::tidx_tup_st> idx_locs) override;
+      virtual DenseTensor* repile(qtnh::tidx_tup_st idx_i) override;
 
     private:
-      std::vector<qtnh::tel> loc_els;  ///< Local elements. 
+      std::vector<qtnh::tel> loc_els_;  ///< Local elements. 
   };
 }
 

@@ -80,9 +80,9 @@ namespace qtnh {
       /// @return Pointer to redistributed tensor, which might be of a different derived type. 
       virtual Tensor* redistribute(DistParams params) override;
       /// @brief Move local indices to distributed pile and distributed indices to local pile. 
-      /// @param idx_locs Locations of indices to move. 
+      /// @param idx_i Location of the index to move. 
       /// @return Pointer to re-piled tensor, which might be of a different derived type. 
-      virtual Tensor* repile(std::vector<qtnh::tidx_tup_st> idx_locs) override;
+      virtual Tensor* repile(qtnh::tidx_tup_st idx_i) override;
 
       qtnh::tidx_tup_st n_dis_in_dims_;  ///< Number of distributed input dimensions. 
   };
@@ -148,9 +148,9 @@ namespace qtnh {
       /// @return Pointer to redistributed tensor, which might be of a different derived type. 
       virtual Tensor* redistribute(DistParams params) override;
       /// @brief Move local indices to distributed pile and distributed indices to local pile. 
-      /// @param idx_locs Locations of indices to move. 
+      /// @param idx_i Location of the index to move. 
       /// @return Pointer to re-piled tensor, which might be of a different derived type. 
-      virtual Tensor* repile(std::vector<qtnh::tidx_tup_st> idx_locs) override;
+      virtual Tensor* repile(qtnh::tidx_tup_st idx_i) override;
 
     private:
       std::vector<qtnh::tel> loc_els;  ///< Local elements. 

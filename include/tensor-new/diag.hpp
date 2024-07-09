@@ -54,9 +54,9 @@ namespace qtnh {
       /// @return Pointer to redistributed tensor, which might be of a different derived type. 
       virtual Tensor* redistribute(DistParams params) override;
       /// @brief Move local indices to distributed pile and distributed indices to local pile. 
-      /// @param idx_locs Locations of indices to move. 
+      /// @param idx_i Location of the index to move. 
       /// @return Pointer to re-piled tensor, which might be of a different derived type. 
-      virtual Tensor* repile(std::vector<qtnh::tidx_tup_st> idx_locs) override;
+      virtual Tensor* repile(qtnh::tidx_tup_st idx_i) override;
   };
 
   /// Writable diagonal tensor class, which allows direct access to diagonal elements. 
@@ -122,9 +122,9 @@ namespace qtnh {
       /// @return Pointer to redistributed tensor, which might be of a different derived type. 
       virtual Tensor* redistribute(DistParams params) override;
       /// @brief Move local indices to distributed pile and distributed indices to local pile. 
-      /// @param idx_locs Locations of indices to move. 
+      /// @param idx_i Location of the index to move. 
       /// @return Pointer to re-piled tensor, which might be of a different derived type. 
-      virtual Tensor* repile(std::vector<qtnh::tidx_tup_st> idx_locs) override;
+      virtual Tensor* repile(qtnh::tidx_tup_st idx_i) override;
 
     private: 
       std::vector<qtnh::tel> loc_diag_els;  ///< Local diagonal elements. 
