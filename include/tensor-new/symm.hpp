@@ -75,13 +75,13 @@ namespace qtnh {
       /// @param idx2 Second index to swap. 
       /// @return Pointer to swapped tensor, which might be of a different derived type. 
       virtual Tensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) override;
-      /// @brief Redistribute current tensor. 
-      /// @param params Distribution parameters of the tensor (str, cyc, off)
-      /// @return Pointer to redistributed tensor, which might be of a different derived type. 
+      /// @brief Re-broadcast current tensor. 
+      /// @param params Broadcast parameters of the tensor (str, cyc, off)
+      /// @return Pointer to re-broadcasted tensor, which might be of a different derived type. 
       virtual Tensor* rebcast(BcParams params) override;
-      /// @brief Move local indices to distributed pile and distributed indices to local pile. 
+      /// @brief Shift the border between shared and distributed dimensions by a given offset. 
       /// @param offset New offset between distributed and local dimensions – negative gathers, while positive scatters. 
-      /// @return Pointer to re-piled tensor, which might be of a different derived type. 
+      /// @return Pointer to re-scattered tensor, which might be of a different derived type. 
       virtual Tensor* rescatter(int offset) override;
 
       qtnh::tidx_tup_st n_dis_in_dims_;  ///< Number of distributed input dimensions. 
@@ -143,13 +143,13 @@ namespace qtnh {
       /// @param idx2 Second index to swap. 
       /// @return Pointer to swapped tensor, which might be of a different derived type. 
       virtual Tensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) override;
-      /// @brief Redistribute current tensor. 
-      /// @param params Distribution parameters of the tensor (str, cyc, off)
-      /// @return Pointer to redistributed tensor, which might be of a different derived type. 
+      /// @brief Re-broadcast current tensor. 
+      /// @param params Broadcast parameters of the tensor (str, cyc, off)
+      /// @return Pointer to re-broadcasted tensor, which might be of a different derived type. 
       virtual Tensor* rebcast(BcParams params) override;
-      /// @brief Move local indices to distributed pile and distributed indices to local pile. 
+      /// @brief Shift the border between shared and distributed dimensions by a given offset. 
       /// @param offset New offset between distributed and local dimensions – negative gathers, while positive scatters. 
-      /// @return Pointer to re-piled tensor, which might be of a different derived type. 
+      /// @return Pointer to re-scattered tensor, which might be of a different derived type. 
       virtual Tensor* rescatter(int offset) override;
 
     private:
@@ -185,9 +185,9 @@ namespace qtnh {
       virtual qtnh::tel operator[](qtnh::tidx_tup loc_idxs) const override;
 
     protected:
-      /// @brief Redistribute current tensor. 
-      /// @param params Distribution parameters of the tensor (str, cyc, off)
-      /// @return Pointer to redistributed tensor, which might be of a different derived type. 
+      /// @brief Re-broadcast current tensor. 
+      /// @param params Broadcast parameters of the tensor (str, cyc, off)
+      /// @return Pointer to re-broadcasted tensor, which might be of a different derived type. 
       virtual Tensor* rebcast(BcParams params) override;
   };
 }
