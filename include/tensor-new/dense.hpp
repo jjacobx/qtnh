@@ -11,12 +11,13 @@ namespace qtnh {
     public: 
       TIDense() = delete;
       TIDense(const TIDense&) = delete;
+      TIDense(std::vector<qtnh::tel>&& els) : loc_els_(std::move(els)) {}
       ~TIDense() = default;
 
     protected:
-      void _swap_internal(const Tensor::Broadcaster& bc, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2);
-      void _rebcast_internal(const Tensor::Broadcaster& bc, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, BcParams params);
-      void _rescatter_internal(const Tensor::Broadcaster& bc, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, int offset);
+      void _swap_internal(Tensor* target, qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2);
+      void _rebcast_internal(Tensor* target, BcParams params);
+      void _rescatter_internal(Tensor* target, int offset);
 
       std::vector<qtnh::tel> loc_els_;  ///< Local elements. 
   };
@@ -76,7 +77,7 @@ namespace qtnh {
   };
 
   /// Writable dense tensor class, which allows direct access to all elements. 
-  class DenseTensor : public DenseTensorBase {
+  class DenseTensor : public DenseTensorBase, private TIDense {
     public:
       friend class DenseTensorBase;
 
@@ -139,8 +140,8 @@ namespace qtnh {
       /// @return Pointer to re-scattered tensor, which might be of a different derived type. 
       virtual DenseTensor* rescatter(int offset) override;
 
-    private:
-      std::vector<qtnh::tel> loc_els_;  ///< Local elements. 
+    // private:
+    //   std::vector<qtnh::tel> loc_els_;  ///< Local elements. 
   };
 }
 
