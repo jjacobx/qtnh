@@ -70,27 +70,27 @@ namespace qtnh {
       /// @return Pointer to an equivalent writable symmetric tensor. 
       virtual SymmTensor* toSymm();
 
-      /// @brief Swap indices on current tensor. 
-      /// @param idx1 First index to swap. 
-      /// @param idx2 Second index to swap. 
-      /// @return Pointer to swapped tensor, which might be of a different derived type. 
-      virtual Tensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) override;
       /// @brief Swap input/output indices on current tensor. 
       /// @param idx1 First index to swap. 
       /// @param idx2 Second index to swap. 
       /// @param io Tensor index input/output label to indicate which indices to swap. 
       /// @return Pointer to swapped tensor, which might be of a different derived type. 
-      virtual Tensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2, TIdxIO io);
+      virtual Tensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2, TIdxIO io) {
+        return toSymm()->swap(idx1, idx2, io);
+      }
       /// @brief Re-broadcast current tensor. 
       /// @param params Broadcast parameters of the tensor (str, cyc, off)
       /// @return Pointer to re-broadcasted tensor, which might be of a different derived type. 
-      virtual Tensor* rebcast(BcParams params) override;
+      virtual Tensor* rebcast(BcParams params) override {
+        return toSymm()->rebcast(params);
+      }
       /// @brief Shift the border between input/output shared and distributed dimensions by a given offset. 
       /// @param offset New offset between distributed and local dimensions – negative gathers, while positive scatters. 
       /// @param io Tensor index input/output label to indicate which indices to scatter. 
       /// @return Pointer to re-scattered tensor, which might be of a different derived type. 
-      virtual Tensor* rescatter(int offset, TIdxIO io);
-
+      virtual Tensor* rescatter(int offset, TIdxIO io) {
+        return toSymm()->rescatter(offset, io);
+      }
 
       qtnh::tidx_tup_st n_dis_in_dims_;  ///< Number of distributed input dimensions. 
   };
@@ -98,6 +98,8 @@ namespace qtnh {
   /// Writable general symmetric tensor class, which allows direct access to all elements. Restrictions for symmetric tensors apply. 
   class SymmTensor : public SymmTensorBase {
     public:
+      friend class SymmTensorBase;
+
       SymmTensor() = delete;
       SymmTensor(const SymmTensor&) = delete;
       ~SymmTensor() = default;
@@ -146,19 +148,21 @@ namespace qtnh {
       /// @return Symmetric tensor equivalent to calling tensor
       virtual SymmTensor* toSymm() noexcept override { return this; }
 
-      /// @brief Swap indices on current tensor. 
+      /// @brief Swap input/output indices on current tensor. 
       /// @param idx1 First index to swap. 
       /// @param idx2 Second index to swap. 
+      /// @param io Tensor index input/output label to indicate which indices to swap. 
       /// @return Pointer to swapped tensor, which might be of a different derived type. 
-      virtual SymmTensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) override;
+      virtual SymmTensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2, TIdxIO io) override;
       /// @brief Re-broadcast current tensor. 
       /// @param params Broadcast parameters of the tensor (str, cyc, off)
       /// @return Pointer to re-broadcasted tensor, which might be of a different derived type. 
       virtual SymmTensor* rebcast(BcParams params) override;
-      /// @brief Shift the border between shared and distributed dimensions by a given offset. 
+      /// @brief Shift the border between input/output shared and distributed dimensions by a given offset. 
       /// @param offset New offset between distributed and local dimensions – negative gathers, while positive scatters. 
+      /// @param io Tensor index input/output label to indicate which indices to scatter. 
       /// @return Pointer to re-scattered tensor, which might be of a different derived type. 
-      virtual SymmTensor* rescatter(int offset) override;
+      virtual SymmTensor* rescatter(int offset, TIdxIO io) override;
 
     private:
       std::vector<qtnh::tel> loc_els_;  ///< Local elements. 
