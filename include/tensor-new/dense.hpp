@@ -7,6 +7,20 @@ namespace qtnh {
   class DenseTensorBase;
   class DenseTensor;
 
+  class TIDense {
+    public: 
+      TIDense() = delete;
+      TIDense(const TIDense&) = delete;
+      ~TIDense() = default;
+
+    protected:
+      void _swap_internal(const Tensor::Broadcaster& bc, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2);
+      void _rebcast_internal(const Tensor::Broadcaster& bc, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, BcParams params);
+      void _rescatter_internal(const Tensor::Broadcaster& bc, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, int offset);
+
+      std::vector<qtnh::tel> loc_els_;  ///< Local elements. 
+  };
+
   /// Dense tensor base virtual class, which assumes that all local elements can be stored in a vector. 
   class DenseTensorBase : public Tensor {
     public:
