@@ -174,13 +174,15 @@ namespace qtnh {
 
       /// @brief Construct rank 4 swap tensor with given single index size within environment with default distribution parameters. 
       /// @param env Environment to use for construction. 
-      /// @param n Dimension of swapped indices (both are expected to have the same size)
-      SwapTensor(const QTNHEnv& env, std::size_t n);
+      /// @param n Dimension of swapped indices (both are expected to have the same size). 
+      /// @param d Number of distributed input/output dimensions (can be either 0, 1 or 2), assuming input/output distribution is the same. 
+      SwapTensor(const QTNHEnv& env, std::size_t n, std::size_t d);
       /// @brief Construct rank 4 swap tensor with given index size within environment with given distribution parameters. 
       /// @param env Environment to use for construction. 
-      /// @param n Dimension of swapped indices (both are expected to have the same size)
-      /// @param params Distribution parameters of the tensor (str, cyc, off)
-      SwapTensor(const QTNHEnv& env, std::size_t n, BcParams params);
+      /// @param n Dimension of swapped indices (both are expected to have the same size). 
+      /// @param d Number of distributed input/output dimensions (can be either 0, 1 or 2), assuming input/output distribution is the same. 
+      /// @param params Distribution parameters of the tensor (str, cyc, off). 
+      SwapTensor(const QTNHEnv& env, std::size_t n, std::size_t d, BcParams params);
 
       virtual TT type() const noexcept override { return TT::swapTensor; }
 

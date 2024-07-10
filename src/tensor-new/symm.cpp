@@ -132,4 +132,10 @@ namespace qtnh {
 
     return this;
   }
+
+  SwapTensor::SwapTensor(const QTNHEnv& env, std::size_t n, std::size_t d)
+    : SymmTensorBase(env, qtnh::tidx_tup(2 * d, n), qtnh::tidx_tup(4 - 2 * d, n), d) {}
+
+  SwapTensor::SwapTensor(const QTNHEnv& env, std::size_t n, std::size_t d, BcParams params)
+    : SymmTensorBase(env, qtnh::tidx_tup(2 * d, n), qtnh::tidx_tup(4 - 2 * d, n), d, params) {}
 }
