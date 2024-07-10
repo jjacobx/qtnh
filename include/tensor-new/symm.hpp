@@ -14,7 +14,7 @@ namespace qtnh {
     public: 
       SymmTensorBase() = delete;
       SymmTensorBase(const SymmTensorBase&) = delete;
-      ~SymmTensorBase() = default;
+      virtual ~SymmTensorBase() = default;
 
       virtual TT type() const noexcept override { return TT::symmTensorBase; }
 

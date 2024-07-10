@@ -14,7 +14,7 @@ namespace qtnh {
     public: 
       DiagTensorBase() = delete;
       DiagTensorBase(const DiagTensorBase&) = delete;
-      ~DiagTensorBase() = default;
+      virtual ~DiagTensorBase() = default;
 
       virtual TT type() const noexcept override { return TT::diagTensorBase; }
 

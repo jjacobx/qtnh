@@ -13,7 +13,7 @@ namespace qtnh {
     public:
       Tensor() = delete;
       Tensor(const Tensor&) = delete;
-      ~Tensor() = default;
+      virtual ~Tensor() = default;
 
       /// @brief Tensor broadcaster class responsible for handling how tensor is shared in distributed memory. 
       struct Broadcaster {

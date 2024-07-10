@@ -12,7 +12,7 @@ namespace qtnh {
       TIDense() = delete;
       TIDense(const TIDense&) = delete;
       TIDense(std::vector<qtnh::tel>&& els) : loc_els_(std::move(els)) {}
-      ~TIDense() = default;
+      virtual ~TIDense() = default;
 
     protected:
       void _swap_internal(Tensor* target, qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2);
@@ -27,7 +27,7 @@ namespace qtnh {
     public:
       DenseTensorBase() = delete;
       DenseTensorBase(const DenseTensorBase&) = delete;
-      ~DenseTensorBase() = default;
+      virtual ~DenseTensorBase() = default;
 
       virtual TT type() const noexcept override { return TT::denseTensorBase; }
 
