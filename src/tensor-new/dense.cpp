@@ -275,14 +275,14 @@ namespace qtnh {
 
   void TIDense::_permute_internal(Tensor* target, qtnh::tidx_tup_st from, qtnh::tidx_tup_st to, int offset) {
     qtnh::tidx_tup_st n = to - from;
-    for (qtnh::tidx_tup_st i = 0; i < n && offset > 0; ++i) {
-      if (i % offset == 0) offset = offset % (n - i);
-      _swap_internal(target, from + offset - (i % offset), to - i);
-    }
-
     for (qtnh::tidx_tup_st i = 0; i < n && offset < 0; ++i) {
       if (i % -offset == 0) offset = -(-offset % (n - i));
-      _swap_internal(target, from + i, to - offset + (i % -offset));
+      _swap_internal(target, from - offset - (i % -offset), to - i);
+    }
+
+    for (qtnh::tidx_tup_st i = 0; i < n && offset > 0; ++i) {
+      if (i % offset == 0) offset = offset % (n - i);
+      _swap_internal(target, from + i, to - offset + (i % offset));
     }
 
     // Not updating dimensions as asymmetric swaps are not supported. 
