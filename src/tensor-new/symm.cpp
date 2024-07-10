@@ -138,4 +138,26 @@ namespace qtnh {
 
   SwapTensor::SwapTensor(const QTNHEnv& env, std::size_t n, std::size_t d, BcParams params)
     : SymmTensorBase(env, qtnh::tidx_tup(2 * d, n), qtnh::tidx_tup(4 - 2 * d, n), d, params) {}
+
+  qtnh::tel SwapTensor::operator[](qtnh::tidx_tup loc_idxs) const {
+    auto dis_idxs = utils::i_to_idxs(bc_.group_id, dis_dims_);
+    auto tot_idxs = utils::concat_dims(dis_idxs, loc_idxs);
+
+    // CASE d = 1:
+    // 0 - | X | - 1 
+    // 2 - | X | - 3
+    
+    // CASE d = 0 or d = 2:
+    // 0 - | X | - 2
+    // 1 - | X | - 3
+
+    return (tot_idxs.at(0) == tot_idxs.at(3)) && (tot_idxs.at(1) == tot_idxs.at(2));
+  }
+
+  SwapTensor* SwapTensor::rebcast(BcParams params) {
+    Broadcaster new_bc(bc_.env, bc_.base, params);
+    bc_ = std::move(new_bc);
+
+    return this;
+  }
 }

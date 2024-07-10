@@ -199,7 +199,7 @@ namespace qtnh {
       /// @brief Re-broadcast current tensor. 
       /// @param params Broadcast parameters of the tensor (str, cyc, off)
       /// @return Pointer to re-broadcasted tensor, which might be of a different derived type. 
-      virtual Tensor* rebcast(BcParams params) override;
+      virtual SwapTensor* rebcast(BcParams params) override;
   };
 }
 
