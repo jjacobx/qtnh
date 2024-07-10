@@ -85,48 +85,51 @@ namespace qtnh {
   }
 
   SymmTensor* SymmTensor::rescatter(int offset, TIdxIO io) {
-    if (offset == 0) {
-      return this;
-    } else if (offset < 0) {
-      if (!bc_.active) return this;
-      
+    if (offset < 0) {
+      if (io == TIdxIO::in) {
+        _permute_internal(this, disInDims().size() + offset, disDims().size(), offset);
+        n_dis_in_dims_ += offset;
+      }
+
+      _rescatter_internal(this, offset);
+
       auto loc_dims2 = qtnh::tidx_tup(dis_dims_.end() + offset, dis_dims_.end());
       auto shift = utils::dims_to_size(loc_dims2);
 
-      MPI_Comm gath_comm;
-      MPI_Comm_split(bc_.group_comm, bc_.group_id / shift, bc_.group_id, &gath_comm);
-
-      loc_els_.resize(locSize() * shift);
-      MPI_Allgather(loc_els_.data(), locSize(), MPI_C_DOUBLE_COMPLEX, 
-                    loc_els_.data(), locSize(), MPI_C_DOUBLE_COMPLEX, gath_comm);
-      
-      dis_dims_.erase(dis_dims_.end() + offset, dis_dims_.end());
       loc_dims_.insert(loc_dims_.begin(), loc_dims2.begin(), loc_dims2.end());
+      dis_dims_.erase(dis_dims_.end() - offset, dis_dims_.end());
 
       Broadcaster new_bc(bc_.env, locSize(), { bc_.str * shift, bc_.cyc, bc_.off });
       bc_ = std::move(new_bc);
 
-      return this;
-    } else {
+      if (io == TIdxIO::out) {
+        _permute_internal(this, disDims().size(), disDims().size() + locInDims().size() + offset, offset);
+      }
+    }
+    else if (offset > 0) {
+      if (io == TIdxIO::out) {
+        _permute_internal(this, disDims().size(), disDims().size() + locInDims().size() + offset, offset);
+      }
+
+      _rescatter_internal(this, offset);
+
       auto dis_dims2 = qtnh::tidx_tup(loc_dims_.begin(), loc_dims_.begin() + offset);
       auto shift = utils::dims_to_size(dis_dims2);
 
-      // Align with multiples of front – should happen in place
-      rebcast({ std::max(shift, (bc_.str / shift) * shift), bc_.cyc, bc_.off });
-
-      if (!bc_.active) return this;
-
-      auto split_id = (((bc_.env.proc_id - bc_.off) % (bc_.base * bc_.str)) / (bc_.str / shift)) % shift;
-      loc_els_.erase(loc_els_.begin(), loc_els_.begin() + locSize() / shift * split_id);
-      loc_els_.erase(loc_els_.begin() + locSize() / shift, loc_els_.end());
+      BcParams params(std::max(1UL, bc_.str / shift), bc_.cyc, bc_.off);
 
       loc_dims_.erase(loc_dims_.begin(), loc_dims_.begin() + offset);
       dis_dims_.insert(dis_dims_.end(), dis_dims2.begin(), dis_dims2.end());
 
-      Broadcaster new_bc(bc_.env, locSize(), { bc_.str / shift, bc_.cyc, bc_.off });
+      Broadcaster new_bc(bc_.env, locSize(), params);
       bc_ = std::move(new_bc);
 
-      return this;
+      if (io == TIdxIO::in) {
+        _permute_internal(this, disInDims().size(), disDims().size(), offset);
+        n_dis_in_dims_ += offset;
+      }
     }
+
+    return this;
   }
 }
