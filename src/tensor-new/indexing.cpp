@@ -115,6 +115,40 @@ namespace qtnh {
     return new_ti;
   }
 
+  TIndexing::TupIterator::TupIterator(qtnh::tidx_tup dims, std::vector<std::size_t> order, qtnh::tidx_tup start, bool is_end)
+    : dims_(dims), order_(order), current_(start), is_end_(is_end) {}
+
+  TIndexing::TupIterator TIndexing::TupIterator::begin() {
+    auto new_start = current_;
+    for (std::size_t i = 0; i < order_.size(); ++i) {
+      auto k = order_.at(i);
+      new_start.at(k) = 0;
+    }
+
+    return TupIterator(dims_, order_, new_start, false);
+  }
+
+  TIndexing::TupIterator TIndexing::TupIterator::end() {
+    return TupIterator(dims_, order_, current_, true);
+  }
+
+  TIndexing::TupIterator& TIndexing::TupIterator::operator++() {
+    for (std::size_t i = 0; i < order_.size(); ++i) {
+      auto k = order_.at(i);
+
+      if (current_.at(k) < dims_.at(k) - 1) {
+        current_.at(k)++;
+        return *this;
+      } else if (current_.at(k) == dims_.at(k) - 1) {
+        current_.at(k) = 0;
+        continue;
+      }
+    }
+    
+    is_end_ = true;
+    return *this;
+  }
+
   std::vector<std::size_t> _generate_maps(std::vector<TIFlag> ifls) {
     std::vector<std::size_t> maps;
     std::iota(maps.begin(), maps.end(), 0);

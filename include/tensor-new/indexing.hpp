@@ -71,24 +71,30 @@ namespace qtnh {
       TIndexing cut(std::string ifl_label = "default");
 
       struct TupIterator {
-        TupIterator(qtnh::tidx_tup dims, qtnh::tidx_tup start, std::vector<std::size_t> order);
+        TupIterator(qtnh::tidx_tup dims, std::vector<std::size_t> order, qtnh::tidx_tup start, bool is_end);
 
         TupIterator begin();
         TupIterator end();
 
         TupIterator& operator++();
-        bool operator!=(const TupIterator&);
-        qtnh::tidx_tup operator*() const;
+        constexpr bool operator!=(const TupIterator& rhs) {
+          // Only valid for checking the end element. 
+          return (is_end_ != rhs.is_end_);
+        }
+        qtnh::tidx_tup operator*() const {
+          return current_;
+        }
 
         private:
           qtnh::tidx_tup dims_;
-          std::vector<qtnh::tidx_tup_st> order_;
+          std::vector<std::size_t> order_;
 
           qtnh::tidx_tup current_;
+          bool is_end_;
       };
 
       struct NumIterator {
-        NumIterator(qtnh::tidx_tup dims, std::vector<std::size_t> order, qtnh::tidx_tup start);
+        NumIterator(qtnh::tidx_tup dims, std::vector<std::size_t> order, qtnh::tidx_tup start, bool is_end);
 
         NumIterator begin();
         NumIterator end();
@@ -103,6 +109,7 @@ namespace qtnh {
           std::size_t zero_;
 
           qtnh::tidx_tup current_idxs_;
+          bool is_end_;
       };
 
       TupIterator tup(std::string ifl_label, qtnh::tidx_tup start);
