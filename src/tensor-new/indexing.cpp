@@ -190,6 +190,59 @@ namespace qtnh {
     return result;
   }
 
+  TIndexing::TupIterator TIndexing::tup(std::string ifl_label, qtnh::tidx_tup start) {
+    std::vector<std::size_t> order;
+    for (std::size_t i = 0; i < maps_.size(); ++i) {
+      auto k = maps_.at(i);
+      if (ifls_.at(k).label == ifl_label) {
+        order.push_back(maps_.at(i));
+      }
+    }
+
+    return TIndexing::TupIterator(dims_, order, start, false);
+  }
+
+  TIndexing::NumIterator TIndexing::num(std::string ifl_label, qtnh::tidx_tup start) {
+    std::vector<std::size_t> incrs_all(dims_.size());
+    std::size_t zero = 0;
+
+    auto n = dims_.size();
+    std::size_t base = 1;
+    for (std::size_t i = 0; i < n; ++i) {
+      incrs_all.at(n - i - 1) = base;
+
+      if (ifls_.at(n - i - 1).label != ifl_label) {
+        zero += start.at(n - i - 1) * base;
+      }
+
+      base *= dims_.at(n - i - 1);
+    }
+
+    qtnh::tidx_tup dims;
+    std::vector<std::size_t> incrs;
+    qtnh::tidx_tup current_idxs;
+
+    for (std::size_t i = 0; i < maps_.size(); ++i) {
+      auto k = maps_.at(i);
+
+      if (ifls_.at(k).label == ifl_label) {
+        dims.push_back(dims_.at(k));
+        incrs.push_back(incrs_all.at(k));
+        current_idxs.push_back(start.at(k));
+      }
+    }
+
+    return TIndexing::NumIterator(dims, incrs, zero, current_idxs, false);
+  }
+
+  TIndexing TIndexing::app(const TIndexing& ti1, const TIndexing& ti2) {
+    auto dims = ti1.dims_;
+    auto ifls = ti1.ifls_;
+    dims.insert(dims.end(), ti2.dims_.begin(), ti2.dims_.end());
+    ifls.insert(ifls.end(), ti2.ifls_.begin(), ti2.ifls_.end());
+
+    return TIndexing(dims, ifls);
+  }
 
   std::vector<std::size_t> _generate_maps(std::vector<TIFlag> ifls) {
     std::vector<std::size_t> maps;
