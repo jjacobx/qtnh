@@ -10,6 +10,8 @@ namespace qtnh {
 
   /// Diagonal tensor base virtual class, which assumes that a symmetric tensors only has non-zero elements on a diagonal. 
   /// The diagonal is defined by the same total input and output indices. Symmetric tensor dimension restrictions apply. 
+  /// Even if given rank is non-diagonal, distributed output index diagonal is stored. The distributed input index can be
+  /// truncated to 0 to limit the number of required ranks. To convert to a more general tensor, full form is necessary. 
   class DiagTensorBase : public SymmTensorBase {
     public: 
       DiagTensorBase() = delete;
@@ -18,7 +20,7 @@ namespace qtnh {
 
       virtual TT type() const noexcept override { return TT::diagTensorBase; }
 
-      /// @brief Convert any derived tensor to writable diagonal tensor
+      /// @brief Convert any derived tensor to writable diagonal tensor. 
       /// @param tu Unique pointer to derived diagonal tensor to convert. 
       /// @return Unique pointer to an equivalent writable diagonal tensor. 
       static std::unique_ptr<DiagTensor> toDiag(std::unique_ptr<DiagTensorBase> tu) {
@@ -30,17 +32,19 @@ namespace qtnh {
       /// @param env Environment to use for construction. 
       /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
-      /// @param n_dis_in_dims Number of distributed input dimensions
-      DiagTensorBase(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims);
+      /// @param n_dis_in_dims Number of distributed input dimensions. 
+      /// @param truncated Flag for whether the front has been truncated to 0. 
+      DiagTensorBase(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated);
       /// @brief Construct empty tensor with given local and distributed dimensions within environment with given distribution parameters. 
       /// @param env Environment to use for construction. 
       /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
-      /// @param n_dis_in_dims Number of distributed input dimensions
+      /// @param n_dis_in_dims Number of distributed input dimensions. 
+      /// @param truncated Flag for whether the front has been truncated to 0. 
       /// @param params Distribution parameters of the tensor (str, cyc, off). 
-      DiagTensorBase(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, BcParams params);
+      DiagTensorBase(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated, BcParams params);
 
-      /// @brief Convert any derived tensor to writable diagonal tensor
+      /// @brief Convert any derived tensor to writable diagonal tensor. 
       /// @return Pointer to an equivalent writable diagonal tensor. 
       virtual DiagTensor* toDiag();
 
@@ -57,6 +61,8 @@ namespace qtnh {
       /// @param offset New offset between distributed and local dimensions – negative gathers, while positive scatters. 
       /// @return Pointer to re-scattered tensor, which might be of a different derived type. 
       virtual Tensor* rescatter(int offset) override;
+
+      bool truncated_;  ///< Flag for whether distributed input dimensions are truncated to 0. 
   };
 
   /// Writable diagonal tensor class, which allows direct access to diagonal elements. 
@@ -71,17 +77,19 @@ namespace qtnh {
       /// @param env Environment to use for construction. 
       /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
-      /// @param n_dis_in_dims Number of distributed input dimensions
+      /// @param n_dis_in_dims Number of distributed input dimensions. 
+      /// @param truncated Flag for whether the front has been truncated to 0. 
       /// @param diag_els Complex vector of local diagonal elements. 
-      DiagTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, std::vector<qtnh::tel>&& diag_els);
+      DiagTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated, std::vector<qtnh::tel>&& diag_els);
       /// @brief Construct empty tensor with given local and distributed dimensions within environment with given distribution parameters. 
       /// @param env Environment to use for construction. 
       /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
-      /// @param n_dis_in_dims Number of distributed input dimensions
+      /// @param n_dis_in_dims Number of distributed input dimensions. 
+      /// @param truncated Flag for whether the front has been truncated to 0. 
       /// @param diag_els Complex vector of local diagonal elements. 
       /// @param params Distribution parameters of the tensor (str, cyc, off). 
-      DiagTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, std::vector<qtnh::tel>&& diag_els, BcParams params);
+      DiagTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated, std::vector<qtnh::tel>&& diag_els, BcParams params);
 
       virtual TT type() const noexcept override { return TT::diagTensor; }
 
