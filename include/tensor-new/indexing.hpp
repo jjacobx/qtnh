@@ -81,9 +81,7 @@ namespace qtnh {
           // Only valid for checking the end element. 
           return (is_end_ != rhs.is_end_);
         }
-        qtnh::tidx_tup operator*() const {
-          return current_;
-        }
+        qtnh::tidx_tup operator*() const;
 
         private:
           qtnh::tidx_tup dims_;
@@ -94,13 +92,16 @@ namespace qtnh {
       };
 
       struct NumIterator {
-        NumIterator(qtnh::tidx_tup dims, std::vector<std::size_t> order, qtnh::tidx_tup start, bool is_end);
+        NumIterator(qtnh::tidx_tup dims, std::vector<std::size_t> incrs, std::size_t zero, qtnh::tidx_tup current_idxs, bool is_end);
 
         NumIterator begin();
         NumIterator end();
 
         NumIterator& operator++();
-        bool operator!=(const NumIterator&);
+        constexpr bool operator!=(const NumIterator& rhs) {
+          // Only valid for checking the end element. 
+          return (is_end_ != rhs.is_end_);
+        }
         std::size_t operator*() const;
 
         private:

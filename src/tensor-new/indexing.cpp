@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <numeric>
 
+#include "core/utils.hpp"
 #include "tensor-new/indexing.hpp"
 
 namespace qtnh {
@@ -148,6 +149,47 @@ namespace qtnh {
     is_end_ = true;
     return *this;
   }
+
+  qtnh::tidx_tup TIndexing::TupIterator::operator*() const {
+    return current_;
+  }
+
+  TIndexing::NumIterator::NumIterator(qtnh::tidx_tup dims, std::vector<std::size_t> incrs, std::size_t zero, qtnh::tidx_tup current_idxs, bool is_end)
+    : dims_(dims), incrs_(incrs), zero_(zero), current_idxs_(current_idxs), is_end_(is_end) {}
+
+  TIndexing::NumIterator TIndexing::NumIterator::begin() {
+    return NumIterator(dims_, incrs_, zero_, qtnh::tidx_tup(current_idxs_.size(), 0), false);
+  }
+
+  TIndexing::NumIterator TIndexing::NumIterator::end() {
+    return NumIterator(dims_, incrs_, zero_, current_idxs_, true);
+  }
+
+  TIndexing::NumIterator& TIndexing::NumIterator::operator++() {
+    for (std::size_t i = 0; i < current_idxs_.size(); ++i) {
+
+      if (current_idxs_.at(i) < dims_.at(i) - 1) {
+        current_idxs_.at(i)++;
+        return *this;
+      } else if (current_idxs_.at(i) == dims_.at(i) - 1) {
+        current_idxs_.at(i) = 0;
+        continue;
+      }
+    }
+    
+    is_end_ = true;
+    return *this;
+  }
+
+  std::size_t TIndexing::NumIterator::operator*() const {
+    auto result = zero_;
+    for (std::size_t i = 0; i < current_idxs_.size(); ++i) {
+      result += current_idxs_.at(i) * incrs_.at(i);
+    }
+
+    return result;
+  }
+
 
   std::vector<std::size_t> _generate_maps(std::vector<TIFlag> ifls) {
     std::vector<std::size_t> maps;
