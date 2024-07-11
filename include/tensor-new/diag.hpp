@@ -158,15 +158,17 @@ namespace qtnh {
       /// @param env Environment to use for construction. 
       /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
-      /// @param n_dis_in_dims Number of distributed input dimensions
-      IdenTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims);
+      /// @param n_dis_in_dims Number of distributed input dimensions. 
+            /// @param truncated Flag for whether the front has been truncated to 0. 
+      IdenTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated);
       /// @brief Construct empty tensor with given local and distributed dimensions within environment with given distribution parameters. 
       /// @param env Environment to use for construction. 
       /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
-      /// @param n_dis_in_dims Number of distributed input dimensions
+      /// @param n_dis_in_dims Number of distributed input dimensions. 
+      /// @param truncated Flag for whether the front has been truncated to 0. 
       /// @param params Distribution parameters of the tensor (str, cyc, off). 
-      IdenTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, BcParams params);
+      IdenTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated, BcParams params);
 
       virtual TT type() const noexcept override { return TT::idenTensor; }
 
