@@ -14,7 +14,7 @@ namespace qtnh {
     public: 
       SymmTensorBase() = delete;
       SymmTensorBase(const SymmTensorBase&) = delete;
-      ~SymmTensorBase() = default;
+      virtual ~SymmTensorBase() = default;
 
       virtual TT type() const noexcept override { return TT::symmTensorBase; }
 
@@ -63,33 +63,43 @@ namespace qtnh {
       /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
       /// @param n_dis_in_dims Number of distributed input dimensions
-      /// @param params Distribution parameters of the tensor (stretch, cycles, offset)
-      SymmTensorBase(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, DistParams params);
+      /// @param params Distribution parameters of the tensor (str, cyc, off)
+      SymmTensorBase(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, BcParams params);
 
       /// @brief Convert any derived tensor to writable symmetric tensor
       /// @return Pointer to an equivalent writable symmetric tensor. 
       virtual SymmTensor* toSymm();
 
-      /// @brief Swap indices on current tensor. 
+      /// @brief Swap input/output indices on current tensor. 
       /// @param idx1 First index to swap. 
       /// @param idx2 Second index to swap. 
+      /// @param io Tensor index input/output label to indicate which indices to swap. 
       /// @return Pointer to swapped tensor, which might be of a different derived type. 
-      virtual Tensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) override;
-      /// @brief Redistribute current tensor. 
-      /// @param params Distribution parameters of the tensor (stretch, cycles, offset)
-      /// @return Pointer to redistributed tensor, which might be of a different derived type. 
-      virtual Tensor* redistribute(DistParams params) override;
-      /// @brief Move local indices to distributed pile and distributed indices to local pile. 
-      /// @param idx_locs Locations of indices to move. 
-      /// @return Pointer to re-piled tensor, which might be of a different derived type. 
-      virtual Tensor* repile(std::vector<qtnh::tidx_tup_st> idx_locs) override;
+      virtual Tensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2, TIdxIO io) {
+        return toSymm()->swap(idx1, idx2, io);
+      }
+      /// @brief Re-broadcast current tensor. 
+      /// @param params Broadcast parameters of the tensor (str, cyc, off)
+      /// @return Pointer to re-broadcasted tensor, which might be of a different derived type. 
+      virtual Tensor* rebcast(BcParams params) override {
+        return toSymm()->rebcast(params);
+      }
+      /// @brief Shift the border between input/output shared and distributed dimensions by a given offset. 
+      /// @param offset New offset between distributed and local dimensions – negative gathers, while positive scatters. 
+      /// @param io Tensor index input/output label to indicate which indices to scatter. 
+      /// @return Pointer to re-scattered tensor, which might be of a different derived type. 
+      virtual Tensor* rescatter(int offset, TIdxIO io) {
+        return toSymm()->rescatter(offset, io);
+      }
 
       qtnh::tidx_tup_st n_dis_in_dims_;  ///< Number of distributed input dimensions. 
   };
 
   /// Writable general symmetric tensor class, which allows direct access to all elements. Restrictions for symmetric tensors apply. 
-  class SymmTensor : public SymmTensorBase {
+  class SymmTensor : public SymmTensorBase, private TIDense {
     public:
+      friend class SymmTensorBase;
+
       SymmTensor() = delete;
       SymmTensor(const SymmTensor&) = delete;
       ~SymmTensor() = default;
@@ -100,15 +110,15 @@ namespace qtnh {
       /// @param dis_dims Distributed index dimensions. 
       /// @param n_dis_in_dims Number of distributed input dimensions
       /// @param els Complex vector of local elements. 
-      SymmTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, std::vector<qtnh::tel> els);
+      SymmTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, std::vector<qtnh::tel>&& els);
       /// @brief Construct empty tensor with given local and distributed dimensions within environment with given distribution parameters. 
       /// @param env Environment to use for construction. 
       /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
       /// @param n_dis_in_dims Number of distributed input dimensions
       /// @param els Complex vector of local elements. 
-      /// @param params Distribution parameters of the tensor (stretch, cycles, offset)
-      SymmTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, std::vector<qtnh::tel> els, DistParams params);
+      /// @param params Distribution parameters of the tensor (str, cyc, off)
+      SymmTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, std::vector<qtnh::tel>&& els, BcParams params);
 
       virtual TT type() const noexcept override { return TT::symmTensor; }
 
@@ -119,41 +129,40 @@ namespace qtnh {
       /// This method requires ensuring the element is present (i.e. the tensor is active)
       /// on current rank. On all active ranks, it must return an element, but different ranks  
       /// might have different values. 
-      virtual qtnh::tel operator[](const qtnh::tidx_tup& loc_idxs) const override;
+      virtual qtnh::tel operator[](qtnh::tidx_tup loc_idxs) const override;
       /// @brief Set element on given local indices. 
       /// @param idxs Tensor index tuple indicating local position to be updated. 
       ///
       /// The index update is executed on all active ranks, and different values might be
       /// passed to the method on different ranks. 
-      qtnh::tel& operator[](const qtnh::tidx_tup& loc_idxs);
+      qtnh::tel& operator[](qtnh::tidx_tup loc_idxs);
       /// @brief Set element on given global indices. 
-      /// @param idxs Tensor index tuple indicating local position to be updated. 
+      /// @param tot_idxs Tensor index tuple indicating global position to be updated. 
       /// @param el Complex number to be written at the given position. 
       ///
       /// The index update will do nothing on ranks that do not contain the element on given indices. 
-      void put(const qtnh::tidx_tup& loc_idxs, qtnh::tel el);
+      void put(qtnh::tidx_tup tot_idxs, qtnh::tel el);
 
     protected:
       /// @brief Convert any derived tensor to symmetric tensor
       /// @return Symmetric tensor equivalent to calling tensor
-      virtual SymmTensor* toSymm() override { return this; }
+      virtual SymmTensor* toSymm() noexcept override { return this; }
 
-      /// @brief Swap indices on current tensor. 
+      /// @brief Swap input/output indices on current tensor. 
       /// @param idx1 First index to swap. 
       /// @param idx2 Second index to swap. 
+      /// @param io Tensor index input/output label to indicate which indices to swap. 
       /// @return Pointer to swapped tensor, which might be of a different derived type. 
-      virtual Tensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) override;
-      /// @brief Redistribute current tensor. 
-      /// @param params Distribution parameters of the tensor (stretch, cycles, offset)
-      /// @return Pointer to redistributed tensor, which might be of a different derived type. 
-      virtual Tensor* redistribute(DistParams params) override;
-      /// @brief Move local indices to distributed pile and distributed indices to local pile. 
-      /// @param idx_locs Locations of indices to move. 
-      /// @return Pointer to re-piled tensor, which might be of a different derived type. 
-      virtual Tensor* repile(std::vector<qtnh::tidx_tup_st> idx_locs) override;
-
-    private:
-      std::vector<qtnh::tel> loc_els;  ///< Local elements. 
+      virtual SymmTensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2, TIdxIO io) override;
+      /// @brief Re-broadcast current tensor. 
+      /// @param params Broadcast parameters of the tensor (str, cyc, off)
+      /// @return Pointer to re-broadcasted tensor, which might be of a different derived type. 
+      virtual SymmTensor* rebcast(BcParams params) override;
+      /// @brief Shift the border between input/output shared and distributed dimensions by a given offset. 
+      /// @param offset New offset between distributed and local dimensions – negative gathers, while positive scatters. 
+      /// @param io Tensor index input/output label to indicate which indices to scatter. 
+      /// @return Pointer to re-scattered tensor, which might be of a different derived type. 
+      virtual SymmTensor* rescatter(int offset, TIdxIO io) override;
   };
 
   /// Rank 4 symmetric swap tensor for swapping two indices with dimension n. The swap tensor must have dimensions (n, n, n, n). 
@@ -165,13 +174,15 @@ namespace qtnh {
 
       /// @brief Construct rank 4 swap tensor with given single index size within environment with default distribution parameters. 
       /// @param env Environment to use for construction. 
-      /// @param n Dimension of swapped indices (both are expected to have the same size)
-      SwapTensor(const QTNHEnv& env, std::size_t n);
+      /// @param n Dimension of swapped indices (both are expected to have the same size). 
+      /// @param d Number of distributed input/output dimensions (can be either 0, 1 or 2), assuming input/output distribution is the same. 
+      SwapTensor(const QTNHEnv& env, std::size_t n, std::size_t d);
       /// @brief Construct rank 4 swap tensor with given index size within environment with given distribution parameters. 
       /// @param env Environment to use for construction. 
-      /// @param n Dimension of swapped indices (both are expected to have the same size)
-      /// @param params Distribution parameters of the tensor (stretch, cycles, offset)
-      SwapTensor(const QTNHEnv& env, std::size_t n, DistParams params);
+      /// @param n Dimension of swapped indices (both are expected to have the same size). 
+      /// @param d Number of distributed input/output dimensions (can be either 0, 1 or 2), assuming input/output distribution is the same. 
+      /// @param params Distribution parameters of the tensor (str, cyc, off). 
+      SwapTensor(const QTNHEnv& env, std::size_t n, std::size_t d, BcParams params);
 
       virtual TT type() const noexcept override { return TT::swapTensor; }
 
@@ -182,13 +193,13 @@ namespace qtnh {
       /// This method requires ensuring the element is present (i.e. the tensor is active)
       /// on current rank. On all active ranks, it must return an element, but different ranks  
       /// might have different values. 
-      virtual qtnh::tel operator[](const qtnh::tidx_tup& loc_idxs) const override;
+      virtual qtnh::tel operator[](qtnh::tidx_tup loc_idxs) const override;
 
     protected:
-      /// @brief Redistribute current tensor. 
-      /// @param params Distribution parameters of the tensor (stretch, cycles, offset)
-      /// @return Pointer to redistributed tensor, which might be of a different derived type. 
-      virtual Tensor* redistribute(DistParams params) override;
+      /// @brief Re-broadcast current tensor. 
+      /// @param params Broadcast parameters of the tensor (str, cyc, off)
+      /// @return Pointer to re-broadcasted tensor, which might be of a different derived type. 
+      virtual SwapTensor* rebcast(BcParams params) override;
   };
 }
 
