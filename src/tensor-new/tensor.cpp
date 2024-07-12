@@ -14,6 +14,14 @@ namespace qtnh {
   Tensor::Tensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, BcParams params)
     : bc_(env, utils::dims_to_size(dis_dims), params), loc_dims_(loc_dims), dis_dims_(dis_dims) {}
 
+  bool Tensor::has(qtnh::tidx_tup tot_idxs) const {
+    if (!bc_.active) return false;
+
+    auto [dis_idxs, loc_idxs] = utils::split_dims(tot_idxs, dis_dims_.size());
+
+    (void)loc_idxs; // unused
+    return utils::idxs_to_i(dis_idxs, dis_dims_) == bc_.group_id;
+  }
 
   qtnh::tel Tensor::fetch(qtnh::tidx_tup tot_idxs) const {
     // TODO: MPI_Send of nearest element
