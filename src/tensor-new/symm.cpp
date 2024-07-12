@@ -37,6 +37,24 @@ namespace qtnh {
     return loc_els_.at(i);
   }
 
+  qtnh::tel SymmTensor::at(qtnh::tidx_tup tot_idxs) const {
+    auto [dis_idxs, loc_idxs] = utils::split_dims(tot_idxs, dis_dims_.size());
+    if (bc_.group_id != utils::idxs_to_i(dis_idxs, dis_dims_)) {
+      throw std::invalid_argument("Element at given indices is not present on calling rank. ");
+    }
+
+    return loc_els_.at(utils::idxs_to_i(loc_idxs, loc_dims_));
+  }
+
+  qtnh::tel& SymmTensor::at(qtnh::tidx_tup tot_idxs) {
+    auto [dis_idxs, loc_idxs] = utils::split_dims(tot_idxs, dis_dims_.size());
+    if (bc_.group_id != utils::idxs_to_i(dis_idxs, dis_dims_)) {
+      throw std::invalid_argument("Element at given indices is not present on calling rank. ");
+    }
+
+    return loc_els_.at(utils::idxs_to_i(loc_idxs, loc_dims_));
+  }
+
   void SymmTensor::put(qtnh::tidx_tup tot_idxs, qtnh::tel el) {
     auto [dis_idxs, loc_idxs] = utils::split_dims(tot_idxs, dis_dims_.size());
     auto target_id = utils::idxs_to_i(dis_idxs, dis_dims_);
@@ -150,6 +168,31 @@ namespace qtnh {
     // CASE d = 0 or d = 2:
     // 0 - | X | - 2
     // 1 - | X | - 3
+
+    return (tot_idxs.at(0) == tot_idxs.at(3)) && (tot_idxs.at(1) == tot_idxs.at(2));
+  }
+
+  qtnh::tel SwapTensor::operator[](std::size_t i) const {
+    auto loc_idxs = utils::i_to_idxs(i, loc_dims_);
+    auto dis_idxs = utils::i_to_idxs(bc_.group_id, dis_dims_);
+    auto tot_idxs = utils::concat_dims(dis_idxs, loc_idxs);
+
+    // CASE d = 1:
+    // 0 - | X | - 1 
+    // 2 - | X | - 3
+    
+    // CASE d = 0 or d = 2:
+    // 0 - | X | - 2
+    // 1 - | X | - 3
+
+    return (tot_idxs.at(0) == tot_idxs.at(3)) && (tot_idxs.at(1) == tot_idxs.at(2));
+  }
+
+  qtnh::tel SwapTensor::at(qtnh::tidx_tup tot_idxs) const {
+    auto [dis_idxs, loc_idxs] = utils::split_dims(tot_idxs, dis_dims_.size());
+    if (bc_.group_id != utils::idxs_to_i(dis_idxs, dis_dims_)) {
+      throw std::invalid_argument("Element at given indices is not present on calling rank. ");
+    }
 
     return (tot_idxs.at(0) == tot_idxs.at(3)) && (tot_idxs.at(1) == tot_idxs.at(2));
   }

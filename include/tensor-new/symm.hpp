@@ -136,8 +136,40 @@ namespace qtnh {
       /// The index update is executed on all active ranks, and different values might be
       /// passed to the method on different ranks. 
       qtnh::tel& operator[](qtnh::tidx_tup loc_idxs);
-      /// @brief Set element on given global indices. 
-      /// @param tot_idxs Tensor index tuple indicating global position to be updated. 
+
+      /// @brief Directly access local array the tensor. 
+      /// @param i Local array index to access. 
+      /// @return The element at given index. Throws an error if not present (or out of bounds). 
+      ///
+      /// Returned element depends on the storage method used. It may differ for two identical 
+      /// tensors that use different underlying classes. It may also produce unexpected results 
+      /// when virtual elements are stored, i.e. elements useful for calculations, but not actually 
+      /// present in the tensor. 
+      virtual qtnh::tel operator[](std::size_t i) const override { return loc_els_.at(i); }
+      /// @brief Access element at total indices if present. 
+      /// @param tot_idxs Indices with total position of the element. 
+      /// @return Value of the element at given indices. Throws error if not present. 
+      ///
+      /// It is advised to ensure the element is present at current rank with Tensor::has method. 
+      virtual qtnh::tel at(qtnh::tidx_tup tot_idxs) const override;
+
+      /// @brief Directly access and reference local array the tensor. 
+      /// @param i Local array index to access. 
+      /// @return Reference to the element at given index. Throws an error if not present (or out of bounds). 
+      ///
+      /// Returned element depends on the storage method used. It may differ for two identical 
+      /// tensors that use different underlying classes. It may also produce unexpected results 
+      /// when virtual elements are stored, i.e. elements useful for calculations, but not actually 
+      /// present in the tensor. 
+      qtnh::tel& operator[](std::size_t i) { return loc_els_.at(i); }
+      /// @brief Access and reference element at total indices if present. 
+      /// @param tot_idxs Indices with total position of the element. 
+      /// @return Reference to the element at given indices. Throws error if not present. 
+      ///
+      /// It is advised to ensure the element is present at current rank with Tensor::has method. 
+      qtnh::tel& at(qtnh::tidx_tup tot_idxs);
+      /// @brief Set element on given total indices. 
+      /// @param tot_idxs Indices with total position of the element. 
       /// @param el Complex number to be written at the given position. 
       ///
       /// The index update will do nothing on ranks that do not contain the element on given indices. 
@@ -194,6 +226,22 @@ namespace qtnh {
       /// on current rank. On all active ranks, it must return an element, but different ranks  
       /// might have different values. 
       virtual qtnh::tel operator[](qtnh::tidx_tup loc_idxs) const override;
+
+      /// @brief Directly access local array the tensor. 
+      /// @param i Local array index to access. 
+      /// @return The element at given index. Throws an error if not present (or out of bounds). 
+      ///
+      /// Returned element depends on the storage method used. It may differ for two identical 
+      /// tensors that use different underlying classes. It may also produce unexpected results 
+      /// when virtual elements are stored, i.e. elements useful for calculations, but not actually 
+      /// present in the tensor. 
+      virtual qtnh::tel operator[](std::size_t i) const override;
+      /// @brief Access element at total indices if present. 
+      /// @param tot_idxs Indices with total position of the element. 
+      /// @return Value of the element at given indices. Throws error if not present. 
+      ///
+      /// It is advised to ensure the element is present at current rank with Tensor::has method. 
+      virtual qtnh::tel at(qtnh::tidx_tup tot_idxs) const override;
 
     protected:
       /// @brief Re-broadcast current tensor. 
