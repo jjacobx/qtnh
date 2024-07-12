@@ -125,6 +125,7 @@ namespace qtnh {
       /// @brief Rank-unsafe method to get element and given local indices. 
       /// @param idxs Tensor index tuple indicating local position of the element. 
       /// @return Value of the element at given indices. Throws error if value is not present. 
+      /// @deprecated Will be superseded by direct addressing of array elements with numeric indices. 
       ///
       /// This method requires ensuring the element is present (i.e. the tensor is active)
       /// on current rank. On all active ranks, it must return an element, but different ranks  
@@ -132,6 +133,7 @@ namespace qtnh {
       virtual qtnh::tel operator[](qtnh::tidx_tup loc_idxs) const override;
       /// @brief Set element on given local indices. 
       /// @param idxs Tensor index tuple indicating local position to be updated. 
+      /// @deprecated Will be superseded by direct addressing of array elements with numeric indices. 
       ///
       /// The index update is executed on all active ranks, and different values might be
       /// passed to the method on different ranks. 
@@ -221,6 +223,7 @@ namespace qtnh {
       /// @brief Rank-unsafe method to get element and given local indices. 
       /// @param idxs Tensor index tuple indicating local position of the element. 
       /// @return Value of the element at given indices. Throws error if value is not present. 
+      /// @deprecated Will be superseded by direct addressing of array elements with numeric indices. 
       ///
       /// This method requires ensuring the element is present (i.e. the tensor is active)
       /// on current rank. On all active ranks, it must return an element, but different ranks  
