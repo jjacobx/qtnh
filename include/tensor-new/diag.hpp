@@ -104,6 +104,7 @@ namespace qtnh {
       /// @brief Rank-unsafe method to get element and given local indices. 
       /// @param idxs Tensor index tuple indicating local position of the element. 
       /// @return Value of the element at given indices. Throws error if value is not present. 
+      /// @deprecated Will be superseded by direct addressing of array elements with numeric indices. 
       ///
       /// This method requires ensuring the element is present (i.e. the tensor is active)
       /// on current rank. On all active ranks, it must return an element, but different ranks  
@@ -111,16 +112,49 @@ namespace qtnh {
       virtual qtnh::tel operator[](qtnh::tidx_tup loc_idxs) const override;
       /// @brief Set element on given local indices, which must be diagonal. 
       /// @param idxs Tensor index tuple indicating local position to be updated. 
+      /// @deprecated Will be superseded by direct addressing of array elements with numeric indices. 
       ///
       /// The index update is executed on all active ranks, and different values might be
       /// passed to the method on different ranks. Non-diagonal updates will throw an error. 
       qtnh::tel& operator[](qtnh::tidx_tup loc_idxs);
-      /// @brief Set element on given global indices. 
-      /// @param tot_idxs Tensor index tuple indicating global position to be updated. 
+
+
+      /// @brief Directly access local array the tensor. 
+      /// @param i Local array index to access. 
+      /// @return The element at given index. Throws an error if not present (or out of bounds). 
+      ///
+      /// Returned element depends on the storage method used. It may differ for two identical 
+      /// tensors that use different underlying classes. It may also produce unexpected results 
+      /// when virtual elements are stored, i.e. elements useful for calculations, but not actually 
+      /// present in the tensor. 
+      virtual qtnh::tel operator[](std::size_t i) const override { return loc_diag_els_.at(i); }
+      /// @brief Access element at total indices if present. 
+      /// @param tot_idxs Indices with total position of the element. 
+      /// @return Value of the element at given indices. Throws error if not present. 
+      ///
+      /// It is advised to ensure the element is present at current rank with Tensor::has method. 
+      virtual qtnh::tel at(qtnh::tidx_tup tot_idxs) const override;
+
+      /// @brief Directly access and reference local array the tensor. 
+      /// @param i Local array index to access. 
+      /// @return Reference to the element at given index. Throws an error if not present (or out of bounds). 
+      ///
+      /// Returned element depends on the storage method used. It may differ for two identical 
+      /// tensors that use different underlying classes. It may also produce unexpected results 
+      /// when virtual elements are stored, i.e. elements useful for calculations, but not actually 
+      /// present in the tensor. 
+      qtnh::tel& operator[](std::size_t i) { return loc_diag_els_.at(i); }
+      /// @brief Access and reference element at total indices if present. 
+      /// @param tot_idxs Indices with total position of the element. 
+      /// @return Reference to the element at given indices. Throws error if not present. 
+      ///
+      /// It is advised to ensure the element is present at current rank with Tensor::has method. 
+      qtnh::tel& at(qtnh::tidx_tup tot_idxs);
+      /// @brief Set element on given total indices. 
+      /// @param tot_idxs Indices with total position of the element. 
       /// @param el Complex number to be written at the given position. 
       ///
-      /// The index update will do nothing on ranks that do not contain the element on given indices, 
-      /// or if the element is non-diagonal. 
+      /// The index update will do nothing on ranks that do not contain the element on given indices. 
       void put(qtnh::tidx_tup tot_idxs, qtnh::tel el);
 
     protected: 
@@ -143,7 +177,7 @@ namespace qtnh {
       virtual Tensor* rescatter(int offset, TIdxIO io) override;
 
     private: 
-      std::vector<qtnh::tel> loc_diag_els;  ///< Local diagonal elements. 
+      std::vector<qtnh::tel> loc_diag_els_;  ///< Local diagonal elements. 
   };
 
   /// Identity diagonal tensor class. Has symmetric total dimensions and 1s on a diagonal – all other elements are zero. 
@@ -159,7 +193,7 @@ namespace qtnh {
       /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
       /// @param n_dis_in_dims Number of distributed input dimensions. 
-            /// @param truncated Flag for whether the front has been truncated to 0. 
+      /// @param truncated Flag for whether the front has been truncated to 0. 
       IdenTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated);
       /// @brief Construct empty tensor with given local and distributed dimensions within environment with given distribution parameters. 
       /// @param env Environment to use for construction. 
@@ -175,11 +209,28 @@ namespace qtnh {
       /// @brief Rank-unsafe method to get element and given local indices. 
       /// @param idxs Tensor index tuple indicating local position of the element. 
       /// @return Value of the element at given indices. Throws error if value is not present. 
+      /// @deprecated Will be superseded by direct addressing of array elements with numeric indices. 
       ///
       /// This method requires ensuring the element is present (i.e. the tensor is active)
       /// on current rank. On all active ranks, it must return an element, but different ranks  
       /// might have different values. 
       virtual qtnh::tel operator[](qtnh::tidx_tup loc_idxs) const override;
+
+      /// @brief Directly access local array the tensor. 
+      /// @param i Local array index to access. 
+      /// @return The element at given index. Throws an error if not present (or out of bounds). 
+      ///
+      /// Returned element depends on the storage method used. It may differ for two identical 
+      /// tensors that use different underlying classes. It may also produce unexpected results 
+      /// when virtual elements are stored, i.e. elements useful for calculations, but not actually 
+      /// present in the tensor. 
+      virtual qtnh::tel operator[](std::size_t i) const override { return 1; }
+      /// @brief Access element at total indices if present. 
+      /// @param tot_idxs Indices with total position of the element. 
+      /// @return Value of the element at given indices. Throws error if not present. 
+      ///
+      /// It is advised to ensure the element is present at current rank with Tensor::has method. 
+      virtual qtnh::tel at(qtnh::tidx_tup tot_idxs) const override;
 
     protected:
       /// @brief Re-broadcast current tensor. 

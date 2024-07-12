@@ -62,16 +62,37 @@ namespace qtnh {
       /// @return Number of elements in the entire tensor. 
       std::size_t totSize() const { return utils::dims_to_size(totDims()); }
 
+      /// @brief Directly access local array the tensor (or corresponding element). 
+      /// @param i Local array index to access. 
+      /// @return The element at given index. Throws an error if not present (or out of bounds). 
+      ///
+      /// Returned element depends on the storage method used. It may differ for two identical 
+      /// tensors that use different underlying classes. It may also produce unexpected results 
+      /// when virtual elements are stored, i.e. elements useful for calculations, but not actually 
+      /// present in the tensor. 
+      virtual qtnh::tel operator[](std::size_t i) const = 0;
       /// @brief Rank-unsafe method to get element and given local indices. 
       /// @param idxs Tensor index tuple indicating local position of the element. 
       /// @return Value of the element at given indices. Throws error if value is not present. 
+      /// @deprecated Will be superseded by direct addressing of array elements with numeric indices. 
       ///
       /// This method requires ensuring the element is present (i.e. the tensor is active)
       /// on current rank. On all active ranks, it must return an element, but different ranks  
       /// might have different values. 
       virtual qtnh::tel operator[](qtnh::tidx_tup loc_idxs) const = 0;
+
+      /// @brief Access element at total indices if present. 
+      /// @param tot_idxs Indices with total position of the element. 
+      /// @return Value of the element at given indices. Throws error if value is not present. 
+      ///
+      /// It is advised to ensure the element is present at current rank with Tensor::has method. 
+      virtual qtnh::tel at(qtnh::tidx_tup tot_idxs) const = 0;
+      /// @brief Check if element at total indices is present on current rank. 
+      /// @param tot_idxs Indices with total position of the element. 
+      /// @return True if the element is present, false otherwise. 
+      virtual bool has(qtnh::tidx_tup tot_idxs) const;
       /// @brief Fetch element at global indices and broadcast it to every rank. 
-      /// @param idxs Tensor index tuple indicating global position of the element. 
+      /// @param tot_idxs Indices with total position of the element. 
       /// @return Value of the element at given indices. 
       ///
       /// This method doesn't require checking if the value is present or if the tensor is active. 

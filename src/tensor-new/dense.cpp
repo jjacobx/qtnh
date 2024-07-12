@@ -37,6 +37,24 @@ namespace qtnh {
     return loc_els_.at(i);
   }
 
+  qtnh::tel DenseTensor::at(qtnh::tidx_tup tot_idxs) const {
+    auto [dis_idxs, loc_idxs] = utils::split_dims(tot_idxs, dis_dims_.size());
+    if (bc_.group_id != utils::idxs_to_i(dis_idxs, dis_dims_)) {
+      throw std::invalid_argument("Element at given indices is not present on calling rank. ");
+    }
+
+    return loc_els_.at(utils::idxs_to_i(loc_idxs, loc_dims_));
+  }
+
+  qtnh::tel& DenseTensor::at(qtnh::tidx_tup tot_idxs) {
+    auto [dis_idxs, loc_idxs] = utils::split_dims(tot_idxs, dis_dims_.size());
+    if (bc_.group_id != utils::idxs_to_i(dis_idxs, dis_dims_)) {
+      throw std::invalid_argument("Element at given indices is not present on calling rank. ");
+    }
+
+    return loc_els_.at(utils::idxs_to_i(loc_idxs, loc_dims_));
+  }
+
   void DenseTensor::put(qtnh::tidx_tup tot_idxs, qtnh::tel el) {
     auto [dis_idxs, loc_idxs] = utils::split_dims(tot_idxs, dis_dims_.size());
     auto target_id = utils::idxs_to_i(dis_idxs, dis_dims_);
