@@ -23,10 +23,10 @@ namespace qtnh {
   }
 
   DiagTensor::DiagTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated, std::vector<qtnh::tel>&& diag_els)
-    : DiagTensorBase(env, loc_dims, dis_dims, n_dis_in_dims, truncated), loc_diag_els(std::move(diag_els)) {}
+    : DiagTensorBase(env, loc_dims, dis_dims, n_dis_in_dims, truncated), loc_diag_els_(std::move(diag_els)) {}
   
   DiagTensor::DiagTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated, std::vector<qtnh::tel>&& diag_els, BcParams params)
-    : DiagTensorBase(env, loc_dims, dis_dims, n_dis_in_dims, truncated, params), loc_diag_els(std::move(diag_els)) {}
+    : DiagTensorBase(env, loc_dims, dis_dims, n_dis_in_dims, truncated, params), loc_diag_els_(std::move(diag_els)) {}
 
 
   IdenTensor::IdenTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated)
@@ -43,6 +43,16 @@ namespace qtnh {
 
     for (int i = 0; i < idxs1.size(); ++i) {
       if (idxs1.at(i) != idxs2.at(i)) return 0;
+    }
+
+    return 1;
+  }
+
+  qtnh::tel IdenTensor::at(qtnh::tidx_tup tot_idxs) const {
+    auto [tot_in_idxs, tot_out_idxs] = utils::split_dims(tot_idxs, tot_idxs.size() / 2);
+
+    for (int i = 0; i < tot_in_idxs.size(); ++i) {
+      if (tot_in_idxs.at(i) != tot_out_idxs.at(i)) return 0;
     }
 
     return 1;
