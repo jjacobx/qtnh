@@ -113,7 +113,9 @@ namespace qtnh {
           bool is_end_;
       };
 
+      TupIterator tup(std::string ifl_label);
       TupIterator tup(std::string ifl_label, qtnh::tidx_tup start);
+      NumIterator num(std::string ifl_label);
       NumIterator num(std::string ifl_label, qtnh::tidx_tup start);
 
       /// @brief Append two tensor indexings. 

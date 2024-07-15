@@ -190,6 +190,10 @@ namespace qtnh {
     return result;
   }
 
+  TIndexing::TupIterator TIndexing::tup(std::string ifl_label) {
+    return tup(ifl_label, qtnh::tidx_tup(dims_.size(), 0));
+  }
+
   TIndexing::TupIterator TIndexing::tup(std::string ifl_label, qtnh::tidx_tup start) {
     std::vector<std::size_t> order;
     for (std::size_t i = 0; i < maps_.size(); ++i) {
@@ -200,6 +204,10 @@ namespace qtnh {
     }
 
     return TIndexing::TupIterator(dims_, order, start, false);
+  }
+
+  TIndexing::NumIterator TIndexing::num(std::string ifl_label) {
+    return num(ifl_label, qtnh::tidx_tup(dims_.size(), 0));
   }
 
   TIndexing::NumIterator TIndexing::num(std::string ifl_label, qtnh::tidx_tup start) {
