@@ -11,7 +11,7 @@ namespace qtnh {
   TIndexing::TIndexing(qtnh::tidx_tup dims, std::vector<TIFlag> ifls)
     : dims_(dims), ifls_(ifls), maps_(_generate_maps(ifls_)) {}
 
-  bool TIndexing::isValid(qtnh::tidx_tup idxs) {
+  bool TIndexing::isValid(qtnh::tidx_tup idxs) const {
     if (idxs.size() != dims_.size()) {
       return false;
     }
@@ -25,7 +25,7 @@ namespace qtnh {
     return true;
   }
 
-  bool TIndexing::isEqual(qtnh::tidx_tup idxs1, qtnh::tidx_tup idxs2, std::string ifl_label) {
+  bool TIndexing::isEqual(qtnh::tidx_tup idxs1, qtnh::tidx_tup idxs2, std::string ifl_label) const {
     for (std::size_t i = 0; i < idxs1.size(); ++i) {
       if ((ifls_.at(i).label == ifl_label) && (idxs1.at(i) != idxs2.at(i))) {
         return false;
@@ -35,7 +35,7 @@ namespace qtnh {
     return true;
   }
 
-  bool TIndexing::isLast(qtnh::tidx_tup idxs, std::string ifl_label) {
+  bool TIndexing::isLast(qtnh::tidx_tup idxs, std::string ifl_label) const {
     for (std::size_t i = 0; i < idxs.size(); ++i) {
       if ((ifls_.at(i).label == ifl_label) && (idxs.at(i) != dims_.at(i) - 1)) {
         return false;
@@ -45,7 +45,7 @@ namespace qtnh {
     return true;
   }
 
-  qtnh::tidx_tup TIndexing::next(qtnh::tidx_tup idxs, std::string ifl_label) {
+  qtnh::tidx_tup TIndexing::next(qtnh::tidx_tup idxs, std::string ifl_label) const {
     for (std::size_t i = 0; i < idxs.size(); ++i) {
       auto k = maps_.at(i);
 
@@ -67,7 +67,7 @@ namespace qtnh {
     throw std::out_of_range("Tuple is outside of indexing.");
   }
 
-  qtnh::tidx_tup TIndexing::prev(qtnh::tidx_tup idxs, std::string ifl_label) {
+  qtnh::tidx_tup TIndexing::prev(qtnh::tidx_tup idxs, std::string ifl_label) const {
     for (std::size_t i = 0; i < idxs.size(); ++i) {
       auto k = maps_.at(i);
 
@@ -89,7 +89,7 @@ namespace qtnh {
     throw std::out_of_range("Tuple is outside of indexing.");
   }
 
-  qtnh::tidx_tup TIndexing::reset(qtnh::tidx_tup idxs, std::string ifl_label) {
+  qtnh::tidx_tup TIndexing::reset(qtnh::tidx_tup idxs, std::string ifl_label) const {
     for (std::size_t i = 0; i < idxs.size(); i++) {
       if (ifls_.at(i).label == ifl_label) {
         idxs.at(i) = 0;
@@ -99,7 +99,7 @@ namespace qtnh {
     return idxs;
   }
 
-  TIndexing TIndexing::cut(std::string ifl_label) {
+  TIndexing TIndexing::cut(std::string ifl_label) const {
     auto new_dims = dims_;
     auto new_ifls = ifls_;
 
@@ -190,11 +190,11 @@ namespace qtnh {
     return result;
   }
 
-  TIndexing::TupIterator TIndexing::tup(std::string ifl_label) {
+  TIndexing::TupIterator TIndexing::tup(std::string ifl_label) const {
     return tup(ifl_label, qtnh::tidx_tup(dims_.size(), 0));
   }
 
-  TIndexing::TupIterator TIndexing::tup(std::string ifl_label, qtnh::tidx_tup start) {
+  TIndexing::TupIterator TIndexing::tup(std::string ifl_label, qtnh::tidx_tup start) const {
     std::vector<std::size_t> order;
     for (std::size_t i = 0; i < maps_.size(); ++i) {
       auto k = maps_.at(i);
@@ -206,11 +206,11 @@ namespace qtnh {
     return TIndexing::TupIterator(dims_, order, start, false);
   }
 
-  TIndexing::NumIterator TIndexing::num(std::string ifl_label) {
+  TIndexing::NumIterator TIndexing::num(std::string ifl_label) const {
     return num(ifl_label, qtnh::tidx_tup(dims_.size(), 0));
   }
 
-  TIndexing::NumIterator TIndexing::num(std::string ifl_label, qtnh::tidx_tup start) {
+  TIndexing::NumIterator TIndexing::num(std::string ifl_label, qtnh::tidx_tup start) const {
     std::vector<std::size_t> incrs_all(dims_.size());
     std::size_t zero = 0;
 

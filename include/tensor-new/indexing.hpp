@@ -23,10 +23,12 @@ namespace qtnh {
       /// @param ifl_label Index flags of the indexing. 
       TIndexing(qtnh::tidx_tup dims, std::vector<TIFlag> ifls);
 
+      const qtnh::tidx_tup& dims() const noexcept { return dims_; }
+
       /// @brief Check if tensor index tuple is valid in current indexing. 
       /// @param idxs Tensor index tuple to check.
       /// @return A boolean, true if the tuple is valid and false otherwise. 
-      bool isValid(qtnh::tidx_tup idxs);
+      bool isValid(qtnh::tidx_tup idxs) const;
       /// @brief Check if two tensor index tuples are equal in current indexing. 
       /// @param idxs1 First tensor index tuple to compare. 
       /// @param idxs2 Second tensor index tuple to compare. 
@@ -34,14 +36,14 @@ namespace qtnh {
       /// @return A boolean, true if the tuples are equal and false otherwise. 
       ///
       /// Only indices with the given flag are checked. 
-      bool isEqual(qtnh::tidx_tup idxs1, qtnh::tidx_tup idxs2, std::string ifl_label = "default");
+      bool isEqual(qtnh::tidx_tup idxs1, qtnh::tidx_tup idxs2, std::string ifl_label = "default") const;
       /// @brief Check if tensor index tuple is the last allowed in current indexing. 
       /// @param idxs Tensor index tuple to check. 
       /// @param ifl_label Index flag label to check. 
       /// @return A boolean, true if the tuple is the last one and false otherwise. 
       ///
       /// Only indices with the given flag are checked. 
-      bool isLast(qtnh::tidx_tup idxs, std::string ifl_label = "default");
+      bool isLast(qtnh::tidx_tup idxs, std::string ifl_label = "default") const;
 
       /// @brief Go to next tensor index tuple in current indexing, relative to the input tuple.  
       /// @param idxs Tensor index tuple to update. 
@@ -49,26 +51,26 @@ namespace qtnh {
       /// @return Next tensor index tuple. 
       ///
       /// Only indices with the given flag are updated. 
-      qtnh::tidx_tup next(qtnh::tidx_tup idxs, std::string ifl_label = "default");
+      qtnh::tidx_tup next(qtnh::tidx_tup idxs, std::string ifl_label = "default") const;
       /// @brief Go to previous tensor index tuple in current indexing, relative to the input tuple.  
       /// @param idxs Tensor index tuple to update. 
       /// @param ifl_label Index flag label to update. 
       /// @return Previous tensor index tuple. 
       ///
       /// Only indices with the given flag are updated. 
-      qtnh::tidx_tup prev(qtnh::tidx_tup idxs, std::string ifl_label = "default");
+      qtnh::tidx_tup prev(qtnh::tidx_tup idxs, std::string ifl_label = "default") const;
       /// @brief Reset tensor index tuple to zero in current indexing. 
       /// @param idxs Tensor index tuple to update. 
       /// @param ifl_label Index flag label to update. 
       /// @return Reset tensor index tuple. 
       ///
       /// Only indices with the given flag are updated. 
-      qtnh::tidx_tup reset(qtnh::tidx_tup idxs, std::string ifl_label = "default");
+      qtnh::tidx_tup reset(qtnh::tidx_tup idxs, std::string ifl_label = "default") const;
 
       /// @brief Cut given tensor index type out of the indexing. 
       /// @param ifl_label Index flag label to cut out. 
       /// @return Trimmed indexing without the indicated type. 
-      TIndexing cut(std::string ifl_label = "default");
+      TIndexing cut(std::string ifl_label = "default") const;
 
       struct TupIterator {
         TupIterator(qtnh::tidx_tup dims, std::vector<std::size_t> order, qtnh::tidx_tup start, bool is_end);
@@ -113,10 +115,10 @@ namespace qtnh {
           bool is_end_;
       };
 
-      TupIterator tup(std::string ifl_label);
-      TupIterator tup(std::string ifl_label, qtnh::tidx_tup start);
-      NumIterator num(std::string ifl_label);
-      NumIterator num(std::string ifl_label, qtnh::tidx_tup start);
+      TupIterator tup(std::string ifl_label) const;
+      TupIterator tup(std::string ifl_label, qtnh::tidx_tup start) const;
+      NumIterator num(std::string ifl_label) const;
+      NumIterator num(std::string ifl_label, qtnh::tidx_tup start) const;
 
       /// @brief Append two tensor indexings. 
       /// @param ti1 First tensor indexing to append. 
