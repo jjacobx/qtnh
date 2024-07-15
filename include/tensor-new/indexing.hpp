@@ -79,6 +79,7 @@ namespace qtnh {
         TupIterator end();
 
         TupIterator& operator++();
+        TupIterator operator++(int);
         constexpr bool operator!=(const TupIterator& rhs) {
           // Only valid for checking the end element. 
           return (is_end_ != rhs.is_end_);
@@ -100,6 +101,7 @@ namespace qtnh {
         NumIterator end();
 
         NumIterator& operator++();
+        NumIterator operator++(int);
         constexpr bool operator!=(const NumIterator& rhs) {
           // Only valid for checking the end element. 
           return (is_end_ != rhs.is_end_);

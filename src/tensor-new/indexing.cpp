@@ -150,6 +150,12 @@ namespace qtnh {
     return *this;
   }
 
+  TIndexing::TupIterator TIndexing::TupIterator::operator++(int) {
+    TupIterator old = *this;
+    operator++();
+    return old;
+  }
+
   qtnh::tidx_tup TIndexing::TupIterator::operator*() const {
     return current_;
   }
@@ -179,6 +185,12 @@ namespace qtnh {
     
     is_end_ = true;
     return *this;
+  }
+
+  TIndexing::NumIterator TIndexing::NumIterator::operator++(int) {
+    NumIterator old = *this;
+    operator++();
+    return old;
   }
 
   std::size_t TIndexing::NumIterator::operator*() const {
