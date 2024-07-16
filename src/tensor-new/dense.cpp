@@ -1,5 +1,3 @@
-#include <map>
-
 #include "tensor-new/dense.hpp"
 #include "tensor-new/indexing.hpp"
 
@@ -15,7 +13,7 @@ namespace qtnh {
     els.reserve(locSize());
 
     TIndexing ti(locDims());
-    for (auto idxs : ti) {
+    for (auto idxs : ti.num()) {
       els.push_back((*this)[idxs]);
     }
 
@@ -138,11 +136,11 @@ namespace qtnh {
       qtnh::tidx_tup_st loc_idx2 = idx2 - target->disDims().size();
 
       auto loc_dims = target->locDims();
-      qtnh::tifl_tup ifls(loc_dims.size(), { TIdxT::open, 0 });
-      ifls.at(loc_idx1) = ifls.at(loc_idx2) = { TIdxT::closed, 0 };
+      std::vector<TIFlag> ifls(loc_dims.size(), { "const", 0 });
+      ifls.at(loc_idx1) = ifls.at(loc_idx2) = { "swap", 0 };
       TIndexing ti(loc_dims, ifls);
 
-      for (auto idxs : ti) {
+      for (auto idxs : ti.tup("const")) {
         auto idxs1 = idxs;
         auto idxs2 = idxs;
 
