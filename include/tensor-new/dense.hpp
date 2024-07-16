@@ -76,6 +76,12 @@ namespace qtnh {
       virtual Tensor* rescatter(int offset) override {
         return this->toDense()->rescatter(offset);
       }
+      /// @brief Permute tensor elements according to mappings in the permutation tuple. 
+      /// @param ptup Permutation tuple of the same size as total dimensions, and each entry unique. 
+      /// @return Pointer to permuted tensor, which might be of a different derived type. 
+      virtual Tensor* permute(std::vector<qtnh::tidx_tup_st> ptup) override {
+        return this->toDense()->permute(ptup);
+      }
   };
 
   /// Writable dense tensor class, which allows direct access to all elements. 
@@ -175,6 +181,10 @@ namespace qtnh {
       /// @param offset New offset between distributed and local dimensions – negative gathers, while positive scatters. 
       /// @return Pointer to re-scattered tensor, which might be of a different derived type. 
       virtual DenseTensor* rescatter(int offset) override;
+      /// @brief Permute tensor elements according to mappings in the permutation tuple. 
+      /// @param ptup Permutation tuple of the same size as total dimensions, and each entry unique. 
+      /// @return Pointer to permuted tensor, which might be of a different derived type. 
+      virtual DenseTensor* permute(std::vector<qtnh::tidx_tup_st> ptup) override;
   };
 }
 

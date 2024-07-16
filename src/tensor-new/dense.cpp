@@ -112,6 +112,24 @@ namespace qtnh {
     return this;
   }
 
+  DenseTensor* DenseTensor::permute(std::vector<qtnh::tidx_tup_st> ptup) {
+    _permute_internal(this, ptup);
+
+    qtnh::tidx_tup new_dims(totSize());
+    for (std::size_t i = 0; i < totSize(); ++i) {
+      new_dims.at(ptup.at(i)) = totDims().at(i);
+    }
+
+    auto [new_dis_dims, new_loc_dims] = utils::split_dims(new_dims, disDims().size());
+    dis_dims_ = new_dis_dims;
+    loc_dims_ = new_loc_dims;
+
+    Broadcaster new_bc(bc().env, disSize(), { bc().str, bc().cyc, bc().off });
+    bc_ = std::move(new_bc);
+
+    return this;
+  }
+
   void TIDense::_swap_internal(Tensor* target, qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) {
     auto& bc = target->bc();
 
