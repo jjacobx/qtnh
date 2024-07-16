@@ -24,6 +24,7 @@ namespace qtnh {
       TIndexing(qtnh::tidx_tup dims, std::vector<TIFlag> ifls);
 
       const qtnh::tidx_tup& dims() const noexcept { return dims_; }
+      const std::vector<TIFlag>& ifls() const noexcept { return ifls_; }
 
       /// @brief Check if tensor index tuple is valid in current indexing. 
       /// @param idxs Tensor index tuple to check.
@@ -117,9 +118,9 @@ namespace qtnh {
           bool is_end_;
       };
 
-      TupIterator tup(std::string ifl_label) const;
+      TupIterator tup(std::string ifl_label = "default") const;
       TupIterator tup(std::string ifl_label, qtnh::tidx_tup start) const;
-      NumIterator num(std::string ifl_label) const;
+      NumIterator num(std::string ifl_label = "default") const;
       NumIterator num(std::string ifl_label, qtnh::tidx_tup start) const;
 
       /// @brief Append two tensor indexings. 
