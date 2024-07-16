@@ -1,5 +1,7 @@
+#include <map>
+
 #include "tensor-new/dense.hpp"
-#include "tensor/indexing.hpp"
+#include "tensor-new/indexing.hpp"
 
 namespace qtnh {
   DenseTensorBase::DenseTensorBase(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims)
@@ -304,5 +306,108 @@ namespace qtnh {
     }
 
     // Not updating dimensions as asymmetric swaps are not supported. 
+  }
+
+  void _permute(Tensor* target, std::vector<qtnh::tidx_tup_st> ptup) {
+    auto ndis = target->disDims().size();
+    auto nloc = target->locDims().size();
+
+    auto old_dims = target->totDims();
+    qtnh::tidx_tup new_dims(old_dims.size());
+    for (std::size_t i = 0; i < old_dims.size(); ++i) {
+      new_dims.at(ptup.at(i)) = old_dims.at(i);
+    }
+
+    std::vector<std::size_t> old_cumdims(old_dims.size(), 1);
+    std::vector<std::size_t> new_cumdims(new_dims.size(), 1);
+    for (int i = old_dims.size() - 2; i >= 0; --i) {
+      old_cumdims.at(i) = old_cumdims.at(i + 1) * old_dims.at(i + 1);
+      new_cumdims.at(i) = new_cumdims.at(i + 1) * new_dims.at(i + 1);
+    }
+
+    MPI_Datatype send_type = MPI_C_DOUBLE_COMPLEX;
+    MPI_Datatype recv_type = MPI_C_DOUBLE_COMPLEX;
+
+    for (int i = old_dims.size() - 1; i >= (int)ndis; --i) {
+      auto j = ptup.at(i);
+      if (j >= ndis) {
+        MPI_Type_create_resized(recv_type, 0, old_cumdims.at(i) * sizeof(qtnh::tel), &recv_type);
+        MPI_Type_create_resized(recv_type, 0, new_cumdims.at(j) * sizeof(qtnh::tel), &recv_type);
+        MPI_Type_contiguous(old_dims.at(i), send_type, &send_type);
+        MPI_Type_contiguous(new_dims.at(j), recv_type, &recv_type);
+
+        // MPI_Type_vector(old_dims.at(i), 1, old_cumdims.at(i), send_type, &send_type);
+        // MPI_Type_vector(new_dims.at(j), 1, new_cumdims.at(j), recv_type, &recv_type);
+      }
+    }
+
+    std::vector<TIFlag> old_ifls(old_dims.size());
+    for (std::size_t i = 0; i < old_dims.size(); ++i) {
+      old_ifls.at(i) = (i < ndis) ? TIFlag("fix", i) : TIFlag("any", i);
+    }
+
+    TIndexing old_ti(old_dims, old_ifls);
+
+    std::vector<TIFlag> new_ifls(new_dims.size());
+    for (std::size_t i = 0; i < old_dims.size(); ++i) {
+      new_ifls.at(ptup.at(i)) = old_ifls.at(i);
+    }
+
+    auto [old_dis_dims, old_loc_dims] = utils::split_dims(old_dims, ndis);
+    auto [new_dis_dims, new_loc_dims] = utils::split_dims(new_dims, ndis);
+
+    std::vector<TIFlag> old_dis_ifls(old_ifls.begin(), old_ifls.begin() + ndis);
+    std::vector<TIFlag> new_dis_ifls(new_ifls.begin(), new_ifls.begin() + ndis);
+    std::vector<TIFlag> old_loc_ifls(old_ifls.begin() + ndis, old_ifls.end());
+    std::vector<TIFlag> new_loc_ifls(new_ifls.begin() + ndis, new_ifls.end());
+
+    TIndexing old_dis_ti(old_dis_dims, old_dis_ifls);
+    TIndexing new_dis_ti(new_dis_dims, new_dis_ifls);
+    TIndexing old_loc_ti(old_loc_dims, old_loc_ifls);
+    TIndexing new_loc_ti(new_loc_dims, new_loc_ifls);
+
+    auto old_dis_idxs = utils::i_to_idxs(target->bc().group_id, old_dis_dims);
+    qtnh::tidx_tup send_dis_idxs(ndis);
+    for (std::size_t i = 0; i < ndis; ++i) {
+      auto j = ptup.at(i);
+      if (j < ndis) send_dis_idxs.at(j) = old_dis_idxs.at(i);
+    }
+
+    auto nsends = utils::dims_to_size(new_dis_ti.cut("fix").dims());
+    auto ntargets = std::max(utils::dims_to_size(old_dis_dims), utils::dims_to_size(new_dis_dims));
+    
+    std::vector<int> send_counts(ntargets, 0);
+    std::vector<int> recv_counts(ntargets, 0);
+    std::vector<int> send_displs(ntargets, 0);
+    std::vector<int> recv_displs(ntargets, 0);
+
+    auto old_loc_it = old_loc_ti.num("any").begin();
+    auto new_dis_it = new_dis_ti.num("any", send_dis_idxs).begin();
+    while (old_loc_it != old_loc_it.end()) {
+      send_counts.at(*new_dis_it) = target->locSize() / nsends;
+      send_displs.at(*new_dis_it) = *old_loc_it;
+      old_loc_it++, new_dis_it++;
+    }
+
+    // ! Change communicator here
+    auto new_dis_idxs = utils::i_to_idxs(target->bc().group_id, old_dis_dims);
+    qtnh::tidx_tup recv_dis_idxs(ndis);
+    for (std::size_t i = 0; i < ndis; ++i) {
+      auto j = ptup.at(i);
+      if (j < ndis) recv_dis_idxs.at(i) = new_dis_idxs.at(j);
+    }
+
+    auto new_loc_it = new_loc_ti.num("any").begin();
+    auto old_dis_it = old_dis_ti.num("any", recv_dis_idxs).begin();
+    while (new_loc_it != old_loc_it.end()) {
+      recv_counts.at(*old_dis_it) = target->locSize() / nsends;
+      recv_displs.at(*old_dis_it) = *new_loc_it;
+    }
+
+    std::vector<qtnh::tel> old_els(utils::dims_to_size(old_dis_dims));
+    std::vector<qtnh::tel> new_els(utils::dims_to_size(new_dis_dims));
+    MPI_Alltoallv(old_els.data(), send_counts.data(), send_displs.data(), send_type, 
+                  new_els.data(), recv_counts.data(), recv_displs.data(), recv_type, 
+                  target->bc().group_comm);
   }
 }
