@@ -291,22 +291,7 @@ namespace qtnh {
     }
   }
 
-  void TIDense::_shift_internal(Tensor* target, qtnh::tidx_tup_st from, qtnh::tidx_tup_st to, int offset) {
-    qtnh::tidx_tup_st n = to - from;
-    for (qtnh::tidx_tup_st i = 0; i < n && offset < 0; ++i) {
-      if (i % -offset == 0) offset = -(-offset % (n - i));
-      _swap_internal(target, from - offset - (i % -offset), to - i);
-    }
-
-    for (qtnh::tidx_tup_st i = 0; i < n && offset > 0; ++i) {
-      if (i % offset == 0) offset = offset % (n - i);
-      _swap_internal(target, from + i, to - offset + (i % offset));
-    }
-
-    // Not updating dimensions as asymmetric swaps are not supported. 
-  }
-
-  void _permute(Tensor* target, std::vector<qtnh::tidx_tup_st> ptup) {
+  void TIDense::_permute_internal(Tensor* target, std::vector<qtnh::tidx_tup_st> ptup) {
     auto ndis = target->disDims().size();
     auto nloc = target->locDims().size();
 
@@ -387,8 +372,9 @@ namespace qtnh {
       old_loc_it++, new_dis_it++;
     }
 
-    // ! Change communicator here
-    auto new_dis_idxs = utils::i_to_idxs(target->bc().group_id, old_dis_dims);
+    Tensor::Broadcaster new_bc(target->bc().env, utils::dims_to_size(new_dis_dims), { target->bc().str, target->bc().cyc, target->bc().off });
+
+    auto new_dis_idxs = utils::i_to_idxs(new_bc.group_id, old_dis_dims);
     qtnh::tidx_tup recv_dis_idxs(ndis);
     for (std::size_t i = 0; i < ndis; ++i) {
       auto j = ptup.at(i);
@@ -402,10 +388,36 @@ namespace qtnh {
       recv_displs.at(*old_dis_it) = *new_loc_it;
     }
 
-    std::vector<qtnh::tel> old_els(utils::dims_to_size(old_dis_dims));
-    std::vector<qtnh::tel> new_els(utils::dims_to_size(new_dis_dims));
-    MPI_Alltoallv(old_els.data(), send_counts.data(), send_displs.data(), send_type, 
-                  new_els.data(), recv_counts.data(), recv_displs.data(), recv_type, 
-                  target->bc().group_comm);
+    // Determine which communicator to use
+    MPI_Comm transpose_comm;
+    if (utils::dims_to_size(old_dis_dims) > utils::dims_to_size(new_dis_dims)) {
+      transpose_comm = target->bc().group_comm;
+    } else {
+      transpose_comm = new_bc.group_comm;
+    }
+
+    if (target->bc().active || new_bc.active) {
+      std::vector<qtnh::tel> new_els(utils::dims_to_size(new_dis_dims));
+      MPI_Alltoallv(loc_els_.data(), send_counts.data(), send_displs.data(), send_type, 
+                    new_els.data(), recv_counts.data(), recv_displs.data(), recv_type, 
+                    target->bc().group_comm);
+
+      loc_els_ = std::move(new_els);
+    }
+  }
+
+  void TIDense::_shift_internal(Tensor* target, qtnh::tidx_tup_st from, qtnh::tidx_tup_st to, int offset) {
+    qtnh::tidx_tup_st n = to - from;
+    for (qtnh::tidx_tup_st i = 0; i < n && offset < 0; ++i) {
+      if (i % -offset == 0) offset = -(-offset % (n - i));
+      _swap_internal(target, from - offset - (i % -offset), to - i);
+    }
+
+    for (qtnh::tidx_tup_st i = 0; i < n && offset > 0; ++i) {
+      if (i % offset == 0) offset = offset % (n - i);
+      _swap_internal(target, from + i, to - offset + (i % offset));
+    }
+
+    // Not updating dimensions as asymmetric swaps are not supported. 
   }
 }
