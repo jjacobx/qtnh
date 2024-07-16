@@ -18,7 +18,8 @@ namespace qtnh {
       void _swap_internal(Tensor* target, qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2);
       void _rebcast_internal(Tensor* target, BcParams params);
       void _rescatter_internal(Tensor* target, int offset);
-      void _permute_internal(Tensor* target, qtnh::tidx_tup_st from, qtnh::tidx_tup_st to, int offset);
+      void _permute_internal(Tensor* target, std::vector<tidx_tup_st> ptup);
+      void _shift_internal(Tensor* target, qtnh::tidx_tup_st from, qtnh::tidx_tup_st to, int offset);
 
       std::vector<qtnh::tel> loc_els_;  ///< Local elements. 
   };

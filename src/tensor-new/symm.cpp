@@ -105,7 +105,7 @@ namespace qtnh {
   SymmTensor* SymmTensor::rescatter(int offset, TIdxIO io) {
     if (offset < 0) {
       if (io == TIdxIO::in) {
-        _permute_internal(this, disInDims().size() + offset, disDims().size(), offset);
+        _shift_internal(this, disInDims().size() + offset, disDims().size(), offset);
         n_dis_in_dims_ += offset;
       }
 
@@ -121,12 +121,12 @@ namespace qtnh {
       bc_ = std::move(new_bc);
 
       if (io == TIdxIO::out) {
-        _permute_internal(this, disDims().size(), disDims().size() + locInDims().size() + offset, offset);
+        _shift_internal(this, disDims().size(), disDims().size() + locInDims().size() + offset, offset);
       }
     }
     else if (offset > 0) {
       if (io == TIdxIO::out) {
-        _permute_internal(this, disDims().size(), disDims().size() + locInDims().size() + offset, offset);
+        _shift_internal(this, disDims().size(), disDims().size() + locInDims().size() + offset, offset);
       }
 
       _rescatter_internal(this, offset);
@@ -143,7 +143,7 @@ namespace qtnh {
       bc_ = std::move(new_bc);
 
       if (io == TIdxIO::in) {
-        _permute_internal(this, disInDims().size(), disDims().size(), offset);
+        _shift_internal(this, disInDims().size(), disDims().size(), offset);
         n_dis_in_dims_ += offset;
       }
     }
