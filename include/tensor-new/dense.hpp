@@ -32,6 +32,7 @@ namespace qtnh {
       virtual ~DenseTensorBase() = default;
 
       virtual TT type() const noexcept override { return TT::denseTensorBase; }
+      virtual bool isDense() const noexcept override { return true; }
 
       /// @brief Convert any derived tensor to writable dense tensor
       /// @param tu Unique pointer to derived dense tensor to convert. 

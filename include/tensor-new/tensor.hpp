@@ -43,6 +43,9 @@ namespace qtnh {
 
       // This can be made constexpr in C++ 20
       virtual TT type() const noexcept { return TT::tensor; }
+      virtual bool isDense() const noexcept { return false; }
+      virtual bool isSymm() const noexcept { return false; }
+      virtual bool isDiag() const noexcept { return false; }
       
       qtnh::tidx_tup locDims() const noexcept { return loc_dims_; }
       qtnh::tidx_tup disDims() const noexcept { return dis_dims_; }

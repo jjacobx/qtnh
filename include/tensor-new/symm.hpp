@@ -17,6 +17,7 @@ namespace qtnh {
       virtual ~SymmTensorBase() = default;
 
       virtual TT type() const noexcept override { return TT::symmTensorBase; }
+      virtual bool isSymm() const noexcept override { return true; }
 
       /// Get distributed input dimensions. 
       qtnh::tidx_tup disInDims() const {

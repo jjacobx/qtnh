@@ -19,6 +19,7 @@ namespace qtnh {
       virtual ~DiagTensorBase() = default;
 
       virtual TT type() const noexcept override { return TT::diagTensorBase; }
+      virtual bool isDiag() const noexcept override { return true; }
 
       /// @brief Convert any derived tensor to writable diagonal tensor. 
       /// @param tu Unique pointer to derived diagonal tensor to convert. 
