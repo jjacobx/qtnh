@@ -337,19 +337,22 @@ namespace qtnh {
         send_type_tmp1 = send_type;
         recv_type_tmp1 = recv_type;
 
-        // ! Type contiguous vs type vector. 
+        // ! Type contiguous vs type vector. Can you resize predefined datatypes? 
         MPI_Type_create_resized(send_type_tmp1, 0, old_cumdims.at(i) * sizeof(qtnh::tel), &send_type_tmp2);
         MPI_Type_create_resized(recv_type_tmp1, 0, new_cumdims.at(j) * sizeof(qtnh::tel), &recv_type_tmp2);
         MPI_Type_contiguous(old_dims.at(i), send_type_tmp2, &send_type);
         MPI_Type_contiguous(new_dims.at(j), recv_type_tmp2, &recv_type);
 
-        // Prevents memory leaks. 
-        MPI_Type_free(&send_type_tmp1);
-        MPI_Type_free(&send_type_tmp2);
-        MPI_Type_free(&recv_type_tmp1);
-        MPI_Type_free(&recv_type_tmp2);
+        // Prevents memory leaks. Cannot free predefined datatypes. 
+        if (send_type_tmp1 != MPI_C_DOUBLE_COMPLEX) MPI_Type_free(&send_type_tmp1);
+        if (send_type_tmp2 != MPI_C_DOUBLE_COMPLEX) MPI_Type_free(&send_type_tmp2);
+        if (recv_type_tmp1 != MPI_C_DOUBLE_COMPLEX) MPI_Type_free(&recv_type_tmp1);
+        if (recv_type_tmp2 != MPI_C_DOUBLE_COMPLEX) MPI_Type_free(&recv_type_tmp2);
       }
     }
+
+    MPI_Type_commit(&send_type);
+    MPI_Type_commit(&recv_type);
 
     std::vector<TIFlag> old_ifls(old_dims.size());
     for (std::size_t i = 0; i < old_dims.size(); ++i) {
