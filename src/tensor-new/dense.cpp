@@ -328,17 +328,26 @@ namespace qtnh {
 
     MPI_Datatype send_type = MPI_C_DOUBLE_COMPLEX;
     MPI_Datatype recv_type = MPI_C_DOUBLE_COMPLEX;
+    MPI_Datatype send_type_tmp1, send_type_tmp2;
+    MPI_Datatype recv_type_tmp1, recv_type_tmp2;
 
     for (int i = old_dims.size() - 1; i >= (int)ndis; --i) {
       auto j = ptup.at(i);
       if (j >= ndis) {
-        MPI_Type_create_resized(recv_type, 0, old_cumdims.at(i) * sizeof(qtnh::tel), &recv_type);
-        MPI_Type_create_resized(recv_type, 0, new_cumdims.at(j) * sizeof(qtnh::tel), &recv_type);
-        MPI_Type_contiguous(old_dims.at(i), send_type, &send_type);
-        MPI_Type_contiguous(new_dims.at(j), recv_type, &recv_type);
+        send_type_tmp1 = send_type;
+        recv_type_tmp1 = recv_type;
 
-        // MPI_Type_vector(old_dims.at(i), 1, old_cumdims.at(i), send_type, &send_type);
-        // MPI_Type_vector(new_dims.at(j), 1, new_cumdims.at(j), recv_type, &recv_type);
+        // ! Type contiguous vs type vector. 
+        MPI_Type_create_resized(send_type_tmp1, 0, old_cumdims.at(i) * sizeof(qtnh::tel), &send_type_tmp2);
+        MPI_Type_create_resized(recv_type_tmp1, 0, new_cumdims.at(j) * sizeof(qtnh::tel), &recv_type_tmp2);
+        MPI_Type_contiguous(old_dims.at(i), send_type_tmp2, &send_type);
+        MPI_Type_contiguous(new_dims.at(j), recv_type_tmp2, &recv_type);
+
+        // Prevents memory leaks. 
+        MPI_Type_free(&send_type_tmp1);
+        MPI_Type_free(&send_type_tmp2);
+        MPI_Type_free(&recv_type_tmp1);
+        MPI_Type_free(&recv_type_tmp2);
       }
     }
 
@@ -390,6 +399,8 @@ namespace qtnh {
       old_loc_it++, new_dis_it++;
     }
 
+    // ! The broadcaster will fail if cyc > 1 and new base is of different size. 
+    // ! Might need to re-bcast to cyc = 1 in such case. 
     Tensor::Broadcaster new_bc(target->bc().env, utils::dims_to_size(new_dis_dims), { target->bc().str, target->bc().cyc, target->bc().off });
 
     auto new_dis_idxs = utils::i_to_idxs(new_bc.group_id, old_dis_dims);
