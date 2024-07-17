@@ -91,6 +91,13 @@ namespace qtnh {
       virtual Tensor* rescatter(int offset, TIdxIO io) {
         return toSymm()->rescatter(offset, io);
       }
+      /// @brief Permute tensor input/output indices according to mappings in the permutation tuple. 
+      /// @param ptup Permutation tuple of the same size as total dimensions, and each entry unique. 
+      /// @param io Tensor index input/output label to indicate which indices to scatter. 
+      /// @return Pointer to permuted tensor, which might be of a different derived type. 
+      virtual Tensor* permute(std::vector<qtnh::tidx_tup_st> ptup, TIdxIO io) {
+        return this->toSymm()->permute(ptup, io);
+      }
 
       qtnh::tidx_tup_st n_dis_in_dims_;  ///< Number of distributed input dimensions. 
   };
@@ -197,6 +204,11 @@ namespace qtnh {
       /// @param io Tensor index input/output label to indicate which indices to scatter. 
       /// @return Pointer to re-scattered tensor, which might be of a different derived type. 
       virtual SymmTensor* rescatter(int offset, TIdxIO io) override;
+      /// @brief Permute tensor input/output indices according to mappings in the permutation tuple. 
+      /// @param ptup Permutation tuple of the same size as total dimensions, and each entry unique. 
+      /// @param io Tensor index input/output label to indicate which indices to scatter. 
+      /// @return Pointer to permuted tensor, which might be of a different derived type. 
+      virtual SymmTensor* permute(std::vector<qtnh::tidx_tup_st> ptup, TIdxIO io) override;
   };
 
   /// Rank 4 symmetric swap tensor for swapping two indices with dimension n. The swap tensor must have dimensions (n, n, n, n). 

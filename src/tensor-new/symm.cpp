@@ -102,6 +102,7 @@ namespace qtnh {
     return this;
   }
 
+  // TODO: Implement using permute
   SymmTensor* SymmTensor::rescatter(int offset, TIdxIO io) {
     if (offset < 0) {
       if (io == TIdxIO::in) {
@@ -147,6 +148,50 @@ namespace qtnh {
         n_dis_in_dims_ += offset;
       }
     }
+
+    return this;
+  }
+
+  SymmTensor* SymmTensor::permute(std::vector<qtnh::tidx_tup_st> ptup, TIdxIO io) {
+    std::vector<qtnh::tidx_tup_st> ptup_full(totDims().size());
+    for (std::size_t i = 0; i < ptup_full.size(); ++i) {
+      ptup_full.at(i) = i;
+    }
+    
+    std::size_t cutoff, offset1, offset2;
+    if (io == TIdxIO::in) {
+      cutoff = disInDims().size();
+      offset1 = 0;
+      offset2 = disOutDims().size();
+    } else {
+      cutoff = disDims().size();
+      offset1 = disInDims().size();
+      offset2 = locInDims().size();
+    }
+
+    for (std::size_t i = 0; i < ptup.size(); ++i) {
+      auto val = ptup.at(i) + offset1;
+      val += (val < cutoff) ? 0 : offset2;
+      
+      auto idx = i + offset1;
+      idx += (idx < cutoff) ? 0 : offset2;
+
+      ptup_full.at(idx) = val;
+    }
+
+    _permute_internal(this, ptup_full);
+
+    qtnh::tidx_tup new_dims(totSize());
+    for (std::size_t i = 0; i < totSize(); ++i) {
+      new_dims.at(ptup_full.at(i)) = totDims().at(i);
+    }
+
+    auto [new_dis_dims, new_loc_dims] = utils::split_dims(new_dims, disDims().size());
+    dis_dims_ = new_dis_dims;
+    loc_dims_ = new_loc_dims;
+
+    Broadcaster new_bc(bc().env, disSize(), { bc().str, bc().cyc, bc().off });
+    bc_ = std::move(new_bc);
 
     return this;
   }
