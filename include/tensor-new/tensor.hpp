@@ -129,7 +129,7 @@ namespace qtnh {
       static std::unique_ptr<Tensor> rescatter(std::unique_ptr<Tensor> tu, qtnh::tidx_tup_st idx_i) {
         return std::unique_ptr<Tensor>(tu->rescatter(idx_i));
       }
-      /// @brief Permute tensor elements according to mappings in the permutation tuple. 
+      /// @brief Permute tensor indices according to mappings in the permutation tuple. 
       /// @param tu Unique pointer to the tensor. 
       /// @param ptup Permutation tuple of the same size as total dimensions, and each entry unique. 
       /// @return Unique pointer to permuted tensor, which might be of a different derived type. 
@@ -173,7 +173,7 @@ namespace qtnh {
       /// @param offset New offset between distributed and local dimensions – negative gathers, while positive scatters. 
       /// @return Pointer to re-scattered tensor, which might be of a different derived type. 
       virtual Tensor* rescatter(int offset) = 0;
-      /// @brief Permute tensor elements according to mappings in the permutation tuple. 
+      /// @brief Permute tensor indices according to mappings in the permutation tuple. 
       /// @param ptup Permutation tuple of the same size as total dimensions, and each entry unique. 
       /// @return Pointer to permuted tensor, which might be of a different derived type. 
       virtual Tensor* permute(std::vector<qtnh::tidx_tup_st> ptup) = 0;
