@@ -89,6 +89,7 @@ namespace qtnh {
   class DenseTensor : public DenseTensorBase, private TIDense {
     public:
       friend class DenseTensorBase;
+      friend std::unique_ptr<DenseTensor> _contract_dense(std::unique_ptr<Tensor> t1p, std::unique_ptr<Tensor> t2p, std::vector<qtnh::wire> ws);
 
       DenseTensor() = delete;
       DenseTensor(const DenseTensor&) = delete;
