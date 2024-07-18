@@ -56,7 +56,7 @@ namespace qtnh {
 
   qtnh::tel SymmTensor::at(qtnh::tidx_tup tot_idxs) const {
     auto [dis_idxs, loc_idxs] = utils::split_dims(tot_idxs, dis_dims_.size());
-    if (bc_.group_id != utils::idxs_to_i(dis_idxs, dis_dims_)) {
+    if (bc_.group_id != (qtnh::uint)utils::idxs_to_i(dis_idxs, dis_dims_)) {
       throw std::invalid_argument("Element at given indices is not present on calling rank. ");
     }
 
@@ -65,7 +65,7 @@ namespace qtnh {
 
   qtnh::tel& SymmTensor::at(qtnh::tidx_tup tot_idxs) {
     auto [dis_idxs, loc_idxs] = utils::split_dims(tot_idxs, dis_dims_.size());
-    if (bc_.group_id != utils::idxs_to_i(dis_idxs, dis_dims_)) {
+    if (bc_.group_id != (qtnh::uint)utils::idxs_to_i(dis_idxs, dis_dims_)) {
       throw std::invalid_argument("Element at given indices is not present on calling rank. ");
     }
 
@@ -74,7 +74,7 @@ namespace qtnh {
 
   void SymmTensor::put(qtnh::tidx_tup tot_idxs, qtnh::tel el) {
     auto [dis_idxs, loc_idxs] = utils::split_dims(tot_idxs, dis_dims_.size());
-    auto target_id = utils::idxs_to_i(dis_idxs, dis_dims_);
+    auto target_id = (int)utils::idxs_to_i(dis_idxs, dis_dims_);
 
     int call_id;
     MPI_Comm_rank(bc_.group_comm, &call_id);
@@ -130,7 +130,7 @@ namespace qtnh {
       _rescatter_internal(this, offset);
 
       auto loc_dims2 = qtnh::tidx_tup(dis_dims_.end() + offset, dis_dims_.end());
-      auto shift = utils::dims_to_size(loc_dims2);
+      auto shift = (qtnh::uint)utils::dims_to_size(loc_dims2);
 
       loc_dims_.insert(loc_dims_.begin(), loc_dims2.begin(), loc_dims2.end());
       dis_dims_.erase(dis_dims_.end() - offset, dis_dims_.end());
@@ -252,7 +252,7 @@ namespace qtnh {
 
   qtnh::tel SwapTensor::at(qtnh::tidx_tup tot_idxs) const {
     auto [dis_idxs, loc_idxs] = utils::split_dims(tot_idxs, dis_dims_.size());
-    if (bc_.group_id != utils::idxs_to_i(dis_idxs, dis_dims_)) {
+    if (bc_.group_id != (int)utils::idxs_to_i(dis_idxs, dis_dims_)) {
       throw std::invalid_argument("Element at given indices is not present on calling rank. ");
     }
 
