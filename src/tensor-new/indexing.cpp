@@ -272,7 +272,7 @@ namespace qtnh {
     return TIndexing::NumIterator(dims, incrs, zero, current_idxs, false);
   }
 
-  TIndexing TIndexing::app(const TIndexing& ti1, const TIndexing& ti2) {
+  TIndexing TIndexing::_app(const TIndexing& ti1, const TIndexing& ti2) {
     auto dims = ti1.dims_;
     auto ifls = ti1.ifls_;
     dims.insert(dims.end(), ti2.dims_.begin(), ti2.dims_.end());

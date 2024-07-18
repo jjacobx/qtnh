@@ -128,16 +128,26 @@ namespace qtnh {
       NumIterator num(std::string ifl_label = "default") const;
       NumIterator num(std::string ifl_label, qtnh::tidx_tup start) const;
 
-      /// @brief Append two tensor indexings. 
-      /// @param ti1 First tensor indexing to append. 
-      /// @param ti2 Second tensor indexing to append. 
-      /// @return Tensor indexing with appended parameters of both arguments. 
-      static TIndexing app(const TIndexing& ti1, const TIndexing& ti2);
+      template<typename T>
+      static T app(T t) {
+        return t;
+      }
+
+      /// @brief Append multiple instances of tensor indexing. 
+      /// @param t First indexing instance to append. 
+      /// @param args All other indexing instances to append
+      /// @return Tensor indexing with appended parameters of all arguments. 
+      template<typename T, typename... Args>
+      static T app(T t, Args... args) {
+        return _app(t, app(args);)
+      }
 
     private:
       qtnh::tidx_tup dims_;
       std::vector<TIFlag> ifls_;
       std::vector<std::size_t> maps_;
+
+      static TIndexing _app(const TIndexing& ti1, const TIndexing& ti2);
   };
 }
 

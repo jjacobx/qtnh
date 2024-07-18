@@ -78,8 +78,8 @@ namespace qtnh {
 
     for (std::size_t i = 0; i < ws.size(); ++i) {
       if (ws.at(i).first < ndis1) {
-        // ifls1.at(ws.at(i).first) = { "reduced", i };
-        // ifls2.at(ws.at(i).second) = { "reduced", i };
+        ifls1.at(ws.at(i).first) = { "reduced", i };
+        ifls2.at(ws.at(i).second) = { "reduced", i };
       } else {
         ifls1.at(ws.at(i).first) = { "closed", i };
         ifls2.at(ws.at(i).second) = { "closed", i };
@@ -88,7 +88,7 @@ namespace qtnh {
 
     TIndexing ti1(t1p->totDims(), ifls1);
     TIndexing ti2(t1p->totDims(), ifls2);
-    auto ti3 = TIndexing::app(ti1, ti2).cut("closed");
+    auto ti3 = TIndexing::app(ti1.keep("distributed"), ti2.keep("distributed")).cut("closed");
 
     std::size_t loc_size = 0;
     if (t1p->bc().active && t2p->bc().active) {
