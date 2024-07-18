@@ -49,7 +49,7 @@ namespace qtnh {
       /// @param tu Unique pointer to derived symmetric tensor to convert. 
       /// @return Unique pointer to an equivalent writable symmetric tensor. 
       static std::unique_ptr<SymmTensor> toSymm(std::unique_ptr<SymmTensorBase> tu) {
-        return std::unique_ptr<SymmTensor>(tu->toSymm());
+        return utils::one_unique(std::move(tu), tu->toSymm());
       }
 
     protected:

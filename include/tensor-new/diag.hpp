@@ -25,7 +25,7 @@ namespace qtnh {
       /// @param tu Unique pointer to derived diagonal tensor to convert. 
       /// @return Unique pointer to an equivalent writable diagonal tensor. 
       static std::unique_ptr<DiagTensor> toDiag(std::unique_ptr<DiagTensorBase> tu) {
-        return std::unique_ptr<DiagTensor>(tu->toDiag());
+        return utils::one_unique(std::move(tu), tu->toDiag());
       }
 
     protected:

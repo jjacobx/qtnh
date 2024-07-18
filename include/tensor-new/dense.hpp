@@ -38,7 +38,7 @@ namespace qtnh {
       /// @param tu Unique pointer to derived dense tensor to convert. 
       /// @return Unique pointer to an equivalent writable dense tensor. 
       static std::unique_ptr<DenseTensor> toDense(std::unique_ptr<DenseTensorBase> tu) {
-        return std::unique_ptr<DenseTensor>(tu->toDense());
+        return utils::one_unique(std::move(tu), tu->toDense());
       }
     
     protected:

@@ -117,28 +117,28 @@ namespace qtnh {
       /// @param idx2 Second index to swap. 
       /// @return Unique to swapped tensor, which might be of a different derived type. 
       static std::unique_ptr<Tensor> swap(std::unique_ptr<Tensor> tu, qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) {
-        return std::unique_ptr<Tensor>(tu->swap(idx1, idx2));
+        return utils::one_unique(std::move(tu), tu->swap(idx1, idx2));
       }
       /// @brief Re-broadcast current tensor. 
       /// @param tu Unique pointer to the tensor. 
       /// @param params Broadcast parameters of the tensor (str, cyc, off)
       /// @return Unique pointer to redistributed tensor, which might be of a different derived type. 
       static std::unique_ptr<Tensor> rebcast(std::unique_ptr<Tensor> tu, BcParams params) {
-        return std::unique_ptr<Tensor>(tu->rebcast(params));
+        return utils::one_unique(std::move(tu), tu->rebcast(params));
       }
       /// @brief Shift the border between shared and distributed dimensions by a given offset. 
       /// @param tu Unique pointer to the tensor. 
       /// @param idx_i Location of the index to move. 
       /// @return Unique pointer to re-scattered tensor, which might be of a different derived type. 
       static std::unique_ptr<Tensor> rescatter(std::unique_ptr<Tensor> tu, qtnh::tidx_tup_st idx_i) {
-        return std::unique_ptr<Tensor>(tu->rescatter(idx_i));
+        return utils::one_unique(std::move(tu), tu->rescatter(idx_i));
       }
       /// @brief Permute tensor indices according to mappings in the permutation tuple. 
       /// @param tu Unique pointer to the tensor. 
       /// @param ptup Permutation tuple of the same size as total dimensions, and each entry unique. 
       /// @return Unique pointer to permuted tensor, which might be of a different derived type. 
       static std::unique_ptr<Tensor> permute(std::unique_ptr<Tensor> tu, std::vector<qtnh::tidx_tup_st> ptup) {
-        return std::unique_ptr<Tensor>(tu->permute(ptup));
+        return utils::one_unique(std::move(tu), tu->permute(ptup));
       }
 
 

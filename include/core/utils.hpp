@@ -1,6 +1,8 @@
 #ifndef _CORE__UTILS_HPP
 #define _CORE__UTILS_HPP
 
+#include <memory>
+
 #include "typedefs.hpp"
 
 namespace qtnh {
@@ -49,6 +51,19 @@ namespace qtnh {
     /// @param tol Maximum allowed magnitude of the difference between the elements (default 1E-5). 
     /// @return True if elements are approximately equal and false otherwise. 
     bool equal(qtnh::tel a, qtnh::tel b, double tol = 1E-5);
+
+    template<typename T>
+    std::unique_ptr<T> one_unique(std::unique_ptr<T> u, T* t) {
+      if (u.get() == t) return u;
+      else return std::unique_ptr<T>(t);
+    }
+
+    template<typename T, typename U>
+    std::unique_ptr<T> one_unique(std::unique_ptr<U> u, T* t) {
+      auto p = u.release();
+      if (dynamic_cast<T*>(p) != t) delete p;
+      return std::unique_ptr<T>(t);
+    }
   }
 }
 
