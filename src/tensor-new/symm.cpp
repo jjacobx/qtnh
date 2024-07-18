@@ -56,7 +56,7 @@ namespace qtnh {
 
   qtnh::tel SymmTensor::at(qtnh::tidx_tup tot_idxs) const {
     auto [dis_idxs, loc_idxs] = utils::split_dims(tot_idxs, dis_dims_.size());
-    if (bc_.group_id != (qtnh::uint)utils::idxs_to_i(dis_idxs, dis_dims_)) {
+    if (bc_.group_id != (int)utils::idxs_to_i(dis_idxs, dis_dims_)) {
       throw std::invalid_argument("Element at given indices is not present on calling rank. ");
     }
 
@@ -65,7 +65,7 @@ namespace qtnh {
 
   qtnh::tel& SymmTensor::at(qtnh::tidx_tup tot_idxs) {
     auto [dis_idxs, loc_idxs] = utils::split_dims(tot_idxs, dis_dims_.size());
-    if (bc_.group_id != (qtnh::uint)utils::idxs_to_i(dis_idxs, dis_dims_)) {
+    if (bc_.group_id != (int)utils::idxs_to_i(dis_idxs, dis_dims_)) {
       throw std::invalid_argument("Element at given indices is not present on calling rank. ");
     }
 
