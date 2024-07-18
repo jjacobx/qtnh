@@ -17,15 +17,16 @@ namespace qtnh {
 
       /// @brief Tensor broadcaster class responsible for handling how tensor is shared in distributed memory. 
       struct Broadcaster {
+        const QTNHEnv& env;   ///< Environment to use MPI/OpenMP in. 
+        qtnh::uint base;  ///< Base distributed size of the tensor. 
+
         qtnh::uint str;   ///< Number of times each local tensor chunk is repeated across contiguous processes. 
         qtnh::uint cyc;   ///< Number of times the entire tensor structure is repeated. 
         qtnh::uint off;   ///< Number of empty processes before the tensor begins. 
-        qtnh::uint base;  ///< Base distributed size of the tensor. 
 
-        const QTNHEnv& env;   ///< Environment to use MPI/OpenMP in. 
+        bool active;          ///< Flag whether the tensor is stored on calling MPI rank. 
         MPI_Comm group_comm;  ///< Communicator that contains exactly one copy of the tensor. 
         int group_id;         ///< Rank ID within current group. 
-        bool active;          ///< Flag whether the tensor is stored on calling MPI rank. 
 
         Broadcaster() = delete;
         Broadcaster(const QTNHEnv& env, qtnh::uint base, BcParams params);

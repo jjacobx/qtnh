@@ -12,7 +12,7 @@ namespace qtnh {
     : Tensor(env, loc_dims, dis_dims, BcParams { 1, 1, 0 }) {}
 
   Tensor::Tensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, BcParams params)
-    : bc_(env, utils::dims_to_size(dis_dims), params), loc_dims_(loc_dims), dis_dims_(dis_dims) {}
+    : loc_dims_(loc_dims), dis_dims_(dis_dims), bc_(env, utils::dims_to_size(dis_dims), params) {}
 
   bool Tensor::has(qtnh::tidx_tup tot_idxs) const {
     if (!bc_.active) return false;
@@ -20,7 +20,7 @@ namespace qtnh {
     auto [dis_idxs, loc_idxs] = utils::split_dims(tot_idxs, dis_dims_.size());
 
     (void)loc_idxs; // unused
-    return utils::idxs_to_i(dis_idxs, dis_dims_) == bc_.group_id;
+    return (int)utils::idxs_to_i(dis_idxs, dis_dims_) == bc_.group_id;
   }
 
   qtnh::tel Tensor::fetch(qtnh::tidx_tup tot_idxs) const {
@@ -32,7 +32,7 @@ namespace qtnh {
   Tensor::Broadcaster::Broadcaster(const QTNHEnv &env, qtnh::uint base, BcParams params) 
     : env(env), base(base), str(params.str), cyc(params.cyc), off(params.off) {
       int rel_id = env.proc_id - off; // ! relative ID may be negative
-      active = (rel_id >= 0) && (rel_id < str * cyc * base);
+      active = (rel_id >= 0) && (rel_id < (int)(str * cyc * base));
       
       // Group active ranks into a single communicator
       MPI_Comm active_comm;
@@ -48,7 +48,7 @@ namespace qtnh {
       MPI_Comm_free(&active_comm);
     }
 
-  Tensor::Broadcaster& Tensor::Broadcaster::operator=(Broadcaster&& b) {
+  Tensor::Broadcaster& Tensor::Broadcaster::operator=(Broadcaster&& b) noexcept {
     base = b.base;
     str = b.str;
     cyc = b.cyc;
@@ -59,6 +59,8 @@ namespace qtnh {
 
     group_id = b.group_id;
     active = b.active;
+
+    return *this;
   }
   
   // In case there is a limited communicator pool, they should be actively freed
