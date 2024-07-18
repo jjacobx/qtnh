@@ -6,24 +6,6 @@
 #include "tensor-new/indexing.hpp"
 
 namespace qtnh {
-  // TODO: Implement this in a separate file using enums
-  std::unique_ptr<Tensor> Tensor::contract(std::unique_ptr<Tensor> t1u, std::unique_ptr<Tensor> t2u, const std::vector<qtnh::wire>& ws) {
-    // Validate contraction dimensions
-    for (auto& w : ws) {
-      if (t1u->totDims().at(w.first) != t2u->totDims().at(w.second)) {
-        throw std::invalid_argument("Incompatible contraction dimensions.");
-      }
-      if ((w.first < t1u->disDims().size()) != (w.second < t2u->disDims().size())) {
-        throw std::invalid_argument("Attempted to contract distributed and local dimensions.");
-      }
-    }
-
-    std::unique_ptr<Tensor> result;
-    result = _contract_dense(std::move(t1u), std::move(t2u), ws);
-    
-    return result;
-  }
-
   std::unique_ptr<DenseTensor> _contract_dense(std::unique_ptr<Tensor> t1p, std::unique_ptr<Tensor> t2p, std::vector<qtnh::wire> ws) {
     auto ndis1 = t1p->disDims().size();
     auto nloc1 = t1p->locDims().size();
@@ -64,8 +46,8 @@ namespace qtnh {
     dis_dims1.erase(dis_dims1.begin() + ndis_cons, dis_dims1.end());
     dis_dims2.erase(dis_dims2.begin(), dis_dims2.begin() + ndis_cons);
 
-    auto align_str = utils::dims_to_size(dis_dims2);
-    auto align_cyc = utils::dims_to_size(dis_dims1);
+    auto align_str = (qtnh::uint)utils::dims_to_size(dis_dims2);
+    auto align_cyc = (qtnh::uint)utils::dims_to_size(dis_dims1);
     auto align_off = std::min(t1p->bc().off, t2p->bc().off);
     t1p = Tensor::rebcast(std::move(t1p), { align_str, 1, align_off });
     t2p = Tensor::rebcast(std::move(t2p), { 1, align_cyc, align_off });
@@ -78,11 +60,11 @@ namespace qtnh {
 
     for (std::size_t i = 0; i < ws.size(); ++i) {
       if (ws.at(i).first < ndis1) {
-        ifls1.at(ws.at(i).first) = { "reduced", i };
-        ifls2.at(ws.at(i).second) = { "reduced", i };
+        ifls1.at(ws.at(i).first) = { "reduced", (int)i };
+        ifls2.at(ws.at(i).second) = { "reduced", (int)i};
       } else {
-        ifls1.at(ws.at(i).first) = { "closed", i };
-        ifls2.at(ws.at(i).second) = { "closed", i };
+        ifls1.at(ws.at(i).first) = { "closed", (int)i };
+        ifls2.at(ws.at(i).second) = { "closed", (int)i };
       }
     }
 
@@ -148,5 +130,23 @@ namespace qtnh {
       BcParams new_params(utils::dims_to_size(virtual_dims), 1, align_off);
 
       return std::make_unique<DenseTensor>(t3.bc().env, t3.locDims(), new_dis_dims, std::move(t3.loc_els_), new_params);
+  }
+
+  // TODO: Implement this in a separate file using enums
+  std::unique_ptr<Tensor> Tensor::contract(std::unique_ptr<Tensor> t1u, std::unique_ptr<Tensor> t2u, const std::vector<qtnh::wire>& ws) {
+    // Validate contraction dimensions
+    for (auto& w : ws) {
+      if (t1u->totDims().at(w.first) != t2u->totDims().at(w.second)) {
+        throw std::invalid_argument("Incompatible contraction dimensions.");
+      }
+      if ((w.first < t1u->disDims().size()) != (w.second < t2u->disDims().size())) {
+        throw std::invalid_argument("Attempted to contract distributed and local dimensions.");
+      }
+    }
+
+    std::unique_ptr<Tensor> result;
+    result = _contract_dense(std::move(t1u), std::move(t2u), ws);
+    
+    return result;
   }
 }
