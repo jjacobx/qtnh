@@ -6,6 +6,11 @@
 #include "../core/typedefs.hpp"
 
 namespace qtnh {
+  namespace ops {
+    /// Print tensor index tuple via std::cout. 
+    std::ostream& operator<<(std::ostream&, const qtnh::tidx_tup&);
+  }
+
   struct TIFlag {
     std::string label;
     int tag;

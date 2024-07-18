@@ -5,6 +5,19 @@
 #include "tensor-new/indexing.hpp"
 
 namespace qtnh {
+  std::ostream& ops::operator<<(std::ostream& out, const qtnh::tidx_tup& o) {
+    out << "(";
+    for (std::size_t i = 0; i < o.size(); i++) {
+      out << o.at(i);
+      if (i < o.size() - 1) {
+        out << ", ";
+      }
+    }
+    out << ")";
+
+    return out;
+  }
+  
   std::vector<std::size_t> _generate_maps(std::vector<TIFlag> ifls) {
     std::vector<std::size_t> maps;
     std::iota(maps.begin(), maps.end(), 0);
