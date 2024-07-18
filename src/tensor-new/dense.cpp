@@ -13,10 +13,17 @@ namespace qtnh {
   DenseTensor* DenseTensorBase::toDense() {
     std::vector<qtnh::tel> els;
     els.reserve(locSize());
+    
+    std::vector<TIFlag> ifls(totDims().size(), { "local", 0 });
+    for (std::size_t i = 0; i < dis_dims_.size(); ++i) {
+      ifls.at(i) = { "distributed", 0 };
+    }
 
-    TIndexing ti(locDims());
-    for (auto idxs : ti.num()) {
-      els.push_back((*this)[idxs]);
+    auto curr_idxs = utils::concat_dims(utils::i_to_idxs(bc_.group_id, dis_dims_), qtnh::tidx_tup(loc_dims_.size(), 0));
+
+    TIndexing ti(totDims(), ifls);
+    for (auto idxs : ti.tup("local", curr_idxs)) {
+      els.push_back(this->at(curr_idxs));
     }
 
     // ? Is it better to use local members or accessors? 

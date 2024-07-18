@@ -2,7 +2,7 @@
 #include <mpi.h>
 
 #include "tensor-new/tensor.hpp"
-#include "tensor/indexing.hpp"
+#include "tensor-new/indexing.hpp"
 
 namespace qtnh {
   Tensor::Tensor(const QTNHEnv& env) 
@@ -77,11 +77,13 @@ namespace qtnh {
 
       out << std::setprecision(2);
 
-      TIndexing ti(o.locDims());
-      for (auto idxs : ti) {
-        out << o[idxs];
-        if (utils::idxs_to_i(idxs, o.locDims()) < o.locSize() - 1) {
-          out << ", ";
+      TIndexing ti(o.totDims());
+      for (auto idxs : ti.tup()) {
+        if (o.has(idxs)) {
+          out << o.at(idxs);
+          if ((utils::idxs_to_i(idxs, o.totDims()) + 1) % o.locSize() != 0) {
+            out << ", ";
+          }
         }
       }
 

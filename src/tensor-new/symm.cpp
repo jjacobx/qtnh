@@ -1,5 +1,5 @@
 #include "tensor-new/symm.hpp"
-#include "tensor/indexing.hpp"
+#include "tensor-new/indexing.hpp"
 
 namespace qtnh {
   SymmTensorBase::SymmTensorBase(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims) 
@@ -12,9 +12,16 @@ namespace qtnh {
     std::vector<qtnh::tel> els;
     els.reserve(locSize());
 
-    TIndexing ti(locDims());
-    for (auto idxs : ti) {
-      els.push_back((*this)[idxs]);
+    std::vector<TIFlag> ifls(totDims().size(), { "local", 0 });
+    for (std::size_t i = 0; i < dis_dims_.size(); ++i) {
+      ifls.at(i) = { "distributed", 0 };
+    }
+
+    auto curr_idxs = utils::concat_dims(utils::i_to_idxs(bc_.group_id, dis_dims_), qtnh::tidx_tup(loc_dims_.size(), 0));
+
+    TIndexing ti(totDims(), ifls);
+    for (auto idxs : ti.tup("local", curr_idxs)) {
+      els.push_back(this->at(curr_idxs));
     }
 
     return new SymmTensor(bc_.env, loc_dims_, dis_dims_, n_dis_in_dims_, std::move(els), BcParams { bc_.str, bc_.cyc, bc_.off });

@@ -1,5 +1,5 @@
 #include "tensor-new/diag.hpp"
-#include "tensor/indexing.hpp"
+#include "tensor-new/indexing.hpp"
 
 namespace qtnh {
   DiagTensorBase::DiagTensorBase(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated)
@@ -12,11 +12,26 @@ namespace qtnh {
     std::vector<qtnh::tel> els;
     els.reserve(utils::dims_to_size(locOutDims()));
 
-    // ! This is broken for now, as it is impossible to address partial local dimensions. 
+    std::vector<TIFlag> ifls(totDims().size());
+    for (std::size_t i = 0; i < totDims().size(); ++i) {
+      if (i < disInDims().size()) {
+        ifls.at(i) = { "distributed-in", 0 };
+      } else if (i < disDims().size()) {
+        ifls.at(i) = { "distributed-out", 0 };
+      } else if (i < disDims().size() + locInDims().size()) {
+        ifls.at(i) = { "local-in", 0 };
+      } else {
+        ifls.at(i) = { "local-out", 0 };
+      }
+    }
+
+    auto curr_dis_idxs = utils::i_to_idxs(bc_.group_id, dis_dims_);
+
+    // ! This is broken for now, as diagonal tensors are not yet implemented. 
     TIndexing ti(locOutDims());
-    for (auto idxs : ti) {
-      
-      els.push_back((*this)[idxs]);
+    for (auto idxs : ti.tup("local-in")) {
+      idxs = ti.next(idxs, "local-out");
+      els.push_back(this->at(idxs));
     }
 
     return new DiagTensor(bc_.env, loc_dims_, dis_dims_, n_dis_in_dims_, truncated_, std::move(els), { bc_.str, bc_.cyc, bc_.off });
