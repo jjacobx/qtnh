@@ -443,12 +443,12 @@ namespace qtnh {
     if (utils::dims_to_size(old_dis_dims) > utils::dims_to_size(new_dis_dims)) {
       transpose_comm = target->bc().group_comm;
     }
-    
+
     if (target->bc().active || new_bc.active) {
       std::vector<qtnh::tel> new_els(utils::dims_to_size(new_dis_dims));
       MPI_Alltoallv(loc_els_.data(), send_counts.data(), send_displs.data(), send_type, 
                     new_els.data(), recv_counts.data(), recv_displs.data(), recv_type, 
-                    target->bc().group_comm);
+                    transpose_comm);
 
       loc_els_ = std::move(new_els);
     }
