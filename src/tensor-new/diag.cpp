@@ -54,7 +54,7 @@ namespace qtnh {
 
     auto [idxs1, idxs2] = utils::split_dims(tot_idxs, tot_idxs.size() / 2);
 
-    for (int i = 0; i < idxs1.size(); ++i) {
+    for (std::size_t i = 0; i < idxs1.size(); ++i) {
       if (idxs1.at(i) != idxs2.at(i)) return 0;
     }
 
@@ -64,7 +64,7 @@ namespace qtnh {
   qtnh::tel IdenTensor::at(qtnh::tidx_tup tot_idxs) const {
     auto [tot_in_idxs, tot_out_idxs] = utils::split_dims(tot_idxs, tot_idxs.size() / 2);
 
-    for (int i = 0; i < tot_in_idxs.size(); ++i) {
+    for (std::size_t i = 0; i < tot_in_idxs.size(); ++i) {
       if (tot_in_idxs.at(i) != tot_out_idxs.at(i)) return 0;
     }
 
