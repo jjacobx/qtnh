@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include "tensor-new/dense.hpp"
 #include "tensor-new/indexing.hpp"
 
@@ -55,7 +57,7 @@ namespace qtnh {
 
   qtnh::tel DenseTensor::at(qtnh::tidx_tup tot_idxs) const {
     auto [dis_idxs, loc_idxs] = utils::split_dims(tot_idxs, dis_dims_.size());
-    if (bc_.group_id != utils::idxs_to_i(dis_idxs, dis_dims_)) {
+    if (bc_.group_id != (int)utils::idxs_to_i(dis_idxs, dis_dims_)) {
       throw std::invalid_argument("Element at given indices is not present on calling rank. ");
     }
 
@@ -64,7 +66,7 @@ namespace qtnh {
 
   qtnh::tel& DenseTensor::at(qtnh::tidx_tup tot_idxs) {
     auto [dis_idxs, loc_idxs] = utils::split_dims(tot_idxs, dis_dims_.size());
-    if (bc_.group_id != utils::idxs_to_i(dis_idxs, dis_dims_)) {
+    if (bc_.group_id != (int)utils::idxs_to_i(dis_idxs, dis_dims_)) {
       throw std::invalid_argument("Element at given indices is not present on calling rank. ");
     }
 
@@ -78,7 +80,7 @@ namespace qtnh {
     int call_id;
     MPI_Comm_rank(bc_.group_comm, &call_id);
 
-    if (call_id == target_id) {
+    if (call_id == (int)target_id) {
       auto i = utils::idxs_to_i(loc_idxs, loc_dims_);
       loc_els_.at(i) = el;
     }
@@ -105,7 +107,7 @@ namespace qtnh {
     // Update dimensions and broadcaster
     if (offset < 0) {
       auto loc_dims2 = qtnh::tidx_tup(dis_dims_.end() + offset, dis_dims_.end());
-      auto shift = utils::dims_to_size(loc_dims2);
+      auto shift = (qtnh::uint)utils::dims_to_size(loc_dims2);
 
       loc_dims_.insert(loc_dims_.begin(), loc_dims2.begin(), loc_dims2.end());
       dis_dims_.erase(dis_dims_.end() - offset, dis_dims_.end());
@@ -260,21 +262,21 @@ namespace qtnh {
       std::vector<int> send_sources;
       std::vector<int> send_targets;
 
-      for (int i = 0; i < bc.str; ++i) {
-        for (int j = 0; j < bc.cyc; ++j) {
+      for (qtnh::uint i = 0; i < bc.str; ++i) {
+        for (qtnh::uint j = 0; j < bc.cyc; ++j) {
           send_sources.push_back(i + (bc.base * j + bc.group_id) * bc.str + bc.off);
         }
       }
 
-      for (int i = 0; i < params.str; ++i) {
-        for (int j = 0; j < params.cyc; ++j) {
+      for (qtnh::uint i = 0; i < params.str; ++i) {
+        for (qtnh::uint j = 0; j < params.cyc; ++j) {
           send_targets.push_back(i + (bc.base * j + bc.group_id) * params.str + params.off);
         }
       }
 
       // TODO: optimisation where if data is already present at target, it is not sent. 
-      if (bc.env.proc_id == send_sources.at(0)) {
-        for (int i = 0; i < send_targets.size(); ++i) {
+      if ((int)bc.env.proc_id == send_sources.at(0)) {
+        for (std::size_t i = 0; i < send_targets.size(); ++i) {
           MPI_Isend(loc_els_.data(), loc_els_.size(), MPI_C_DOUBLE_COMPLEX, send_targets.at(i), 0, MPI_COMM_WORLD, &send_reqs.at(i));
         }
       }
@@ -327,7 +329,7 @@ namespace qtnh {
 
   void TIDense::_permute_internal(Tensor* target, std::vector<qtnh::tidx_tup_st> ptup) {
     auto ndis = target->disDims().size();
-    auto nloc = target->locDims().size();
+    // auto nloc = target->locDims().size();
 
     auto old_dims = target->totDims();
     qtnh::tidx_tup new_dims(old_dims.size());
@@ -437,13 +439,11 @@ namespace qtnh {
     }
 
     // Determine which communicator to use
-    MPI_Comm transpose_comm;
+    MPI_Comm transpose_comm = new_bc.group_comm;
     if (utils::dims_to_size(old_dis_dims) > utils::dims_to_size(new_dis_dims)) {
       transpose_comm = target->bc().group_comm;
-    } else {
-      transpose_comm = new_bc.group_comm;
     }
-
+    
     if (target->bc().active || new_bc.active) {
       std::vector<qtnh::tel> new_els(utils::dims_to_size(new_dis_dims));
       MPI_Alltoallv(loc_els_.data(), send_counts.data(), send_displs.data(), send_type, 
