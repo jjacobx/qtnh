@@ -139,7 +139,7 @@ namespace qtnh {
       /// @return Tensor indexing with appended parameters of all arguments. 
       template<typename T, typename... Args>
       static T app(T t, Args... args) {
-        return _app(t, app(args);)
+        return _app(t, app(args...));
       }
 
     private:
