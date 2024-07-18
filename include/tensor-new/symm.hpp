@@ -76,29 +76,21 @@ namespace qtnh {
       /// @param idx2 Second index to swap. 
       /// @param io Tensor index input/output label to indicate which indices to swap. 
       /// @return Pointer to swapped tensor, which might be of a different derived type. 
-      virtual Tensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2, TIdxIO io) {
-        return toSymm()->swap(idx1, idx2, io);
-      }
+      virtual Tensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2, TIdxIO io);
       /// @brief Re-broadcast current tensor. 
       /// @param params Broadcast parameters of the tensor (str, cyc, off)
       /// @return Pointer to re-broadcasted tensor, which might be of a different derived type. 
-      virtual Tensor* rebcast(BcParams params) override {
-        return toSymm()->rebcast(params);
-      }
+      virtual Tensor* rebcast(BcParams params) override;
       /// @brief Shift the border between input/output shared and distributed dimensions by a given offset. 
       /// @param offset New offset between distributed and local dimensions – negative gathers, while positive scatters. 
       /// @param io Tensor index input/output label to indicate which indices to scatter. 
       /// @return Pointer to re-scattered tensor, which might be of a different derived type. 
-      virtual Tensor* rescatter(int offset, TIdxIO io) {
-        return toSymm()->rescatter(offset, io);
-      }
+      virtual Tensor* rescatter(int offset, TIdxIO io);
       /// @brief Permute tensor input/output indices according to mappings in the permutation tuple. 
       /// @param ptup Permutation tuple of the same size as total dimensions, and each entry unique. 
       /// @param io Tensor index input/output label to indicate which indices to scatter. 
       /// @return Pointer to permuted tensor, which might be of a different derived type. 
-      virtual Tensor* permute(std::vector<qtnh::tidx_tup_st> ptup, TIdxIO io) {
-        return this->toSymm()->permute(ptup, io);
-      }
+      virtual Tensor* permute(std::vector<qtnh::tidx_tup_st> ptup, TIdxIO io);
 
       qtnh::tidx_tup_st n_dis_in_dims_;  ///< Number of distributed input dimensions. 
   };

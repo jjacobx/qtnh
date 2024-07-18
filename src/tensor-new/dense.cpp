@@ -21,6 +21,22 @@ namespace qtnh {
     return new DenseTensor(bc_.env, loc_dims_, dis_dims_, std::move(els), BcParams { bc_.str, bc_.cyc, bc_.off });
   }
 
+  Tensor* DenseTensorBase::swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) {
+    return this->toDense()->swap(idx1, idx2);
+  }
+
+  Tensor* DenseTensorBase::rebcast(BcParams params) {
+    return this->toDense()->rebcast(params);
+  }
+
+  Tensor* DenseTensorBase::rescatter(int offset) {
+    return this->toDense()->rescatter(offset);
+  }
+
+  Tensor* DenseTensorBase::permute(std::vector<qtnh::tidx_tup_st> ptup) {
+    return this->toDense()->permute(ptup);
+  }
+
   DenseTensor::DenseTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, std::vector<qtnh::tel>&& els)
     : DenseTensorBase(env, loc_dims, dis_dims), TIDense(std::move(els)) {}
 

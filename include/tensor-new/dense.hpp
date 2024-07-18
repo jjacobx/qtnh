@@ -62,27 +62,19 @@ namespace qtnh {
       /// @param idx1 First index to swap. 
       /// @param idx2 Second index to swap. 
       /// @return Pointer to swapped tensor, which might be of a different derived type. 
-      virtual Tensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) override {
-        return this->toDense()->swap(idx1, idx2);
-      }
+      virtual Tensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) override;
       /// @brief Re-broadcast current tensor. 
       /// @param params Broadcast parameters of the tensor (str, cyc, off)
       /// @return Pointer to re-broadcasted tensor, which might be of a different derived type. 
-      virtual Tensor* rebcast(BcParams params) override {
-        return this->toDense()->rebcast(params);
-      }
+      virtual Tensor* rebcast(BcParams params) override;
       /// @brief Shift the border between shared and distributed dimensions by a given offset. 
       /// @param offset New offset between distributed and local dimensions – negative gathers, while positive scatters. 
       /// @return Pointer to re-scattered tensor, which might be of a different derived type. 
-      virtual Tensor* rescatter(int offset) override {
-        return this->toDense()->rescatter(offset);
-      }
+      virtual Tensor* rescatter(int offset) override;
       /// @brief Permute tensor indices according to mappings in the permutation tuple. 
       /// @param ptup Permutation tuple of the same size as total dimensions, and each entry unique. 
       /// @return Pointer to permuted tensor, which might be of a different derived type. 
-      virtual Tensor* permute(std::vector<qtnh::tidx_tup_st> ptup) override {
-        return this->toDense()->permute(ptup);
-      }
+      virtual Tensor* permute(std::vector<qtnh::tidx_tup_st> ptup) override;
   };
 
   /// Writable dense tensor class, which allows direct access to all elements. 

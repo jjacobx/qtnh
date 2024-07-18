@@ -20,6 +20,23 @@ namespace qtnh {
     return new SymmTensor(bc_.env, loc_dims_, dis_dims_, n_dis_in_dims_, std::move(els), BcParams { bc_.str, bc_.cyc, bc_.off });
   }
 
+
+  Tensor* SymmTensorBase::swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2, TIdxIO io) {
+    return toSymm()->swap(idx1, idx2, io);
+  }
+
+  Tensor* SymmTensorBase::rebcast(BcParams params) {
+    return toSymm()->rebcast(params);
+  }
+
+  Tensor* SymmTensorBase::rescatter(int offset, TIdxIO io) {
+    return toSymm()->rescatter(offset, io);
+  }
+
+  Tensor* SymmTensorBase::permute(std::vector<qtnh::tidx_tup_st> ptup, TIdxIO io) {
+    return this->toSymm()->permute(ptup, io);
+  }
+
   SymmTensor::SymmTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, std::vector<qtnh::tel>&& els) 
     : SymmTensorBase(env, loc_dims, dis_dims, n_dis_in_dims), TIDense(std::move(els)) {}
 

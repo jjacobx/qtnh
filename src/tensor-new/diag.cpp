@@ -22,6 +22,19 @@ namespace qtnh {
     return new DiagTensor(bc_.env, loc_dims_, dis_dims_, n_dis_in_dims_, truncated_, std::move(els), { bc_.str, bc_.cyc, bc_.off });
   }
 
+
+  Tensor* DiagTensorBase::swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2, TIdxIO io) {
+    return toDiag()->swap(idx1, idx2, io);
+  }
+
+  Tensor* DiagTensorBase::rebcast(BcParams params) {
+    return toDiag()->rebcast(params);
+  }
+
+  Tensor* DiagTensorBase::rescatter(int offset, TIdxIO io) {
+    return toDiag()->rescatter(offset, io);
+  }
+
   DiagTensor::DiagTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated, std::vector<qtnh::tel>&& diag_els)
     : DiagTensorBase(env, loc_dims, dis_dims, n_dis_in_dims, truncated), loc_diag_els_(std::move(diag_els)) {}
   
