@@ -56,6 +56,53 @@ namespace qtnh {
   DiagTensor::DiagTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated, std::vector<qtnh::tel>&& diag_els, BcParams params)
     : DiagTensorBase(env, loc_dims, dis_dims, n_dis_in_dims, truncated, params), loc_diag_els_(std::move(diag_els)) {}
 
+  qtnh::tel DiagTensor::operator[](qtnh::tidx_tup loc_idxs) const {
+    // ! Unimplemented. 
+    utils::throw_unimplemented();
+    return loc_diag_els_.at(0);
+  }
+
+  qtnh::tel& DiagTensor::operator[](qtnh::tidx_tup loc_idxs) {
+    // ! Unimplemented. 
+    utils::throw_unimplemented();
+    return loc_diag_els_.at(0);
+  }
+
+  qtnh::tel DiagTensor::at(qtnh::tidx_tup tot_idxs) const {
+    // ! Unimplemented. 
+    utils::throw_unimplemented();
+    return loc_diag_els_.at(0);
+  }
+
+  qtnh::tel& DiagTensor::at(qtnh::tidx_tup tot_idxs) {
+    // ! Unimplemented. 
+    utils::throw_unimplemented();
+    return loc_diag_els_.at(0);
+  }
+
+  void DiagTensor::put(qtnh::tidx_tup tot_idxs, qtnh::tel el) {
+    // ! Unimplemented. 
+    utils::throw_unimplemented();
+    return;
+  }
+
+  DiagTensor* DiagTensor::swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2, TIdxIO io) {
+    // ! Unimplemented. 
+    utils::throw_unimplemented();
+    return this;
+  }
+
+  DiagTensor* DiagTensor::rebcast(BcParams params) {
+    // ! Unimplemented. 
+    utils::throw_unimplemented();
+    return this;
+  }
+
+  DiagTensor* DiagTensor::rescatter(int offset, TIdxIO io) {
+    // ! Unimplemented. 
+    utils::throw_unimplemented();
+    return this;
+  }
 
   IdenTensor::IdenTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated)
     : DiagTensorBase(env, loc_dims, dis_dims, n_dis_in_dims, truncated) {}
