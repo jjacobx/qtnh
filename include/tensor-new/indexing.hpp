@@ -10,6 +10,7 @@ namespace qtnh {
     std::string label;
     int tag;
 
+    TIFlag() : TIFlag("default", 0) {}
     TIFlag(std::string label, int tag) : label(label), tag(tag) {}
   };
 
