@@ -58,14 +58,15 @@ namespace qtnh {
     std::swap(group_comm, b.group_comm);
 
     group_id = b.group_id;
-    active = b.active;
+    active = false;
+    std::swap(active, b.active);
 
     return *this;
   }
   
   // In case there is a limited communicator pool, they should be actively freed
   Tensor::Broadcaster::~Broadcaster() {
-    MPI_Comm_free(&group_comm);
+    if (active) MPI_Comm_free(&group_comm);
   }
 
   namespace ops {
