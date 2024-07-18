@@ -68,10 +68,15 @@ namespace qtnh {
       /// Only indices with the given flag are updated. 
       qtnh::tidx_tup reset(qtnh::tidx_tup idxs, std::string ifl_label = "default") const;
 
-      /// @brief Cut given tensor index type out of the indexing. 
+      /// @brief Cut given label type out of the indexing. 
       /// @param ifl_label Index flag label to cut out. 
-      /// @return Trimmed indexing without the indicated type. 
+      /// @return Trimmed indexing without the indicated label. 
       TIndexing cut(std::string ifl_label = "default") const;
+
+      /// @brief Keep only given label in the indexing. 
+      /// @param ifl_label Index flag label to keep. 
+      /// @return Trimmed indexing without any other label. 
+      TIndexing keep(std::string ifl_label = "default") const;
 
       struct TupIterator {
         TupIterator(qtnh::tidx_tup dims, std::vector<std::size_t> order, qtnh::tidx_tup start, bool is_end);

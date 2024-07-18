@@ -116,6 +116,23 @@ namespace qtnh {
     return new_ti;
   }
 
+  TIndexing TIndexing::keep(std::string ifl_label) const {
+    auto new_dims = dims_;
+    auto new_ifls = ifls_;
+
+    std::size_t rm_count = 0;
+    for (std::size_t i = 0; i < ifls_.size(); i++) {
+      if (ifls_.at(i).label != ifl_label) {
+        new_dims.erase(new_dims.begin() + i - rm_count);
+        new_ifls.erase(new_ifls.begin() + i - rm_count);
+        rm_count++;
+      }
+    }
+
+    TIndexing new_ti(new_dims, new_ifls);
+    return new_ti;
+  }
+
   TIndexing::TupIterator::TupIterator(qtnh::tidx_tup dims, std::vector<std::size_t> order, qtnh::tidx_tup start, bool is_end)
     : dims_(dims), order_(order), current_(start), is_end_(is_end) {}
 
