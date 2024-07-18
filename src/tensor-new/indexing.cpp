@@ -5,6 +5,16 @@
 #include "tensor-new/indexing.hpp"
 
 namespace qtnh {
+  std::vector<std::size_t> _generate_maps(std::vector<TIFlag> ifls) {
+    std::vector<std::size_t> maps;
+    std::iota(maps.begin(), maps.end(), 0);
+
+    std::stable_sort(maps.begin(), maps.end(), [&](std::size_t i, std::size_t j){ return ifls.at(i).tag < ifls.at(j).tag; });
+    std::reverse(maps.begin(), maps.end());
+
+    return maps;
+  }
+
   TIndexing::TIndexing(qtnh::tidx_tup dims) 
     : TIndexing(dims, std::vector<TIFlag>(dims.size(), { "default", 0 })) {}
 
@@ -279,15 +289,5 @@ namespace qtnh {
     ifls.insert(ifls.end(), ti2.ifls_.begin(), ti2.ifls_.end());
 
     return TIndexing(dims, ifls);
-  }
-
-  std::vector<std::size_t> _generate_maps(std::vector<TIFlag> ifls) {
-    std::vector<std::size_t> maps;
-    std::iota(maps.begin(), maps.end(), 0);
-
-    std::stable_sort(maps.begin(), maps.end(), [&](std::size_t i, std::size_t j){ return ifls.at(i).tag < ifls.at(j).tag; });
-    std::reverse(maps.begin(), maps.end());
-
-    return maps;
   }
 }
