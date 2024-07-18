@@ -263,7 +263,7 @@ namespace qtnh {
   void TIDense::_rebcast_internal(Tensor* target, BcParams params) {
     auto& bc = target->bc();
     Tensor::Broadcaster new_bc(bc.env, bc.base, params);
-    std::vector<MPI_Request> send_reqs(params.str * params.cyc);
+    std::vector<MPI_Request> send_reqs(params.str * params.cyc, MPI_REQUEST_NULL);
 
     if (bc.active) {
       std::vector<int> send_sources;
@@ -289,15 +289,15 @@ namespace qtnh {
       }
     }
 
-    std::vector<qtnh::tel> new_els(utils::dims_to_size(target->locDims()));
+    std::vector<qtnh::tel> new_els(0);
     if (new_bc.active) {
+      new_els.resize(target->locSize());
       int recv_source = new_bc.group_id * bc.str + bc.off;
       MPI_Recv(new_els.data(), new_els.size(), MPI_C_DOUBLE_COMPLEX, recv_source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-      loc_els_ = std::move(new_els);
     }
 
     MPI_Waitall(send_reqs.size(), send_reqs.data(), MPI_STATUSES_IGNORE);
-    if (!new_bc.active) loc_els_.clear();
+    loc_els_ = std::move(new_els);
 
     return;
   }
