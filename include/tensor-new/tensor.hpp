@@ -182,6 +182,11 @@ namespace qtnh {
       /// @return Pointer to permuted tensor, which might be of a different derived type. 
       virtual Tensor* permute(std::vector<qtnh::tidx_tup_st> ptup) = 0;
   };
+
+  namespace ops {
+    /// Print tensor elements via std::cout. 
+    std::ostream& operator<<(std::ostream&, const Tensor&);
+  }
 }
 
 #endif
