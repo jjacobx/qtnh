@@ -86,9 +86,16 @@ namespace qtnh {
       }
     }
 
+    // ! Need to change this later to accommodate different index insertion policies. 
     TIndexing ti1(t1p->totDims(), ifls1);
     TIndexing ti2(t1p->totDims(), ifls2);
-    auto ti3 = TIndexing::app(ti1.keep("distributed"), ti2.keep("distributed")).cut("closed");
+    auto ti3 = TIndexing::app(
+      ti1.keep("distributed"), 
+      ti1.keep("reduced"), 
+      ti2.keep("distributed"), 
+      ti1.keep("local"), 
+      ti2.keep("local")
+    );
 
     std::size_t loc_size = 0;
     if (t1p->bc().active && t2p->bc().active) {
@@ -96,9 +103,9 @@ namespace qtnh {
     }
 
     auto els = std::vector<qtnh::tel>(loc_size);
-    DenseTensor* t3p = new DenseTensor(t1p->bc().env, ti3.cut("distributed").dims(), ti3.cut("local").dims(), std::move(els), { align_off, 1, 1 });
+    DenseTensor t3(t1p->bc().env, ti3.keep("local").dims(), ti3.cut("local").dims(), std::move(els), { 1, 1, align_off });
 
-    if (t3p->bc().active) {
+    if (t3.bc().active) {
       auto it3 = ti3.cut("distributed").num("local").begin();
       for (auto idxs1 : ti1.tup("local")) {
         for (auto idxs2 : ti2.tup("local")) {
@@ -110,7 +117,7 @@ namespace qtnh {
             el3 += (*t1p)[*(it1++)] * (*t2p)[*(it2++)];
           }
 
-          (*t3p)[*(it3++)] = el3;
+         t3[*(it3++)] = el3;
         }
       }
 
@@ -120,19 +127,26 @@ namespace qtnh {
 
       // ! Expect MPI memory limit issues. 
       MPI_Comm allr_comm;
-      MPI_Comm_split(t3p->bc().group_comm, (t3p->bc().group_id / div) % mod, t3p->bc().group_id, &allr_comm);
-      MPI_Allreduce(&(*t3p)[0], &(*t3p)[0], loc_size, MPI_C_DOUBLE_COMPLEX, MPI_SUM, allr_comm);
+      MPI_Comm_split(t3.bc().group_comm, (t3.bc().group_id / div) % mod, t3.bc().group_id, &allr_comm);
+      MPI_Allreduce(&t3[0], &t3[0], loc_size, MPI_C_DOUBLE_COMPLEX, MPI_SUM, allr_comm);
       MPI_Comm_free(&allr_comm);
+    }
 
       // STEP 5: Convert virtual index to stretch factor. 
-      std::vector<qtnh::tidx_tup_st> ptup3(t3p->totDims().size());
+      std::vector<qtnh::tidx_tup_st> ptup3(t3.totDims().size());
       std::iota(ptup3.begin(), ptup3.end(), 0);
+      
+      for (std::size_t i = 0; i < ndis_cons; ++i) {
+        ptup3.insert(ptup3.begin() + t3.disDims().size(), dis_dims1.size());
+        ptup3.erase(ptup3.begin() + dis_dims1.size());
+      }
 
-      ptup3.insert(ptup3.begin() + t3p->disDims().size(), dis_dims1.size());
-      ptup3.erase(ptup3.begin() + dis_dims1.size());
+      t3._permute_internal(&t3, ptup3);
 
-      // ! Something is wrong with the distributed dimensions, need to sort out contracted duplicates. 
-      t3p->_permute_internal(t3p, ptup3);
-    }
+      // Last n distributed indices are virtual. 
+      auto [new_dis_dims, virtual_dims] = utils::split_dims(t3.disDims(), t3.disDims().size() - ndis_cons);
+      BcParams new_params(utils::dims_to_size(virtual_dims), 1, align_off);
+
+      return std::make_unique<DenseTensor>(t3.bc().env, t3.locDims(), new_dis_dims, std::move(t3.loc_els_), new_params);
   }
 }
