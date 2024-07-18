@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <iostream>
 #include <numeric>
 
 #include "core/utils.hpp"
@@ -19,7 +20,7 @@ namespace qtnh {
   }
   
   std::vector<std::size_t> _generate_maps(std::vector<TIFlag> ifls) {
-    std::vector<std::size_t> maps;
+    std::vector<std::size_t> maps(ifls.size());
     std::iota(maps.begin(), maps.end(), 0);
 
     std::stable_sort(maps.begin(), maps.end(), [&](std::size_t i, std::size_t j){ return ifls.at(i).tag < ifls.at(j).tag; });
