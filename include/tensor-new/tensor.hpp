@@ -128,10 +128,10 @@ namespace qtnh {
       }
       /// @brief Shift the border between shared and distributed dimensions by a given offset. 
       /// @param tu Unique pointer to the tensor. 
-      /// @param idx_i Location of the index to move. 
-      /// @return Unique pointer to re-scattered tensor, which might be of a different derived type. 
-      static std::unique_ptr<Tensor> rescatter(std::unique_ptr<Tensor> tu, qtnh::tidx_tup_st idx_i) {
-        return utils::one_unique(std::move(tu), tu->rescatter(idx_i));
+      /// @param offset New offset between distributed and local dimensions – negative gathers, while positive scatters. 
+      /// @return Pointer to re-scattered tensor, which might be of a different derived type. 
+      static std::unique_ptr<Tensor> rescatter(std::unique_ptr<Tensor> tu, int offset) {
+        return utils::one_unique(std::move(tu), tu->rescatter(offset));
       }
       /// @brief Permute tensor indices according to mappings in the permutation tuple. 
       /// @param tu Unique pointer to the tensor. 
