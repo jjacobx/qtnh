@@ -15,16 +15,27 @@ int main() {
   if (env.proc_id == 0) {
     t1_els = { 1.0 + 1.0i, 2.0 + 2.0i, 3.0 + 3.0i, 4.0 + 4.0i, 5.0 + 5.0i, 6.0 + 6.0i, 7.0 + 7.0i, 8.0 + 8.0i };
   } else if (env.proc_id == 1) {
-    t1_els = { 5.0 + 5.0i, 6.0 + 6.0i, 7.0 + 7.0i, 8.0 + 8.0i, 1.0 + 1.0i, 2.0 + 2.0i, 3.0 + 3.0i, 4.0 + 4.0i };
+    t1_els = { 5.0 - 5.0i, 6.0 - 6.0i, 7.0 - 7.0i, 8.0 - 8.0i, 1.0 - 1.0i, 2.0 - 2.0i, 3.0 - 3.0i, 4.0 - 4.0i };
   }
-  std::unique_ptr<Tensor> t1u = std::make_unique<DenseTensor>(env, t1_loc_dims, t1_dis_dims, std::move(t1_els));
 
+  std::unique_ptr<Tensor> t1u = std::make_unique<DenseTensor>(env, t1_loc_dims, t1_dis_dims, std::move(t1_els));
   std::cout << env.proc_id << " | T1 = " << *t1u << std::endl;
 
-  t1u = Tensor::rebcast(std::move(t1u), { 1, 1, 0 });
-  t1u = Tensor::rescatter(std::move(t1u), 1);
+  MPI_Barrier(MPI_COMM_WORLD);
+  t1u = Tensor::rebcast(std::move(t1u), { 2, 2, 0 });
+  std::cout << env.proc_id << " | T1 (re-bcast 1) = " << *t1u << std::endl;
 
-  std::cout << env.proc_id << " | T2 = " << *t1u << std::endl;
+  MPI_Barrier(MPI_COMM_WORLD);
+  t1u = Tensor::rescatter(std::move(t1u), -1);
+  std::cout << env.proc_id << " | T1 (re-scatter) = " << *t1u << std::endl;
+
+  MPI_Barrier(MPI_COMM_WORLD);
+  t1u = Tensor::rebcast(std::move(t1u), { 1, 1, 0 });
+  std::cout << env.proc_id << " | T1 (re-bcast 2) = " << *t1u << std::endl;
+
+  MPI_Barrier(MPI_COMM_WORLD);
+  t1u = Tensor::permute(std::move(t1u), { 0, 1, 3, 2 });
+  std::cout << env.proc_id << " | T1 (permute) = " << *t1u << std::endl;
 
   // qtnh::tidx_tup t1_dims = { 2, 2, 2 };
   // qtnh::tidx_tup t2_dims = { 4, 2 };
