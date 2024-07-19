@@ -117,9 +117,9 @@ namespace qtnh {
       auto shift = (qtnh::uint)utils::dims_to_size(loc_dims2);
 
       loc_dims_.insert(loc_dims_.begin(), loc_dims2.begin(), loc_dims2.end());
-      dis_dims_.erase(dis_dims_.end() - offset, dis_dims_.end());
+      dis_dims_.erase(dis_dims_.end() + offset, dis_dims_.end());
 
-      Broadcaster new_bc(bc_.env, locSize(), { bc_.str * shift, bc_.cyc, bc_.off });
+      Broadcaster new_bc(bc_.env, disSize(), { bc_.str * shift, bc_.cyc, bc_.off });
       bc_ = std::move(new_bc);
     } else if (offset > 0) {
       auto dis_dims2 = qtnh::tidx_tup(loc_dims_.begin(), loc_dims_.begin() + offset);
@@ -130,7 +130,7 @@ namespace qtnh {
       loc_dims_.erase(loc_dims_.begin(), loc_dims_.begin() + offset);
       dis_dims_.insert(dis_dims_.end(), dis_dims2.begin(), dis_dims2.end());
 
-      Broadcaster new_bc(bc_.env, locSize(), params);
+      Broadcaster new_bc(bc_.env, disSize(), params);
       bc_ = std::move(new_bc);
     }
 
@@ -308,17 +308,21 @@ namespace qtnh {
    if (offset < 0) {
       if (!bc.active) return;
       
-      auto loc_dims2 = qtnh::tidx_tup(target->disDims().end() + offset, target->disDims().end());
+      auto dis_dims = target->disDims();
+      auto loc_dims2 = qtnh::tidx_tup(dis_dims.end() + offset, dis_dims.end());
       auto shift = utils::dims_to_size(loc_dims2);
 
       MPI_Comm gath_comm;
       MPI_Comm_split(bc.group_comm, bc.group_id / shift, bc.group_id, &gath_comm);
 
-      loc_els_.resize(target->locSize() * shift);
+      std::vector<qtnh::tel> new_els(target->locSize() * shift);
       MPI_Allgather(loc_els_.data(), target->locSize(), MPI_C_DOUBLE_COMPLEX, 
-                    loc_els_.data(), target->locSize(), MPI_C_DOUBLE_COMPLEX, gath_comm);
+                    new_els.data(), target->locSize(), MPI_C_DOUBLE_COMPLEX, gath_comm);
+
+      loc_els_ = std::move(new_els);
     } else if (offset > 0) {
-      auto dis_dims2 = qtnh::tidx_tup(target->locDims().begin(), target->locDims().begin() + offset);
+      auto loc_dims = target->locDims();
+      auto dis_dims2 = qtnh::tidx_tup(loc_dims.begin(), loc_dims.begin() + offset);
       auto shift = utils::dims_to_size(dis_dims2);
 
       // Align with multiples of shift
@@ -359,6 +363,7 @@ namespace qtnh {
     for (int i = old_dims.size() - 1; i >= (int)ndis; --i) {
       auto j = ptup.at(i);
       if (j >= ndis) {
+        // std::cout << "j = ptup[" << i << "] = " << j << "\n";
         send_type_tmp1 = send_type;
         recv_type_tmp1 = recv_type;
 
@@ -379,10 +384,15 @@ namespace qtnh {
     MPI_Type_commit(&send_type);
     MPI_Type_commit(&recv_type);
 
+    std::cout << "COMMITED DATATYPES\n";
+    std::cout << "2/n";
+
     std::vector<TIFlag> old_ifls(old_dims.size());
     for (std::size_t i = 0; i < old_dims.size(); ++i) {
       old_ifls.at(i) = (i < ndis) ? TIFlag("fix", i) : TIFlag("any", i);
     }
+
+    
 
     TIndexing old_ti(old_dims, old_ifls);
 
@@ -418,7 +428,6 @@ namespace qtnh {
     std::vector<int> recv_counts(ntargets, 0);
     std::vector<int> send_displs(ntargets, 0);
     std::vector<int> recv_displs(ntargets, 0);
-
     auto old_loc_it = old_loc_ti.num("any").begin();
     auto new_dis_it = new_dis_ti.num("any", send_dis_idxs).begin();
     while (old_loc_it != old_loc_it.end()) {
@@ -452,6 +461,7 @@ namespace qtnh {
     }
 
     if (target->bc().active || new_bc.active) {
+      std::cout << "INITIALISING ALL-TO-ALL-V\n";
       std::vector<qtnh::tel> new_els(utils::dims_to_size(new_dis_dims));
       MPI_Alltoallv(loc_els_.data(), send_counts.data(), send_displs.data(), send_type, 
                     new_els.data(), recv_counts.data(), recv_displs.data(), recv_type, 
