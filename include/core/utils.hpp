@@ -39,6 +39,8 @@ namespace qtnh {
     /// @param n Position of index dimension before which to insert the split. 
     /// @return A pair of tensor index dimensions tuples. 
     std::pair<qtnh::tidx_tup, qtnh::tidx_tup> split_dims(qtnh::tidx_tup dims, qtnh::tidx_tup_st n);
+
+    
     
     /// @brief Invert the direction of tensor cotraction wires. 
     /// @param ws A vector of cotraction wires to invert. 
@@ -63,6 +65,11 @@ namespace qtnh {
       auto p = u.release();
       if (dynamic_cast<T*>(p) != t) delete p;
       return std::unique_ptr<T>(t);
+    }
+
+    template <typename T>
+    std::pair<std::vector<T>, std::vector<T>> split_vec(std::vector<T> vec, std::size_t n) {
+      return { std::vector<T>(vec.begin(), vec.begin() + n), std::vector<T>(vec.begin() + n, vec.end()) };
     }
   }
 
