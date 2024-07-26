@@ -341,7 +341,6 @@ namespace qtnh {
 
   void TIDense::_permute_internal(Tensor* target, std::vector<qtnh::tidx_tup_st> ptup) {
     auto ndis = target->disDims().size();
-    // auto nloc = target->locDims().size();
 
     auto old_dims = target->totDims();
     qtnh::tidx_tup new_dims(old_dims.size());
@@ -356,59 +355,51 @@ namespace qtnh {
       new_cumdims.at(i) = new_cumdims.at(i + 1) * new_dims.at(i + 1);
     }
 
-    MPI_Datatype send_type = MPI_C_DOUBLE_COMPLEX;
-    MPI_Datatype recv_type = MPI_C_DOUBLE_COMPLEX;
-    MPI_Datatype send_type_tmp1, send_type_tmp2;
-    MPI_Datatype recv_type_tmp1, recv_type_tmp2;
+    // Vectors for temporary datatypes. Size 128 should be enough for any realistic dense tensor. 
+    std::vector<MPI_Datatype> send_types(128, MPI_C_DOUBLE_COMPLEX), recv_types(128, MPI_C_DOUBLE_COMPLEX);
+    std::size_t i1 = 0, i2 = 0;
 
     for (int i = old_dims.size() - 1; i >= (int)ndis; --i) {
       auto j = ptup.at(i);
       if (j >= ndis) {
-        // std::cout << "j = ptup[" << i << "] = " << j << "\n";
-        send_type_tmp1 = send_type;
-        recv_type_tmp1 = recv_type;
+        MPI_Type_create_resized(send_types.at(i1), 0, old_cumdims.at(i) * sizeof(qtnh::tel), &send_types.at(i1 + 1));
+        MPI_Type_contiguous(old_dims.at(i), send_types.at(i1 + 1), &send_types.at(i1 + 2));
 
-        // ! Type contiguous vs type vector. Can you resize predefined datatypes? 
-        MPI_Type_create_resized(send_type_tmp1, 0, old_cumdims.at(i) * sizeof(qtnh::tel), &send_type_tmp2);
-        MPI_Type_create_resized(recv_type_tmp1, 0, new_cumdims.at(j) * sizeof(qtnh::tel), &recv_type_tmp2);
-        MPI_Type_contiguous(old_dims.at(i), send_type_tmp2, &send_type);
-        MPI_Type_contiguous(new_dims.at(j), recv_type_tmp2, &recv_type);
+        MPI_Type_create_resized(recv_types.at(i2), 0, new_cumdims.at(j) * sizeof(qtnh::tel), &recv_types.at(i2 + 1));
+        MPI_Type_contiguous(new_dims.at(j), recv_types.at(i2 + 1), &recv_types.at(i2 + 2));
 
-        // Prevents memory leaks. Cannot free predefined datatypes. 
-        if (send_type_tmp1 != MPI_C_DOUBLE_COMPLEX) MPI_Type_free(&send_type_tmp1);
-        if (send_type_tmp2 != MPI_C_DOUBLE_COMPLEX) MPI_Type_free(&send_type_tmp2);
-        if (recv_type_tmp1 != MPI_C_DOUBLE_COMPLEX) MPI_Type_free(&recv_type_tmp1);
-        if (recv_type_tmp2 != MPI_C_DOUBLE_COMPLEX) MPI_Type_free(&recv_type_tmp2);
+        i1 += 2, i2 += 2;
       }
     }
+
+    MPI_Datatype send_type, recv_type;
+    MPI_Type_create_resized(send_types.at(i1), 0, sizeof(qtnh::tel), &send_type);
+    MPI_Type_create_resized(recv_types.at(i2), 0, sizeof(qtnh::tel), &recv_type);
 
     MPI_Type_commit(&send_type);
     MPI_Type_commit(&recv_type);
 
-    std::vector<TIFlag> old_ifls(old_dims.size());
-    for (std::size_t i = 0; i < old_dims.size(); ++i) {
-      old_ifls.at(i) = (i < ndis) ? TIFlag("fix", i) : TIFlag("any", i);
+    // Free unused datatypes to prevent memory leaks. 
+    for (std::size_t i = 0; i < 128; ++i) {
+      if (send_types.at(i) != MPI_C_DOUBLE_COMPLEX) MPI_Type_free(&send_types.at(i));
+      if (recv_types.at(i) != MPI_C_DOUBLE_COMPLEX) MPI_Type_free(&recv_types.at(i));
     }
 
-    TIndexing old_ti(old_dims, old_ifls);
-
+    std::vector<TIFlag> old_ifls(old_dims.size());
     std::vector<TIFlag> new_ifls(new_dims.size());
     for (std::size_t i = 0; i < old_dims.size(); ++i) {
-      new_ifls.at(ptup.at(i)) = old_ifls.at(i);
+      auto j = ptup.at(i);
+      old_ifls.at(i) = (j < ndis) ? TIFlag("to-dis", i) : TIFlag("to-loc", i);
+      new_ifls.at(j) = (i < ndis) ? TIFlag("from-dis", i) : TIFlag("from-loc", i);
     }
 
     auto [old_dis_dims, old_loc_dims] = utils::split_dims(old_dims, ndis);
     auto [new_dis_dims, new_loc_dims] = utils::split_dims(new_dims, ndis);
+    auto [old_dis_ifls, old_loc_ifls] = utils::split_vec(old_ifls, ndis);
+    auto [new_dis_ifls, new_loc_ifls] = utils::split_vec(new_ifls, ndis);
 
-    std::vector<TIFlag> old_dis_ifls(old_ifls.begin(), old_ifls.begin() + ndis);
-    std::vector<TIFlag> new_dis_ifls(new_ifls.begin(), new_ifls.begin() + ndis);
-    std::vector<TIFlag> old_loc_ifls(old_ifls.begin() + ndis, old_ifls.end());
-    std::vector<TIFlag> new_loc_ifls(new_ifls.begin() + ndis, new_ifls.end());
-
-    TIndexing old_dis_ti(old_dis_dims, old_dis_ifls);
-    TIndexing new_dis_ti(new_dis_dims, new_dis_ifls);
-    TIndexing old_loc_ti(old_loc_dims, old_loc_ifls);
-    TIndexing new_loc_ti(new_loc_dims, new_loc_ifls);
+    TIndexing old_dis_ti(old_dis_dims, old_dis_ifls), old_loc_ti(old_loc_dims, old_loc_ifls);
+    TIndexing new_dis_ti(new_dis_dims, new_dis_ifls), new_loc_ti(new_loc_dims, new_loc_ifls);
 
     auto old_dis_idxs = utils::i_to_idxs(target->bc().group_id, old_dis_dims);
     qtnh::tidx_tup send_dis_idxs(ndis);
@@ -417,17 +408,15 @@ namespace qtnh {
       if (j < ndis) send_dis_idxs.at(j) = old_dis_idxs.at(i);
     }
 
-    auto nsends = utils::dims_to_size(new_dis_ti.cut("fix").dims());
     auto ntargets = std::max(utils::dims_to_size(old_dis_dims), utils::dims_to_size(new_dis_dims));
     
-    std::vector<int> send_counts(ntargets, 0);
-    std::vector<int> recv_counts(ntargets, 0);
-    std::vector<int> send_displs(ntargets, 0);
-    std::vector<int> recv_displs(ntargets, 0);
-    auto old_loc_it = old_loc_ti.num("any").begin();
-    auto new_dis_it = new_dis_ti.num("any", send_dis_idxs).begin();
+    std::vector<int> send_counts(ntargets, 0), recv_counts(ntargets, 0);
+    std::vector<int> send_displs(ntargets, 0), recv_displs(ntargets, 0);
+
+    auto old_loc_it = old_loc_ti.num("to-dis").begin();
+    auto new_dis_it = new_dis_ti.num("from-loc", send_dis_idxs).begin();
     while (old_loc_it != old_loc_it.end() && new_dis_it != new_dis_it.end()) {
-      send_counts.at(*new_dis_it) = nsends;
+      send_counts.at(*new_dis_it) = 1; // Datatype should cover all data
       send_displs.at(*new_dis_it) = *old_loc_it;
       old_loc_it++, new_dis_it++;
     }
@@ -443,10 +432,10 @@ namespace qtnh {
       if (j < ndis) recv_dis_idxs.at(i) = new_dis_idxs.at(j);
     }
 
-    auto new_loc_it = new_loc_ti.num("any").begin();
-    auto old_dis_it = old_dis_ti.num("any", recv_dis_idxs).begin();
+    auto new_loc_it = new_loc_ti.num("from-dis").begin();
+    auto old_dis_it = old_dis_ti.num("to-loc", recv_dis_idxs).begin();
     while (new_loc_it != new_loc_it.end() && old_dis_it != old_dis_it.end()) {
-      recv_counts.at(*old_dis_it) = nsends;
+      recv_counts.at(*old_dis_it) = 1; // Datatype should cover all data
       recv_displs.at(*old_dis_it) = *new_loc_it;
       new_loc_it++, old_dis_it++;
     }
@@ -458,11 +447,13 @@ namespace qtnh {
     }
 
     if (target->bc().active || new_bc.active) {
-      // using namespace ops;
-      // std::cout << "Send counts: " << send_counts << "\n";
-      // std::cout << "Send displacements: " << send_displs << "\n";
-      // std::cout << "Recv counts: " << recv_counts << "\n";
-      // std::cout << "Recv displacements: " << recv_displs << "\n";
+      #ifdef DEBUG
+        using namespace ops;
+        std::cout << "S-counts: " << send_counts << "\n";
+        std::cout << "S-disps: " << send_displs << "\n";
+        std::cout << "R-counts: " << recv_counts << "\n";
+        std::cout << "R-disps: " << recv_displs << "\n";
+      #endif
 
       std::vector<qtnh::tel> new_els(utils::dims_to_size(new_loc_dims), 1.0);
       MPI_Alltoallv(loc_els_.data(), send_counts.data(), send_displs.data(), send_type, 

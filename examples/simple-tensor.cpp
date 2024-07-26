@@ -27,7 +27,7 @@ int main() {
 
   MPI_Barrier(MPI_COMM_WORLD);
   t1u = Tensor::rescatter(std::move(t1u), -1);
-  std::cout << env.proc_id << " | T1 (re-scatter) = " << *t1u << std::endl;
+  std::cout << env.proc_id << " | T1 (re-scatter 1) = " << *t1u << std::endl;
 
   MPI_Barrier(MPI_COMM_WORLD);
   t1u = Tensor::rebcast(std::move(t1u), { 1, 1, 0 });
@@ -35,7 +35,15 @@ int main() {
 
   MPI_Barrier(MPI_COMM_WORLD);
   t1u = Tensor::permute(std::move(t1u), { 0, 1, 2, 3 });
-  std::cout << env.proc_id << " | T1 (permute) = " << *t1u << std::endl;
+  std::cout << env.proc_id << " | T1 (permute 1) = " << *t1u << std::endl;
+
+  MPI_Barrier(MPI_COMM_WORLD);
+  t1u = Tensor::rescatter(std::move(t1u), 2);
+  std::cout << env.proc_id << " | T1 (re-scatter 2) = " << *t1u << std::endl;
+
+  MPI_Barrier(MPI_COMM_WORLD);
+  t1u = Tensor::permute(std::move(t1u), { 1, 0, 2, 3 });
+  std::cout << env.proc_id << " | T1 (permute 2) = " << *t1u << std::endl;
 
   // qtnh::tidx_tup t1_dims = { 2, 2, 2 };
   // qtnh::tidx_tup t2_dims = { 4, 2 };
