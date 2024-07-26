@@ -140,10 +140,11 @@ namespace qtnh {
   DenseTensor* DenseTensor::permute(std::vector<qtnh::tidx_tup_st> ptup) {
     _permute_internal(this, ptup);
 
-    qtnh::tidx_tup new_dims(totSize());
-    for (std::size_t i = 0; i < totSize(); ++i) {
+    qtnh::tidx_tup new_dims(totDims().size());
+    for (std::size_t i = 0; i < new_dims.size(); ++i) {
       new_dims.at(ptup.at(i)) = totDims().at(i);
     }
+    
 
     auto [new_dis_dims, new_loc_dims] = utils::split_dims(new_dims, disDims().size());
     dis_dims_ = new_dis_dims;
@@ -384,15 +385,10 @@ namespace qtnh {
     MPI_Type_commit(&send_type);
     MPI_Type_commit(&recv_type);
 
-    std::cout << "COMMITED DATATYPES\n";
-    std::cout << "2/n";
-
     std::vector<TIFlag> old_ifls(old_dims.size());
     for (std::size_t i = 0; i < old_dims.size(); ++i) {
       old_ifls.at(i) = (i < ndis) ? TIFlag("fix", i) : TIFlag("any", i);
     }
-
-    
 
     TIndexing old_ti(old_dims, old_ifls);
 
@@ -430,8 +426,8 @@ namespace qtnh {
     std::vector<int> recv_displs(ntargets, 0);
     auto old_loc_it = old_loc_ti.num("any").begin();
     auto new_dis_it = new_dis_ti.num("any", send_dis_idxs).begin();
-    while (old_loc_it != old_loc_it.end()) {
-      send_counts.at(*new_dis_it) = target->locSize() / nsends;
+    while (old_loc_it != old_loc_it.end() && new_dis_it != new_dis_it.end()) {
+      send_counts.at(*new_dis_it) = nsends;
       send_displs.at(*new_dis_it) = *old_loc_it;
       old_loc_it++, new_dis_it++;
     }
@@ -449,9 +445,10 @@ namespace qtnh {
 
     auto new_loc_it = new_loc_ti.num("any").begin();
     auto old_dis_it = old_dis_ti.num("any", recv_dis_idxs).begin();
-    while (new_loc_it != old_loc_it.end()) {
-      recv_counts.at(*old_dis_it) = target->locSize() / nsends;
+    while (new_loc_it != new_loc_it.end() && old_dis_it != old_dis_it.end()) {
+      recv_counts.at(*old_dis_it) = nsends;
       recv_displs.at(*old_dis_it) = *new_loc_it;
+      new_loc_it++, old_dis_it++;
     }
 
     // Determine which communicator to use
@@ -461,8 +458,13 @@ namespace qtnh {
     }
 
     if (target->bc().active || new_bc.active) {
-      std::cout << "INITIALISING ALL-TO-ALL-V\n";
-      std::vector<qtnh::tel> new_els(utils::dims_to_size(new_dis_dims));
+      // using namespace ops;
+      // std::cout << "Send counts: " << send_counts << "\n";
+      // std::cout << "Send displacements: " << send_displs << "\n";
+      // std::cout << "Recv counts: " << recv_counts << "\n";
+      // std::cout << "Recv displacements: " << recv_displs << "\n";
+
+      std::vector<qtnh::tel> new_els(utils::dims_to_size(new_loc_dims), 1.0);
       MPI_Alltoallv(loc_els_.data(), send_counts.data(), send_displs.data(), send_type, 
                     new_els.data(), recv_counts.data(), recv_displs.data(), recv_type, 
                     transpose_comm);

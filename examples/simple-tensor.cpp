@@ -34,7 +34,7 @@ int main() {
   std::cout << env.proc_id << " | T1 (re-bcast 2) = " << *t1u << std::endl;
 
   MPI_Barrier(MPI_COMM_WORLD);
-  t1u = Tensor::permute(std::move(t1u), { 0, 1, 3, 2 });
+  t1u = Tensor::permute(std::move(t1u), { 0, 1, 2, 3 });
   std::cout << env.proc_id << " | T1 (permute) = " << *t1u << std::endl;
 
   // qtnh::tidx_tup t1_dims = { 2, 2, 2 };
