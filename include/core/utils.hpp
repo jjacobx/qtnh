@@ -65,6 +65,18 @@ namespace qtnh {
       return std::unique_ptr<T>(t);
     }
   }
+
+  namespace ops {
+    template<typename T>
+    std::ostream& operator<<(std::ostream& out, const std::vector<T>& v) {
+      for (std::size_t i = 0; i < v.size(); ++i) {
+        out << v.at(i);
+        if (i + 1 < v.size()) out << ", ";
+      }
+
+      return out;
+    }
+  }
 }
 
 #endif
