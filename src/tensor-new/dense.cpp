@@ -348,6 +348,7 @@ namespace qtnh {
       new_dims.at(ptup.at(i)) = old_dims.at(i);
     }
 
+    // ! Conversion between size_t and MPI_Aint might not work. 
     std::vector<std::size_t> old_cumdims(old_dims.size(), 1);
     std::vector<std::size_t> new_cumdims(new_dims.size(), 1);
     for (int i = old_dims.size() - 2; i >= 0; --i) {
@@ -449,10 +450,10 @@ namespace qtnh {
     if (target->bc().active || new_bc.active) {
       #ifdef DEBUG
         using namespace ops;
-        std::cout << "S-counts: " << send_counts << "\n";
-        std::cout << "S-disps: " << send_displs << "\n";
-        std::cout << "R-counts: " << recv_counts << "\n";
-        std::cout << "R-disps: " << recv_displs << "\n";
+        std::cout << new_bc.env.proc_id << " | Sc: (" << send_counts << "); ";
+        std::cout << "Sd: (" << send_displs << ")\n";
+        std::cout << new_bc.env.proc_id << " | Rc: (" << recv_counts << "); ";
+        std::cout << "Rd: (" << recv_displs << ")\n";
       #endif
 
       std::vector<qtnh::tel> new_els(utils::dims_to_size(new_loc_dims), 1.0);
