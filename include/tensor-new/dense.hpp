@@ -157,6 +157,15 @@ namespace qtnh {
       ///
       /// The index update will do nothing on ranks that do not contain the element on given indices. 
       void put(qtnh::tidx_tup tot_idxs, qtnh::tel el);
+
+      /// @brief Duplicate dense tensor. 
+      /// @return Unique pointer to duplicated dense tensor. 
+      /// 
+      /// Overuse may cause memory shortage. 
+      std::unique_ptr<DenseTensor> duplicate() {
+        auto els = loc_els_;
+        return std::make_unique<DenseTensor>(bc_.env, loc_dims_, dis_dims_, std::move(els), BcParams { bc_.str, bc_.cyc, bc_.off });
+      }
     
     protected:
       /// @brief Convert any derived tensor to writable dense tensor. 
