@@ -1,3 +1,4 @@
+#include <iostream>
 #include <numeric>
 
 #include "core/utils.hpp"
@@ -30,7 +31,8 @@ namespace qtnh {
         ptup1.erase(ptup1.begin() + i1);
         ptup2.erase(ptup2.begin() + i2);
 
-        ptup1.insert(ptup1.begin() + ndis1 - 1, w.first);
+        // Ensure same ordering; -1 is necessary as one element has been erased. 
+        ptup1.insert(ptup1.begin() + ndis1 - ndis_cons - 1, w.first);
         ptup2.insert(ptup2.begin(), w.second);
 
         ndis_cons++;
@@ -43,7 +45,7 @@ namespace qtnh {
     // STEP 2: Align by broadcast. 
     auto dis_dims1 = t1p->disDims();
     auto dis_dims2 = t2p->disDims();
-    dis_dims1.erase(dis_dims1.begin() + ndis_cons, dis_dims1.end());
+    dis_dims1.erase(dis_dims1.end() - ndis_cons, dis_dims1.end());
     dis_dims2.erase(dis_dims2.begin(), dis_dims2.begin() + ndis_cons);
 
     auto align_str = (qtnh::uint)utils::dims_to_size(dis_dims2);
@@ -61,7 +63,7 @@ namespace qtnh {
     for (std::size_t i = 0; i < ws.size(); ++i) {
       if (ws.at(i).first < ndis1) {
         ifls1.at(ws.at(i).first) = { "reduced", (int)i };
-        ifls2.at(ws.at(i).second) = { "reduced", (int)i};
+        ifls2.at(ws.at(i).second) = { "reduced", (int)i };
       } else {
         ifls1.at(ws.at(i).first) = { "closed", (int)i };
         ifls2.at(ws.at(i).second) = { "closed", (int)i };
@@ -70,7 +72,7 @@ namespace qtnh {
 
     // ! Need to change this later to accommodate different index insertion policies. 
     TIndexing ti1(t1p->totDims(), ifls1);
-    TIndexing ti2(t1p->totDims(), ifls2);
+    TIndexing ti2(t2p->totDims(), ifls2);
     auto ti3 = TIndexing::app(
       ti1.keep("distributed"), 
       ti1.keep("reduced"), 
@@ -87,49 +89,67 @@ namespace qtnh {
     auto els = std::vector<qtnh::tel>(loc_size);
     DenseTensor t3(t1p->bc().env, ti3.keep("local").dims(), ti3.cut("local").dims(), std::move(els), { 1, 1, align_off });
 
+    ti1 = ti1.cut("distributed").cut("reduced");
+    ti2 = ti2.cut("distributed").cut("reduced");
+
     if (t3.bc().active) {
-      auto it3 = ti3.cut("distributed").num("local").begin();
+      auto it3 = ti3.keep("local").num("local").begin();
       for (auto idxs1 : ti1.tup("local")) {
         for (auto idxs2 : ti2.tup("local")) {
           qtnh::tel el3 = 0.0;
+
+          #ifdef DEBUG
+            using namespace qtnh::ops;
+            std::cout << t3.bc().env.proc_id << " | t3[" << *it3 << "] = ";
+          #endif
 
           auto it1 = ti1.num("closed", idxs1);
           auto it2 = ti2.num("closed", idxs2);
           while(it1 != it1.end() && it2 != it2.end()) {
             el3 += (*t1p)[*(it1++)] * (*t2p)[*(it2++)];
+
+            #ifdef DEBUG
+              std::cout << "t1[" << *it1 << "] * t2[" << *it2 << "]";
+              if (it1 != it1.end() && it2 != it2.end()) std::cout << " + ";
+            #endif
           }
 
-         t3[*(it3++)] = el3;
+          t3[*(it3++)] = el3;
+
+          #ifdef DEBUG
+            std::cout << " = " << el3  << std::endl;
+          #endif
         }
       }
 
       // STEP 4: All-reduce distributed wires. 
-      auto div = utils::dims_to_size(dis_dims1);
-      auto mod = utils::dims_to_size(dis_dims2);
+      auto mod = utils::dims_to_size(dis_dims1);
+      auto div = utils::dims_to_size(dis_dims2);
 
       // ! Expect MPI memory limit issues. 
+      // ! Can be performed multiple times with offset for larger arrays. 
       MPI_Comm allr_comm;
       MPI_Comm_split(t3.bc().group_comm, (t3.bc().group_id / div) % mod, t3.bc().group_id, &allr_comm);
-      MPI_Allreduce(&t3[0], &t3[0], loc_size, MPI_C_DOUBLE_COMPLEX, MPI_SUM, allr_comm);
+      MPI_Allreduce(MPI_IN_PLACE, t3.loc_els_.data(), loc_size, MPI_C_DOUBLE_COMPLEX, MPI_SUM, allr_comm);
       MPI_Comm_free(&allr_comm);
     }
 
-      // STEP 5: Convert virtual index to stretch factor. 
-      std::vector<qtnh::tidx_tup_st> ptup3(t3.totDims().size());
-      std::iota(ptup3.begin(), ptup3.end(), 0);
-      
-      for (std::size_t i = 0; i < ndis_cons; ++i) {
-        ptup3.insert(ptup3.begin() + t3.disDims().size(), dis_dims1.size());
-        ptup3.erase(ptup3.begin() + dis_dims1.size());
-      }
+    // STEP 5: Convert virtual index to stretch factor. 
+    std::vector<qtnh::tidx_tup_st> ptup3(t3.totDims().size());
+    std::iota(ptup3.begin(), ptup3.end(), 0);
+    
+    for (std::size_t i = 0; i < ndis_cons; ++i) {
+      ptup3.insert(ptup3.begin() + t3.disDims().size(), dis_dims1.size());
+      ptup3.erase(ptup3.begin() + dis_dims1.size());
+    }
 
-      t3._permute_internal(&t3, ptup3);
+    t3._permute_internal(&t3, ptup3);
 
-      // Last n distributed indices are virtual. 
-      auto [new_dis_dims, virtual_dims] = utils::split_dims(t3.disDims(), t3.disDims().size() - ndis_cons);
-      BcParams new_params(utils::dims_to_size(virtual_dims), 1, align_off);
+    // Last n distributed indices are virtual. 
+    auto [new_dis_dims, virtual_dims] = utils::split_dims(t3.disDims(), t3.disDims().size() - ndis_cons);
+    BcParams new_params(utils::dims_to_size(virtual_dims), 1, align_off);
 
-      return std::make_unique<DenseTensor>(t3.bc().env, t3.locDims(), new_dis_dims, std::move(t3.loc_els_), new_params);
+    return std::make_unique<DenseTensor>(t3.bc().env, t3.locDims(), new_dis_dims, std::move(t3.loc_els_), new_params);
   }
 
   // TODO: Implement this in a separate file using enums
