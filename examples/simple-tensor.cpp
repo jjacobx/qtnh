@@ -9,8 +9,7 @@ using namespace std::complex_literals;
 int main() {
   QTNHEnv env;
 
-  qtnh::tidx_tup t1_dis_dims = { 2 };
-  qtnh::tidx_tup t1_loc_dims = { 2, 2, 2 };
+  qtnh::tidx_tup t1_dis_dims = { 2 }, t1_loc_dims = { 2, 2, 2 };
   std::vector<qtnh::tel> t1_els;
   if (env.proc_id == 0) {
     t1_els = { 1.0 + 1.0i, 2.0 + 2.0i, 3.0 + 3.0i, 4.0 + 4.0i, 5.0 + 5.0i, 6.0 + 6.0i, 7.0 + 7.0i, 8.0 + 8.0i };
@@ -44,6 +43,16 @@ int main() {
   MPI_Barrier(MPI_COMM_WORLD);
   t1u = Tensor::permute(std::move(t1u), { 1, 0, 2, 3 });
   std::cout << env.proc_id << " | T1 (permute 2) = " << *t1u << std::endl;
+
+
+  qtnh::tidx_tup t2_dis_dims = { }, t2_loc_dims = { 2, 2 };
+  std::vector<qtnh::tel> t2_els = { 1.0, 0.0, 0.0, -1.0 };
+  std::unique_ptr<Tensor> t2u = std::make_unique<DenseTensor>(env, t2_loc_dims, t2_dis_dims, std::move(t2_els));
+  std::cout << env.proc_id << " | T2 = " << *t2u << std::endl;
+
+  MPI_Barrier(MPI_COMM_WORLD);
+  auto t3u = Tensor::contract(std::move(t1u), std::move(t2u), {{ 3, 0 }});
+  std::cout << env.proc_id << " | T3 (contract 1) = " << *t3u << std::endl;
 
   // qtnh::tidx_tup t1_dims = { 2, 2, 2 };
   // qtnh::tidx_tup t2_dims = { 4, 2 };
