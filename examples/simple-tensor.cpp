@@ -61,6 +61,10 @@ int main() {
   t3u = Tensor::contract(std::move(t1u), std::move(t2u), {{ 1, 1 }, { 2, 2 }});
   std::cout << env.proc_id << " | T3 (contract 2) = " << *t3u << std::endl;
 
+  MPI_Barrier(MPI_COMM_WORLD);
+  t3u = Tensor::rebcast(std::move(t3u), { 1, 1, 4 });
+  std::cout << env.proc_id << " | T3 (re-bcast 1) = " << *t3u << std::endl;
+
   // qtnh::tidx_tup t1_dims = { 2, 2, 2 };
   // qtnh::tidx_tup t2_dims = { 4, 2 };
 
