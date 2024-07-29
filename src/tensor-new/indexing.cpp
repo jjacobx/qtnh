@@ -18,6 +18,11 @@ namespace qtnh {
 
     return out;
   }
+
+  std::ostream& ops::operator<<(std::ostream& out, const TIFlag& o) {
+    out << "(" << o.tag << ", " << o.label << ")";
+    return out; 
+  }
   
   std::vector<std::size_t> _generate_maps(std::vector<TIFlag> ifls) {
     std::vector<std::size_t> maps(ifls.size());

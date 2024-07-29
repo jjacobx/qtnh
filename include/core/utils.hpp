@@ -3,6 +3,7 @@
 
 #include <memory>
 
+#include "tensor-new/indexing.hpp"
 #include "typedefs.hpp"
 
 namespace qtnh {

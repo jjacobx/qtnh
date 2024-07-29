@@ -6,11 +6,6 @@
 #include "../core/typedefs.hpp"
 
 namespace qtnh {
-  namespace ops {
-    /// Print tensor index tuple via std::cout. 
-    std::ostream& operator<<(std::ostream&, const qtnh::tidx_tup&);
-  }
-
   struct TIFlag {
     std::string label;
     int tag;
@@ -18,6 +13,12 @@ namespace qtnh {
     TIFlag() : TIFlag("default", 0) {}
     TIFlag(std::string label, int tag) : label(label), tag(tag) {}
   };
+
+  namespace ops {
+    /// Print tensor index tuple via std::cout. 
+    std::ostream& operator<<(std::ostream&, const qtnh::tidx_tup&);
+    std::ostream& operator<<(std::ostream&, const TIFlag&);
+  }
 
   class TIndexing {
     public:
