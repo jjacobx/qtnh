@@ -43,6 +43,7 @@ int main() {
   MPI_Barrier(MPI_COMM_WORLD);
   t1u = Tensor::permute(std::move(t1u), { 1, 0, 2, 3 });
   std::cout << env.proc_id << " | T1 (permute 2) = " << *t1u << std::endl;
+  auto t1u2 = static_cast<DenseTensor*>(t1u.get())->duplicate();
 
 
   qtnh::tidx_tup t2_dis_dims = { }, t2_loc_dims = { 2, 2 };
@@ -53,6 +54,12 @@ int main() {
   MPI_Barrier(MPI_COMM_WORLD);
   auto t3u = Tensor::contract(std::move(t1u), std::move(t2u), {{ 3, 0 }});
   std::cout << env.proc_id << " | T3 (contract 1) = " << *t3u << std::endl;
+
+  MPI_Barrier(MPI_COMM_WORLD);
+  t1u = t1u2->duplicate();
+  t2u = std::move(t3u);
+  t3u = Tensor::contract(std::move(t1u), std::move(t2u), {{ 1, 1 }, { 2, 2 }});
+  std::cout << env.proc_id << " | T3 (contract 2) = " << *t3u << std::endl;
 
   // qtnh::tidx_tup t1_dims = { 2, 2, 2 };
   // qtnh::tidx_tup t2_dims = { 4, 2 };
