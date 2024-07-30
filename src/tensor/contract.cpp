@@ -2,9 +2,9 @@
 #include <numeric>
 
 #include "core/utils.hpp"
-#include "tensor-new/tensor.hpp"
-#include "tensor-new/dense.hpp"
-#include "tensor-new/indexing.hpp"
+#include "tensor/tensor.hpp"
+#include "tensor/dense.hpp"
+#include "tensor/indexing.hpp"
 
 namespace qtnh {
   std::unique_ptr<DenseTensor> _contract_dense(std::unique_ptr<Tensor> t1p, std::unique_ptr<Tensor> t2p, std::vector<qtnh::wire> ws) {

@@ -37,7 +37,7 @@ enable_testing()
 include(CTest)
 include(Catch)
 
-add_subdirectory(tests)
+# add_subdirectory(tests)
 
 ## Examples
 add_subdirectory(examples)

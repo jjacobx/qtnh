@@ -1,5 +1,5 @@
-#include "tensor-new/diag.hpp"
-#include "tensor-new/indexing.hpp"
+#include "tensor/diag.hpp"
+#include "tensor/indexing.hpp"
 
 namespace qtnh {
   DiagTensorBase::DiagTensorBase(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated)

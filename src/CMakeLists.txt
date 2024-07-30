@@ -1,8 +1,7 @@
 add_library(qtnh)
 
 add_subdirectory(core)
-# add_subdirectory(tensor)
-add_subdirectory(tensor-new)
+add_subdirectory(tensor)
 
 target_compile_features(qtnh
   PUBLIC

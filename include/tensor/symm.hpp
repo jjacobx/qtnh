@@ -1,31 +1,55 @@
-#ifndef _TENSOR_NEW__DIAG_HPP
-#define _TENSOR_NEW__DIAG_HPP
+#ifndef _TENSOR_NEW__SYMM_HPP
+#define _TENSOR_NEW__SYMM_HPP
 
-#include "tensor-new/symm.hpp"
+#include "tensor/dense.hpp"
 
 namespace qtnh {
-  class DiagTensorBase;
-  class DiagTensor;
-  class IdenTensor;
+  class SymmTensorBase;
+  class SymmTensor;
+  class SwapTensor;
 
-  /// Diagonal tensor base virtual class, which assumes that a symmetric tensors only has non-zero elements on a diagonal. 
-  /// The diagonal is defined by the same total input and output indices. Symmetric tensor dimension restrictions apply. 
-  /// Even if given rank is non-diagonal, distributed output index diagonal is stored. The distributed input index can be
-  /// truncated to 0 to limit the number of required ranks. To convert to a more general tensor, full form is necessary. 
-  class DiagTensorBase : public SymmTensorBase {
+  /// Symmetric tensor base virtual class, which restricts dense tensors by assuming dimensions can be split into equal input and output. 
+  /// While in/out local and distributed dimension may differ, the concatenated in/out parts have to be exactly the same. 
+  class SymmTensorBase : public DenseTensorBase {
     public: 
-      DiagTensorBase() = delete;
-      DiagTensorBase(const DiagTensorBase&) = delete;
-      virtual ~DiagTensorBase() = default;
+      SymmTensorBase() = delete;
+      SymmTensorBase(const SymmTensorBase&) = delete;
+      virtual ~SymmTensorBase() = default;
 
-      virtual TT type() const noexcept override { return TT::diagTensorBase; }
-      virtual bool isDiag() const noexcept override { return true; }
+      virtual TT type() const noexcept override { return TT::symmTensorBase; }
+      virtual bool isSymm() const noexcept override { return true; }
 
-      /// @brief Convert any derived tensor to writable diagonal tensor. 
-      /// @param tu Unique pointer to derived diagonal tensor to convert. 
-      /// @return Unique pointer to an equivalent writable diagonal tensor. 
-      static std::unique_ptr<DiagTensor> toDiag(std::unique_ptr<DiagTensorBase> tu) {
-        return utils::one_unique(std::move(tu), tu->toDiag());
+      /// Get distributed input dimensions. 
+      qtnh::tidx_tup disInDims() const {
+        return qtnh::tidx_tup(dis_dims_.begin(), dis_dims_.begin() + n_dis_in_dims_);
+      }
+      /// Get local input dimensions. 
+      qtnh::tidx_tup locInDims() const {
+        return qtnh::tidx_tup(loc_dims_.begin(), loc_dims_.begin() + (loc_dims_.size() / 2) - n_dis_in_dims_);
+      }
+      /// Get input dimensions, which must be equal to output dimensions. 
+      qtnh::tidx_tup totInDims() const {
+        return utils::concat_dims(disInDims(), locInDims());
+      }
+
+      /// Get distributed output dimensions. 
+      qtnh::tidx_tup disOutDims() const {
+        return qtnh::tidx_tup(dis_dims_.begin() + n_dis_in_dims_, dis_dims_.end());
+      }
+      /// Get local output dimensions. 
+      qtnh::tidx_tup locOutDims() const {
+        return qtnh::tidx_tup(loc_dims_.begin() + (loc_dims_.size() / 2) - n_dis_in_dims_, loc_dims_.end());
+      }
+      /// Get output dimensions, which must be equal to input dimensions. 
+      qtnh::tidx_tup totOutDims() const {
+        return utils::concat_dims(disOutDims(), locOutDims());
+      }
+
+      /// @brief Convert any derived tensor to writable symmetric tensor
+      /// @param tu Unique pointer to derived symmetric tensor to convert. 
+      /// @return Unique pointer to an equivalent writable symmetric tensor. 
+      static std::unique_ptr<SymmTensor> toSymm(std::unique_ptr<SymmTensorBase> tu) {
+        return utils::one_unique(std::move(tu), tu->toSymm());
       }
 
     protected:
@@ -33,68 +57,70 @@ namespace qtnh {
       /// @param env Environment to use for construction. 
       /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
-      /// @param n_dis_in_dims Number of distributed input dimensions. 
-      /// @param truncated Flag for whether the front has been truncated to 0. 
-      DiagTensorBase(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated);
+      /// @param n_dis_in_dims Number of distributed input dimensions
+      SymmTensorBase(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims);
       /// @brief Construct empty tensor with given local and distributed dimensions within environment with given distribution parameters. 
       /// @param env Environment to use for construction. 
       /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
-      /// @param n_dis_in_dims Number of distributed input dimensions. 
-      /// @param truncated Flag for whether the front has been truncated to 0. 
-      /// @param params Distribution parameters of the tensor (str, cyc, off). 
-      DiagTensorBase(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated, BcParams params);
+      /// @param n_dis_in_dims Number of distributed input dimensions
+      /// @param params Distribution parameters of the tensor (str, cyc, off)
+      SymmTensorBase(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, BcParams params);
 
-      /// @brief Convert any derived tensor to writable diagonal tensor. 
-      /// @return Pointer to an equivalent writable diagonal tensor. 
-      virtual DiagTensor* toDiag();
+      /// @brief Convert any derived tensor to writable symmetric tensor
+      /// @return Pointer to an equivalent writable symmetric tensor. 
+      virtual SymmTensor* toSymm();
 
-      /// @brief Swap indices on current tensor. 
+      /// @brief Swap input/output indices on current tensor. 
       /// @param idx1 First index to swap. 
       /// @param idx2 Second index to swap. 
+      /// @param io Tensor index input/output label to indicate which indices to swap. 
       /// @return Pointer to swapped tensor, which might be of a different derived type. 
-      virtual Tensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2, TIdxIO io) override;
+      virtual Tensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2, TIdxIO io);
       /// @brief Re-broadcast current tensor. 
       /// @param params Broadcast parameters of the tensor (str, cyc, off)
       /// @return Pointer to re-broadcasted tensor, which might be of a different derived type. 
       virtual Tensor* rebcast(BcParams params) override;
-      /// @brief Shift the border between shared and distributed dimensions by a given offset. 
+      /// @brief Shift the border between input/output shared and distributed dimensions by a given offset. 
       /// @param offset New offset between distributed and local dimensions – negative gathers, while positive scatters. 
+      /// @param io Tensor index input/output label to indicate which indices to scatter. 
       /// @return Pointer to re-scattered tensor, which might be of a different derived type. 
-      virtual Tensor* rescatter(int offset, TIdxIO io) override;
+      virtual Tensor* rescatter(int offset, TIdxIO io);
+      /// @brief Permute tensor input/output indices according to mappings in the permutation tuple. 
+      /// @param ptup Permutation tuple of the same size as total dimensions, and each entry unique. 
+      /// @param io Tensor index input/output label to indicate which indices to scatter. 
+      /// @return Pointer to permuted tensor, which might be of a different derived type. 
+      virtual Tensor* permute(std::vector<qtnh::tidx_tup_st> ptup, TIdxIO io);
 
-      bool truncated_;  ///< Flag for whether distributed input dimensions are truncated to 0. 
+      qtnh::tidx_tup_st n_dis_in_dims_;  ///< Number of distributed input dimensions. 
   };
 
-  /// Writable diagonal tensor class, which allows direct access to diagonal elements. 
-  /// Only non-zero elements are stored in a vector, significantly reducing memory consumption. 
-  class DiagTensor : public DiagTensorBase {
-    public: 
-      friend class DiagTensorBase; 
+  /// Writable general symmetric tensor class, which allows direct access to all elements. Restrictions for symmetric tensors apply. 
+  class SymmTensor : public SymmTensorBase, private TIDense {
+    public:
+      friend class SymmTensorBase;
 
-      DiagTensor() = delete;
-      DiagTensor(const DiagTensor&) = delete;
-      ~DiagTensor() = default;
+      SymmTensor() = delete;
+      SymmTensor(const SymmTensor&) = delete;
+      ~SymmTensor() = default;
 
       /// @brief Construct empty tensor with given local and distributed dimensions within environment with default distribution parameters. 
       /// @param env Environment to use for construction. 
       /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
-      /// @param n_dis_in_dims Number of distributed input dimensions. 
-      /// @param truncated Flag for whether the front has been truncated to 0. 
-      /// @param diag_els Complex vector of local diagonal elements. 
-      DiagTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated, std::vector<qtnh::tel>&& diag_els);
+      /// @param n_dis_in_dims Number of distributed input dimensions
+      /// @param els Complex vector of local elements. 
+      SymmTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, std::vector<qtnh::tel>&& els);
       /// @brief Construct empty tensor with given local and distributed dimensions within environment with given distribution parameters. 
       /// @param env Environment to use for construction. 
       /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
-      /// @param n_dis_in_dims Number of distributed input dimensions. 
-      /// @param truncated Flag for whether the front has been truncated to 0. 
-      /// @param diag_els Complex vector of local diagonal elements. 
-      /// @param params Distribution parameters of the tensor (str, cyc, off). 
-      DiagTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated, std::vector<qtnh::tel>&& diag_els, BcParams params);
+      /// @param n_dis_in_dims Number of distributed input dimensions
+      /// @param els Complex vector of local elements. 
+      /// @param params Distribution parameters of the tensor (str, cyc, off)
+      SymmTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, std::vector<qtnh::tel>&& els, BcParams params);
 
-      virtual TT type() const noexcept override { return TT::diagTensor; }
+      virtual TT type() const noexcept override { return TT::symmTensor; }
 
       /// @brief Rank-unsafe method to get element and given local indices. 
       /// @param idxs Tensor index tuple indicating local position of the element. 
@@ -105,14 +131,13 @@ namespace qtnh {
       /// on current rank. On all active ranks, it must return an element, but different ranks  
       /// might have different values. 
       virtual qtnh::tel operator[](qtnh::tidx_tup loc_idxs) const override;
-      /// @brief Set element on given local indices, which must be diagonal. 
+      /// @brief Set element on given local indices. 
       /// @param idxs Tensor index tuple indicating local position to be updated. 
       /// @deprecated Will be superseded by direct addressing of array elements with numeric indices. 
       ///
       /// The index update is executed on all active ranks, and different values might be
-      /// passed to the method on different ranks. Non-diagonal updates will throw an error. 
+      /// passed to the method on different ranks. 
       qtnh::tel& operator[](qtnh::tidx_tup loc_idxs);
-
 
       /// @brief Directly access local array the tensor. 
       /// @param i Local array index to access. 
@@ -122,7 +147,7 @@ namespace qtnh {
       /// tensors that use different underlying classes. It may also produce unexpected results 
       /// when virtual elements are stored, i.e. elements useful for calculations, but not actually 
       /// present in the tensor. 
-      virtual qtnh::tel operator[](std::size_t i) const override { return loc_diag_els_.at(i); }
+      virtual qtnh::tel operator[](std::size_t i) const override { return loc_els_.at(i); }
       /// @brief Access element at total indices if present. 
       /// @param tot_idxs Indices with total position of the element. 
       /// @return Value of the element at given indices. Throws error if not present. 
@@ -138,7 +163,7 @@ namespace qtnh {
       /// tensors that use different underlying classes. It may also produce unexpected results 
       /// when virtual elements are stored, i.e. elements useful for calculations, but not actually 
       /// present in the tensor. 
-      qtnh::tel& operator[](std::size_t i) { return loc_diag_els_.at(i); }
+      qtnh::tel& operator[](std::size_t i) { return loc_els_.at(i); }
       /// @brief Access and reference element at total indices if present. 
       /// @param tot_idxs Indices with total position of the element. 
       /// @return Reference to the element at given indices. Throws error if not present. 
@@ -152,54 +177,53 @@ namespace qtnh {
       /// The index update will do nothing on ranks that do not contain the element on given indices. 
       void put(qtnh::tidx_tup tot_idxs, qtnh::tel el);
 
-    protected: 
-      /// @brief Convert any derived tensor to writable diagonal tensor
-      /// @return Pointer to an equivalent writable diagonal tensor. 
-      virtual DiagTensor* toDiag() override { return this; }
+    protected:
+      /// @brief Convert any derived tensor to symmetric tensor
+      /// @return Symmetric tensor equivalent to calling tensor
+      virtual SymmTensor* toSymm() noexcept override { return this; }
 
-      /// @brief Swap indices on current tensor. 
+      /// @brief Swap input/output indices on current tensor. 
       /// @param idx1 First index to swap. 
       /// @param idx2 Second index to swap. 
+      /// @param io Tensor index input/output label to indicate which indices to swap. 
       /// @return Pointer to swapped tensor, which might be of a different derived type. 
-      virtual DiagTensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2, TIdxIO io) override;
+      virtual SymmTensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2, TIdxIO io) override;
       /// @brief Re-broadcast current tensor. 
       /// @param params Broadcast parameters of the tensor (str, cyc, off)
       /// @return Pointer to re-broadcasted tensor, which might be of a different derived type. 
-      virtual DiagTensor* rebcast(BcParams params) override;
-      /// @brief Shift the border between shared and distributed dimensions by a given offset. 
+      virtual SymmTensor* rebcast(BcParams params) override;
+      /// @brief Shift the border between input/output shared and distributed dimensions by a given offset. 
       /// @param offset New offset between distributed and local dimensions – negative gathers, while positive scatters. 
+      /// @param io Tensor index input/output label to indicate which indices to scatter. 
       /// @return Pointer to re-scattered tensor, which might be of a different derived type. 
-      virtual DiagTensor* rescatter(int offset, TIdxIO io) override;
-
-    private: 
-      std::vector<qtnh::tel> loc_diag_els_;  ///< Local diagonal elements. 
+      virtual SymmTensor* rescatter(int offset, TIdxIO io) override;
+      /// @brief Permute tensor input/output indices according to mappings in the permutation tuple. 
+      /// @param ptup Permutation tuple of the same size as total dimensions, and each entry unique. 
+      /// @param io Tensor index input/output label to indicate which indices to scatter. 
+      /// @return Pointer to permuted tensor, which might be of a different derived type. 
+      virtual SymmTensor* permute(std::vector<qtnh::tidx_tup_st> ptup, TIdxIO io) override;
   };
 
-  /// Identity diagonal tensor class. Has symmetric total dimensions and 1s on a diagonal – all other elements are zero. 
-  /// Can be used for making indices local/distributed by using different input/output local-distributed dimension splits. 
-  class IdenTensor : public DiagTensorBase {
+  /// Rank 4 symmetric swap tensor for swapping two indices with dimension n. The swap tensor must have dimensions (n, n, n, n). 
+  class SwapTensor : public SymmTensorBase {
     public:
-      IdenTensor() = delete;
-      IdenTensor(const IdenTensor&) = delete;
-      ~IdenTensor() = default;
+      SwapTensor() = delete;
+      SwapTensor(const SymmTensor&) = delete;
+      ~SwapTensor() = default;
 
-      /// @brief Construct empty tensor with given local and distributed dimensions within environment with default distribution parameters. 
+      /// @brief Construct rank 4 swap tensor with given single index size within environment with default distribution parameters. 
       /// @param env Environment to use for construction. 
-      /// @param loc_dims Local index dimensions. 
-      /// @param dis_dims Distributed index dimensions. 
-      /// @param n_dis_in_dims Number of distributed input dimensions. 
-      /// @param truncated Flag for whether the front has been truncated to 0. 
-      IdenTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated);
-      /// @brief Construct empty tensor with given local and distributed dimensions within environment with given distribution parameters. 
+      /// @param n Dimension of swapped indices (both are expected to have the same size). 
+      /// @param d Number of distributed input/output dimensions (can be either 0, 1 or 2), assuming input/output distribution is the same. 
+      SwapTensor(const QTNHEnv& env, std::size_t n, std::size_t d);
+      /// @brief Construct rank 4 swap tensor with given index size within environment with given distribution parameters. 
       /// @param env Environment to use for construction. 
-      /// @param loc_dims Local index dimensions. 
-      /// @param dis_dims Distributed index dimensions. 
-      /// @param n_dis_in_dims Number of distributed input dimensions. 
-      /// @param truncated Flag for whether the front has been truncated to 0. 
+      /// @param n Dimension of swapped indices (both are expected to have the same size). 
+      /// @param d Number of distributed input/output dimensions (can be either 0, 1 or 2), assuming input/output distribution is the same. 
       /// @param params Distribution parameters of the tensor (str, cyc, off). 
-      IdenTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated, BcParams params);
+      SwapTensor(const QTNHEnv& env, std::size_t n, std::size_t d, BcParams params);
 
-      virtual TT type() const noexcept override { return TT::idenTensor; }
+      virtual TT type() const noexcept override { return TT::swapTensor; }
 
       /// @brief Rank-unsafe method to get element and given local indices. 
       /// @param idxs Tensor index tuple indicating local position of the element. 
@@ -219,7 +243,7 @@ namespace qtnh {
       /// tensors that use different underlying classes. It may also produce unexpected results 
       /// when virtual elements are stored, i.e. elements useful for calculations, but not actually 
       /// present in the tensor. 
-      virtual qtnh::tel operator[](std::size_t i) const override { return 1; }
+      virtual qtnh::tel operator[](std::size_t i) const override;
       /// @brief Access element at total indices if present. 
       /// @param tot_idxs Indices with total position of the element. 
       /// @return Value of the element at given indices. Throws error if not present. 
@@ -231,7 +255,7 @@ namespace qtnh {
       /// @brief Re-broadcast current tensor. 
       /// @param params Broadcast parameters of the tensor (str, cyc, off)
       /// @return Pointer to re-broadcasted tensor, which might be of a different derived type. 
-      virtual IdenTensor* rebcast(BcParams params) override;
+      virtual SwapTensor* rebcast(BcParams params) override;
   };
 }
 

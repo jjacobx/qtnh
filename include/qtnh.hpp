@@ -14,16 +14,10 @@ namespace qtnh {
 #include "core/typedefs.hpp"
 #include "core/utils.hpp"
 
-// #include "tensor/base.hpp"
-// #include "tensor/dense.hpp"
-// #include "tensor/indexing.hpp"
-// #include "tensor/network.hpp"
-// #include "tensor/special.hpp"
-
-#include "tensor-new/tensor.hpp"
-#include "tensor-new/dense.hpp"
-#include "tensor-new/symm.hpp"
-#include "tensor-new/diag.hpp"
-#include "tensor-new/indexing.hpp"
+#include "tensor/tensor.hpp"
+#include "tensor/dense.hpp"
+#include "tensor/symm.hpp"
+#include "tensor/diag.hpp"
+#include "tensor/indexing.hpp"
 
 #endif

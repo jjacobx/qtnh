@@ -1,8 +1,8 @@
 #include <iomanip>
 #include <mpi.h>
 
-#include "tensor-new/tensor.hpp"
-#include "tensor-new/indexing.hpp"
+#include "tensor/tensor.hpp"
+#include "tensor/indexing.hpp"
 
 namespace qtnh {
   Tensor::Tensor(const QTNHEnv& env) 
