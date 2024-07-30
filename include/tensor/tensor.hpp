@@ -156,16 +156,16 @@ namespace qtnh {
       /// @param env Environment to use for construction. 
       /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
-      Tensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims);
+      Tensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims);
       /// @brief Construct empty tensor with given local and distributed dimensions within environment with given distribution parameters. 
       /// @param env Environment to use for construction. 
       /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
       /// @param params Distribution parameters of the tensor (str, cyc, off)
-      Tensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, BcParams params);
+      Tensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, BcParams params);
 
-      qtnh::tidx_tup loc_dims_;  ///< Local index dimensions. 
       qtnh::tidx_tup dis_dims_;  ///< Distributed index dimensions. 
+      qtnh::tidx_tup loc_dims_;  ///< Local index dimensions. 
 
       Broadcaster bc_;  ///< Tensor distributor. 
 

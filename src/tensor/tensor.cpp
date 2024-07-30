@@ -8,11 +8,11 @@ namespace qtnh {
   Tensor::Tensor(const QTNHEnv& env) 
     : Tensor(env, qtnh::tidx_tup(), qtnh::tidx_tup()) {}
 
-  Tensor::Tensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims)
-    : Tensor(env, loc_dims, dis_dims, BcParams { 1, 1, 0 }) {}
+  Tensor::Tensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims)
+    : Tensor(env, dis_dims, loc_dims, BcParams { 1, 1, 0 }) {}
 
-  Tensor::Tensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, BcParams params)
-    : loc_dims_(loc_dims), dis_dims_(dis_dims), bc_(env, utils::dims_to_size(dis_dims), params) {}
+  Tensor::Tensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, BcParams params)
+    : dis_dims_(dis_dims), loc_dims_(loc_dims), bc_(env, utils::dims_to_size(dis_dims), params) {}
 
   bool Tensor::has(qtnh::tidx_tup tot_idxs) const {
     if (!bc_.active) return false;

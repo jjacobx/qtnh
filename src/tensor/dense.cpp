@@ -4,11 +4,11 @@
 #include "tensor/indexing.hpp"
 
 namespace qtnh {
-  DenseTensorBase::DenseTensorBase(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims)
-    : Tensor(env, loc_dims, dis_dims) {}
+  DenseTensorBase::DenseTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims)
+    : Tensor(env, dis_dims, loc_dims) {}
 
-  DenseTensorBase::DenseTensorBase(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, BcParams params)
-    : Tensor(env, loc_dims, dis_dims, params) {}
+  DenseTensorBase::DenseTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, BcParams params)
+    : Tensor(env, dis_dims, loc_dims, params) {}
 
   DenseTensor* DenseTensorBase::toDense() {
     std::vector<qtnh::tel> els;
@@ -27,7 +27,7 @@ namespace qtnh {
     }
 
     // ? Is it better to use local members or accessors? 
-    return new DenseTensor(bc_.env, loc_dims_, dis_dims_, std::move(els), BcParams { bc_.str, bc_.cyc, bc_.off });
+    return new DenseTensor(bc_.env, dis_dims_, loc_dims_, std::move(els), BcParams { bc_.str, bc_.cyc, bc_.off });
   }
 
   Tensor* DenseTensorBase::swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) {
@@ -46,11 +46,11 @@ namespace qtnh {
     return this->toDense()->permute(ptup);
   }
 
-  DenseTensor::DenseTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, std::vector<qtnh::tel>&& els)
-    : DenseTensorBase(env, loc_dims, dis_dims), TIDense(std::move(els)) {}
+  DenseTensor::DenseTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, std::vector<qtnh::tel>&& els)
+    : DenseTensorBase(env, dis_dims, loc_dims), TIDense(std::move(els)) {}
 
-  DenseTensor::DenseTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, std::vector<qtnh::tel>&& els, BcParams params)
-    : DenseTensorBase(env, loc_dims, dis_dims, params), TIDense(std::move(els)) {}
+  DenseTensor::DenseTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, std::vector<qtnh::tel>&& els, BcParams params)
+    : DenseTensorBase(env, dis_dims, loc_dims, params), TIDense(std::move(els)) {}
 
   qtnh::tel DenseTensor::operator[](qtnh::tidx_tup loc_idxs) const {
     auto i = utils::idxs_to_i(loc_idxs, loc_dims_);

@@ -58,14 +58,14 @@ namespace qtnh {
       /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
       /// @param n_dis_in_dims Number of distributed input dimensions
-      SymmTensorBase(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims);
+      SymmTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims);
       /// @brief Construct empty tensor with given local and distributed dimensions within environment with given distribution parameters. 
       /// @param env Environment to use for construction. 
       /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
       /// @param n_dis_in_dims Number of distributed input dimensions
       /// @param params Distribution parameters of the tensor (str, cyc, off)
-      SymmTensorBase(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, BcParams params);
+      SymmTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims, BcParams params);
 
       /// @brief Convert any derived tensor to writable symmetric tensor
       /// @return Pointer to an equivalent writable symmetric tensor. 
@@ -110,7 +110,7 @@ namespace qtnh {
       /// @param dis_dims Distributed index dimensions. 
       /// @param n_dis_in_dims Number of distributed input dimensions
       /// @param els Complex vector of local elements. 
-      SymmTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, std::vector<qtnh::tel>&& els);
+      SymmTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims, std::vector<qtnh::tel>&& els);
       /// @brief Construct empty tensor with given local and distributed dimensions within environment with given distribution parameters. 
       /// @param env Environment to use for construction. 
       /// @param loc_dims Local index dimensions. 
@@ -118,7 +118,7 @@ namespace qtnh {
       /// @param n_dis_in_dims Number of distributed input dimensions
       /// @param els Complex vector of local elements. 
       /// @param params Distribution parameters of the tensor (str, cyc, off)
-      SymmTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, std::vector<qtnh::tel>&& els, BcParams params);
+      SymmTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims, std::vector<qtnh::tel>&& els, BcParams params);
 
       virtual TT type() const noexcept override { return TT::symmTensor; }
 

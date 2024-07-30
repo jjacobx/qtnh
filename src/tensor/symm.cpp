@@ -2,11 +2,11 @@
 #include "tensor/indexing.hpp"
 
 namespace qtnh {
-  SymmTensorBase::SymmTensorBase(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims) 
-    : DenseTensorBase(env, loc_dims, dis_dims), n_dis_in_dims_(n_dis_in_dims) {}
+  SymmTensorBase::SymmTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims) 
+    : DenseTensorBase(env, dis_dims, loc_dims), n_dis_in_dims_(n_dis_in_dims) {}
 
-  SymmTensorBase::SymmTensorBase(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, BcParams params) 
-    : DenseTensorBase(env, loc_dims, dis_dims, params), n_dis_in_dims_(n_dis_in_dims) {}
+  SymmTensorBase::SymmTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims, BcParams params) 
+    : DenseTensorBase(env, dis_dims, loc_dims, params), n_dis_in_dims_(n_dis_in_dims) {}
 
   SymmTensor* SymmTensorBase::toSymm() {
     std::vector<qtnh::tel> els;
@@ -24,7 +24,7 @@ namespace qtnh {
       els.push_back(this->at(curr_idxs));
     }
 
-    return new SymmTensor(bc_.env, loc_dims_, dis_dims_, n_dis_in_dims_, std::move(els), BcParams { bc_.str, bc_.cyc, bc_.off });
+    return new SymmTensor(bc_.env, dis_dims_, loc_dims_, n_dis_in_dims_, std::move(els), BcParams { bc_.str, bc_.cyc, bc_.off });
   }
 
 
@@ -44,11 +44,11 @@ namespace qtnh {
     return this->toSymm()->permute(ptup, io);
   }
 
-  SymmTensor::SymmTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, std::vector<qtnh::tel>&& els) 
-    : SymmTensorBase(env, loc_dims, dis_dims, n_dis_in_dims), TIDense(std::move(els)) {}
+  SymmTensor::SymmTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims, std::vector<qtnh::tel>&& els) 
+    : SymmTensorBase(env, dis_dims, loc_dims, n_dis_in_dims), TIDense(std::move(els)) {}
 
-  SymmTensor::SymmTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, std::vector<qtnh::tel>&& els, BcParams params) 
-    : SymmTensorBase(env, loc_dims, dis_dims, n_dis_in_dims, params), TIDense(std::move(els)) {}
+  SymmTensor::SymmTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims, std::vector<qtnh::tel>&& els, BcParams params) 
+    : SymmTensorBase(env, dis_dims, loc_dims, n_dis_in_dims, params), TIDense(std::move(els)) {}
 
 
   qtnh::tel SymmTensor::operator[](qtnh::tidx_tup loc_idxs) const {
