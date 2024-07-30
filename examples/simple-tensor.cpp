@@ -17,7 +17,7 @@ int main() {
     t1_els = { 5.0 - 5.0i, 6.0 - 6.0i, 7.0 - 7.0i, 8.0 - 8.0i, 1.0 - 1.0i, 2.0 - 2.0i, 3.0 - 3.0i, 4.0 - 4.0i };
   }
 
-  std::unique_ptr<Tensor> t1u = std::make_unique<DenseTensor>(env, t1_loc_dims, t1_dis_dims, std::move(t1_els));
+  tptr t1u = tnew<DenseTensor>(env, t1_loc_dims, t1_dis_dims, std::move(t1_els));
   std::cout << env.proc_id << " | T1 = " << *t1u << std::endl;
 
   MPI_Barrier(MPI_COMM_WORLD);
@@ -48,7 +48,7 @@ int main() {
 
   qtnh::tidx_tup t2_dis_dims = { }, t2_loc_dims = { 2, 2 };
   std::vector<qtnh::tel> t2_els = { 1.0, 0.0, 0.0, -1.0 };
-  std::unique_ptr<Tensor> t2u = std::make_unique<DenseTensor>(env, t2_loc_dims, t2_dis_dims, std::move(t2_els));
+  qtnh::tptr t2u = std::make_unique<DenseTensor>(env, t2_loc_dims, t2_dis_dims, std::move(t2_els));
   std::cout << env.proc_id << " | T2 = " << *t2u << std::endl;
 
   MPI_Barrier(MPI_COMM_WORLD);
@@ -64,6 +64,19 @@ int main() {
   MPI_Barrier(MPI_COMM_WORLD);
   t3u = Tensor::rebcast(std::move(t3u), { 1, 1, 4 });
   std::cout << env.proc_id << " | T3 (re-bcast 1) = " << *t3u << std::endl;
+
+  qtnh::tidx_tup t4_dis_dims = { 2 }, t4_loc_dims = { 2, 3 };
+  std::vector<qtnh::tel> t4_els;
+  if (env.proc_id == 0) {
+    t4_els = { 0.0, 1.0, 2.0, 3.0, 4.0, 5.0 };
+  } else {
+    t4_els = { 6.0, 7.0, 8.0, 9.0, 10.0, 11.0 };
+  }
+
+  qtnh::tptr t4u = std::make_unique<DenseTensor>(env, t4_loc_dims, t4_dis_dims, std::move(t4_els));
+  std::cout << env.proc_id << " | T4 = " << *t4u << std::endl;
+  t4u = Tensor::rebcast(std::move(t4u), { 1, 1, 1 });
+
 
   // qtnh::tidx_tup t1_dims = { 2, 2, 2 };
   // qtnh::tidx_tup t2_dims = { 4, 2 };
