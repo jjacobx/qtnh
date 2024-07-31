@@ -17,7 +17,7 @@ int main() {
     t1_els = { 5.0 - 5.0i, 6.0 - 6.0i, 7.0 - 7.0i, 8.0 - 8.0i, 1.0 - 1.0i, 2.0 - 2.0i, 3.0 - 3.0i, 4.0 - 4.0i };
   }
 
-  tptr t1u = tnew<DenseTensor>(env, t1_dis_dims, t1_loc_dims, std::move(t1_els));
+  tptr t1u = DenseTensor::make(env, t1_dis_dims, t1_loc_dims, std::move(t1_els));
   std::cout << env.proc_id << " | T1 = " << *t1u << std::endl;
 
   MPI_Barrier(MPI_COMM_WORLD);
@@ -43,12 +43,13 @@ int main() {
   MPI_Barrier(MPI_COMM_WORLD);
   t1u = Tensor::permute(std::move(t1u), { 1, 0, 2, 3 });
   std::cout << env.proc_id << " | T1 (permute 2) = " << *t1u << std::endl;
-  auto t1u2 = static_cast<DenseTensor*>(t1u.get())->duplicate();
+  auto t1u1 = t1u->cast<DenseTensor>()->copy();
+  auto t1u2 = Tensor::cast<DenseTensor>(std::move(t1u1));
 
 
   qtnh::tidx_tup t2_dis_dims = { }, t2_loc_dims = { 2, 2 };
   std::vector<qtnh::tel> t2_els = { 1.0, 0.0, 0.0, -1.0 };
-  qtnh::tptr t2u = std::make_unique<DenseTensor>(env, t2_dis_dims, t2_loc_dims, std::move(t2_els));
+  qtnh::tptr t2u = DenseTensor::make(env, t2_dis_dims, t2_loc_dims, std::move(t2_els));
   std::cout << env.proc_id << " | T2 = " << *t2u << std::endl;
 
   MPI_Barrier(MPI_COMM_WORLD);
@@ -56,7 +57,7 @@ int main() {
   std::cout << env.proc_id << " | T3 (contract 1) = " << *t3u << std::endl;
 
   MPI_Barrier(MPI_COMM_WORLD);
-  t1u = t1u2->duplicate();
+  t1u = t1u2->copy();
   t2u = std::move(t3u);
   t3u = Tensor::contract(std::move(t1u), std::move(t2u), {{ 1, 1 }, { 2, 2 }});
   std::cout << env.proc_id << " | T3 (contract 2) = " << *t3u << std::endl;
@@ -73,7 +74,7 @@ int main() {
     t4_els = { 6.0, 7.0, 8.0, 9.0, 10.0, 11.0 };
   }
 
-  qtnh::tptr t4u = std::make_unique<DenseTensor>(env, t4_dis_dims, t4_loc_dims, std::move(t4_els));
+  qtnh::tptr t4u = DenseTensor::make(env, t4_dis_dims, t4_loc_dims, std::move(t4_els));
   std::cout << env.proc_id << " | T4 = " << *t4u << std::endl;
   t4u = Tensor::rebcast(std::move(t4u), { 1, 1, 1 });
 

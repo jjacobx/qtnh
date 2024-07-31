@@ -44,13 +44,13 @@ namespace qtnh {
     protected:
       /// @brief Construct empty tensor with given local and distributed dimensions within environment with default distribution parameters. 
       /// @param env Environment to use for construction. 
-      /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
+      /// @param loc_dims Local index dimensions. 
       DenseTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims);
       /// @brief Construct empty tensor with given local and distributed dimensions within environment with given distribution parameters. 
       /// @param env Environment to use for construction. 
-      /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
+      /// @param loc_dims Local index dimensions. 
       /// @param params Distribution parameters of the tensor (str, cyc, off)
       DenseTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, BcParams params);
 
@@ -89,17 +89,27 @@ namespace qtnh {
 
       /// @brief Construct empty tensor with given local and distributed dimensions within environment with default distribution parameters. 
       /// @param env Environment to use for construction. 
-      /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
+      /// @param loc_dims Local index dimensions. 
       /// @param els Complex vector of local elements. 
-      DenseTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, std::vector<qtnh::tel>&& els);
+      static std::unique_ptr<DenseTensor> make(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, std::vector<qtnh::tel>&& els) {
+        return std::unique_ptr<DenseTensor>(new DenseTensor(env, dis_dims, loc_dims, std::move(els)));
+      }
       /// @brief Construct empty tensor with given local and distributed dimensions within environment with given distribution parameters. 
       /// @param env Environment to use for construction. 
-      /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
+      /// @param loc_dims Local index dimensions. 
       /// @param els Complex vector of local elements. 
       /// @param params Distribution parameters of the tensor (str, cyc, off)
-      DenseTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, std::vector<qtnh::tel>&& els, BcParams params);
+      static std::unique_ptr<DenseTensor> make(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, std::vector<qtnh::tel>&& els, BcParams params) {
+        return std::unique_ptr<DenseTensor>(new DenseTensor(env, dis_dims, loc_dims, std::move(els), params));
+      }
+
+      /// @brief Duplicate dense tensor. 
+      /// @return Unique pointer to duplicated dense tensor. 
+      /// 
+      /// Overuse may cause memory shortage. 
+      std::unique_ptr<DenseTensor> copy();
 
       virtual TT type() const noexcept override { return TT::denseTensor; }
 
@@ -112,7 +122,7 @@ namespace qtnh {
       /// on current rank. On all active ranks, it must return an element, but different ranks  
       /// might have different values. 
       virtual qtnh::tel operator[](qtnh::tidx_tup loc_idxs) const override;
-      /// @brief Set element on given local indices. 
+      /// @brief Set element on given local indices. class... U
       /// @param idxs Tensor index tuple indicating local position to be updated. 
       /// @deprecated Will be superseded by direct addressing of array elements with numeric indices. 
       ///
@@ -158,16 +168,22 @@ namespace qtnh {
       /// The index update will do nothing on ranks that do not contain the element on given indices. 
       void put(qtnh::tidx_tup tot_idxs, qtnh::tel el);
 
-      /// @brief Duplicate dense tensor. 
-      /// @return Unique pointer to duplicated dense tensor. 
-      /// 
-      /// Overuse may cause memory shortage. 
-      std::unique_ptr<DenseTensor> duplicate() {
-        auto els = loc_els_;
-        return std::make_unique<DenseTensor>(bc_.env, dis_dims_, loc_dims_, std::move(els), BcParams { bc_.str, bc_.cyc, bc_.off });
-      }
     
     protected:
+      /// @brief Construct empty tensor with given local and distributed dimensions within environment with default distribution parameters. 
+      /// @param env Environment to use for construction. 
+      /// @param dis_dims Distributed index dimensions. 
+      /// @param loc_dims Local index dimensions. 
+      /// @param els Complex vector of local elements. 
+      DenseTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, std::vector<qtnh::tel>&& els);
+      /// @brief Construct empty tensor with given local and distributed dimensions within environment with given distribution parameters. 
+      /// @param env Environment to use for construction. 
+      /// @param dis_dims Distributed index dimensions. 
+      /// @param loc_dims Local index dimensions. 
+      /// @param els Complex vector of local elements. 
+      /// @param params Distribution parameters of the tensor (str, cyc, off)
+      DenseTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, std::vector<qtnh::tel>&& els, BcParams params);
+
       /// @brief Convert any derived tensor to writable dense tensor. 
       /// @return Pointer to equivalent writable dense tensor. 
       virtual DenseTensor* toDense() noexcept override { return this; }

@@ -149,7 +149,7 @@ namespace qtnh {
     auto [new_dis_dims, virtual_dims] = utils::split_dims(t3.disDims(), t3.disDims().size() - ndis_cons);
     BcParams new_params(utils::dims_to_size(virtual_dims), 1, align_off);
 
-    return std::make_unique<DenseTensor>(t3.bc().env, new_dis_dims, t3.locDims(), std::move(t3.loc_els_), new_params);
+    return DenseTensor::make(t3.bc().env, new_dis_dims, t3.locDims(), std::move(t3.loc_els_), new_params);
   }
 
   // TODO: Implement this in a separate file using enums

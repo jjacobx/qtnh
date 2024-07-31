@@ -4,6 +4,12 @@
 #include "tensor/indexing.hpp"
 
 namespace qtnh {
+  std::unique_ptr<DenseTensor> DenseTensor::copy() {
+    auto els = loc_els_;
+    auto tp = new DenseTensor(bc_.env, dis_dims_, loc_dims_, std::move(els), { bc_.str, bc_.cyc, bc_.off });
+    return std::unique_ptr<DenseTensor>(tp);
+  }
+
   DenseTensorBase::DenseTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims)
     : Tensor(env, dis_dims, loc_dims) {}
 
