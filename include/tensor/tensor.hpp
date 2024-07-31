@@ -15,6 +15,16 @@ namespace qtnh {
       Tensor(const Tensor&) = delete;
       virtual ~Tensor() = default;
 
+      template<class T>
+      T* cast() {
+        return dynamic_cast<T*>(this);
+      }
+
+      template<class T>
+      static std::unique_ptr<T> cast(std::unique_ptr<Tensor> tp) {
+        return std::unique_ptr<T>(dynamic_cast<T*>(tp.release()));
+      }
+
       /// @brief Tensor broadcaster class responsible for handling how tensor is shared in distributed memory. 
       struct Broadcaster {
         const QTNHEnv& env;   ///< Environment to use MPI/OpenMP in. 
@@ -190,16 +200,6 @@ namespace qtnh {
   };
 
   typedef std::unique_ptr<Tensor> tptr;
-
-  template<class T, class... U>
-  std::unique_ptr<T> tnew(U&&... us) {
-    return std::make_unique<T>(std::forward<U>(us)...);
-  }
-
-  template<class T>
-  std::unique_ptr<T> tcast(tptr tp) {
-    return std::unique_ptr<T>(static_cast<T*>(tp.release()));
-  }
 
   namespace ops {
     /// Print tensor elements via std::cout. 
