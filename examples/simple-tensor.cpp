@@ -43,8 +43,10 @@ int main() {
   MPI_Barrier(MPI_COMM_WORLD);
   t1u = Tensor::permute(std::move(t1u), { 1, 0, 2, 3 });
   std::cout << env.proc_id << " | T1 (permute 2) = " << *t1u << std::endl;
-  auto t1u1 = t1u->cast<DenseTensor>()->copy();
+  auto t1u1 = t1u->copy();
   auto t1u2 = Tensor::cast<DenseTensor>(std::move(t1u1));
+  auto t1u3 = t1u->copy();
+  auto t1u4 = DenseTensorBase::toDense(Tensor::cast<DenseTensor>(std::move(t1u3)));
 
 
   qtnh::tidx_tup t2_dis_dims = { }, t2_loc_dims = { 2, 2 };

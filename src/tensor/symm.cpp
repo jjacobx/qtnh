@@ -44,6 +44,12 @@ namespace qtnh {
     return this->toSymm()->permute(ptup, io);
   }
 
+  std::unique_ptr<Tensor> SymmTensor::copy() const noexcept {
+    auto els = loc_els_;
+    auto tp = new SymmTensor(bc_.env, dis_dims_, loc_dims_, n_dis_in_dims_, std::move(els), { bc_.str, bc_.cyc, bc_.off });
+    return std::unique_ptr<SymmTensor>(tp);
+  }
+
   SymmTensor::SymmTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims, std::vector<qtnh::tel>&& els) 
     : SymmTensorBase(env, dis_dims, loc_dims, n_dis_in_dims), TIDense(std::move(els)) {}
 
@@ -218,6 +224,12 @@ namespace qtnh {
     bc_ = std::move(new_bc);
 
     return this;
+  }
+
+  std::unique_ptr<Tensor> SwapTensor::copy() const noexcept {
+    auto n = dis_dims_.size() > 0 ? dis_dims_.at(0) : loc_dims_.at(0);
+    auto tp = new SwapTensor(bc_.env, n, n_dis_in_dims_, { bc_.str, bc_.cyc, bc_.off });
+    return std::unique_ptr<SwapTensor>(tp);
   }
 
   SwapTensor::SwapTensor(const QTNHEnv& env, std::size_t n, std::size_t d)

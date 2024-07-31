@@ -76,6 +76,12 @@ namespace qtnh {
       DiagTensor(const DiagTensor&) = delete;
       ~DiagTensor() = default;
 
+      /// @brief Duplicate tensor. 
+      /// @return Unique pointer to duplicated tensor. 
+      /// 
+      /// Overuse may cause memory shortage. 
+      virtual std::unique_ptr<Tensor> copy() const noexcept override;
+
       /// @brief Construct empty tensor with given local and distributed dimensions within environment with default distribution parameters. 
       /// @param env Environment to use for construction. 
       /// @param loc_dims Local index dimensions. 
@@ -182,6 +188,12 @@ namespace qtnh {
       IdenTensor() = delete;
       IdenTensor(const IdenTensor&) = delete;
       ~IdenTensor() = default;
+
+      /// @brief Duplicate tensor. 
+      /// @return Unique pointer to duplicated tensor. 
+      /// 
+      /// Overuse may cause memory shortage. 
+      virtual std::unique_ptr<Tensor> copy() const noexcept override;
 
       /// @brief Construct empty tensor with given local and distributed dimensions within environment with default distribution parameters. 
       /// @param env Environment to use for construction. 

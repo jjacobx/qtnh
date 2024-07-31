@@ -4,7 +4,7 @@
 #include "tensor/indexing.hpp"
 
 namespace qtnh {
-  std::unique_ptr<DenseTensor> DenseTensor::copy() {
+  std::unique_ptr<Tensor> DenseTensor::copy() const noexcept {
     auto els = loc_els_;
     auto tp = new DenseTensor(bc_.env, dis_dims_, loc_dims_, std::move(els), { bc_.str, bc_.cyc, bc_.off });
     return std::unique_ptr<DenseTensor>(tp);

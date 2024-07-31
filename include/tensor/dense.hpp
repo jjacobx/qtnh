@@ -109,7 +109,7 @@ namespace qtnh {
       /// @return Unique pointer to duplicated dense tensor. 
       /// 
       /// Overuse may cause memory shortage. 
-      std::unique_ptr<DenseTensor> copy();
+      virtual std::unique_ptr<Tensor> copy() const noexcept override;
 
       virtual TT type() const noexcept override { return TT::denseTensor; }
 

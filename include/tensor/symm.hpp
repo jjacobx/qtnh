@@ -104,6 +104,12 @@ namespace qtnh {
       SymmTensor(const SymmTensor&) = delete;
       ~SymmTensor() = default;
 
+      /// @brief Duplicate tensor. 
+      /// @return Unique pointer to duplicated tensor. 
+      /// 
+      /// Overuse may cause memory shortage. 
+      virtual std::unique_ptr<Tensor> copy() const noexcept override;
+
       /// @brief Construct empty tensor with given local and distributed dimensions within environment with default distribution parameters. 
       /// @param env Environment to use for construction. 
       /// @param loc_dims Local index dimensions. 
@@ -210,6 +216,12 @@ namespace qtnh {
       SwapTensor() = delete;
       SwapTensor(const SymmTensor&) = delete;
       ~SwapTensor() = default;
+
+      /// @brief Duplicate tensor. 
+      /// @return Unique pointer to duplicated tensor. 
+      /// 
+      /// Overuse may cause memory shortage. 
+      virtual std::unique_ptr<Tensor> copy() const noexcept override;
 
       /// @brief Construct rank 4 swap tensor with given single index size within environment with default distribution parameters. 
       /// @param env Environment to use for construction. 

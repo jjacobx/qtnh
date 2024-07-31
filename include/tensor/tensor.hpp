@@ -25,6 +25,12 @@ namespace qtnh {
         return std::unique_ptr<T>(dynamic_cast<T*>(tp.release()));
       }
 
+      /// @brief Duplicate dense tensor. 
+      /// @return Unique pointer to duplicated dense tensor. 
+      /// 
+      /// Overuse may cause memory shortage. 
+      virtual std::unique_ptr<Tensor> copy() const noexcept = 0;
+
       /// @brief Tensor broadcaster class responsible for handling how tensor is shared in distributed memory. 
       struct Broadcaster {
         const QTNHEnv& env;   ///< Environment to use MPI/OpenMP in. 
@@ -112,13 +118,6 @@ namespace qtnh {
       /// This method doesn't require checking if the value is present or if the tensor is active. 
       /// Because of the broadcast, it is inefficient to use it too often. 
       virtual qtnh::tel fetch(qtnh::tidx_tup tot_idxs) const;
-
-      /// @brief Duplicate dense tensor. 
-      /// @return Unique pointer to duplicated dense tensor. 
-      /// 
-      /// Overuse may cause memory shortage. 
-      // virtual std::unique_ptr<Tensor> duplicate() const;
-
 
       /// @brief Contract two tensors via given wires. 
       /// @param t1u Unique pointer to first tensor to contract. 
