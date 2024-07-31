@@ -32,12 +32,11 @@ namespace qtnh {
       virtual ~DenseTensorBase() = default;
 
       virtual TT type() const noexcept override { return TT::denseTensorBase; }
-      virtual bool isDense() const noexcept override { return true; }
 
-      /// @brief Convert any derived tensor to writable dense tensor
+      /// @brief Convert any derived tensor to writable dense tensor. 
       /// @param tu Unique pointer to derived dense tensor to convert. 
       /// @return Unique pointer to an equivalent writable dense tensor. 
-      static std::unique_ptr<DenseTensor> toDense(std::unique_ptr<DenseTensorBase> tu) {
+      static std::unique_ptr<Tensor> toDense(std::unique_ptr<DenseTensorBase> tu) {
         return utils::one_unique(std::move(tu), tu->toDense());
       }
     
@@ -54,9 +53,11 @@ namespace qtnh {
       /// @param params Distribution parameters of the tensor (str, cyc, off)
       DenseTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, BcParams params);
 
+      virtual bool isDense() const noexcept override { return true; }
+
       /// @brief Convert any derived tensor to writable dense tensor. 
       /// @return Pointer to equivalent writable dense tensor. 
-      virtual DenseTensor* toDense();
+      virtual DenseTensorBase* toDense() noexcept override;
 
       /// @brief Swap indices on current tensor. 
       /// @param idx1 First index to swap. 
@@ -186,7 +187,7 @@ namespace qtnh {
 
       /// @brief Convert any derived tensor to writable dense tensor. 
       /// @return Pointer to equivalent writable dense tensor. 
-      virtual DenseTensor* toDense() noexcept override { return this; }
+      virtual DenseTensorBase* toDense() noexcept override { return this; }
       /// @brief Swap indices on current tensor. 
       /// @param idx1 First index to swap. 
       /// @param idx2 Second index to swap. 

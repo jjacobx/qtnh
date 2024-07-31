@@ -8,7 +8,7 @@ namespace qtnh {
   DiagTensorBase::DiagTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated, BcParams params)
     : SymmTensorBase(env, dis_dims, loc_dims, n_dis_in_dims, params), truncated_(truncated) {}
 
-  DiagTensor* DiagTensorBase::toDiag() {
+  DiagTensorBase* DiagTensorBase::toDiag() noexcept {
     std::vector<qtnh::tel> els;
     els.reserve(utils::dims_to_size(locOutDims()));
 

@@ -17,7 +17,6 @@ namespace qtnh {
       virtual ~SymmTensorBase() = default;
 
       virtual TT type() const noexcept override { return TT::symmTensorBase; }
-      virtual bool isSymm() const noexcept override { return true; }
 
       /// Get distributed input dimensions. 
       qtnh::tidx_tup disInDims() const {
@@ -48,7 +47,7 @@ namespace qtnh {
       /// @brief Convert any derived tensor to writable symmetric tensor
       /// @param tu Unique pointer to derived symmetric tensor to convert. 
       /// @return Unique pointer to an equivalent writable symmetric tensor. 
-      static std::unique_ptr<SymmTensor> toSymm(std::unique_ptr<SymmTensorBase> tu) {
+      static std::unique_ptr<Tensor> toSymm(std::unique_ptr<SymmTensorBase> tu) {
         return utils::one_unique(std::move(tu), tu->toSymm());
       }
 
@@ -67,9 +66,11 @@ namespace qtnh {
       /// @param params Distribution parameters of the tensor (str, cyc, off)
       SymmTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims, BcParams params);
 
+      virtual bool isSymm() const noexcept override { return true; }
+
       /// @brief Convert any derived tensor to writable symmetric tensor
       /// @return Pointer to an equivalent writable symmetric tensor. 
-      virtual SymmTensor* toSymm();
+      virtual SymmTensorBase* toSymm() noexcept override;
 
       /// @brief Swap input/output indices on current tensor. 
       /// @param idx1 First index to swap. 
@@ -186,7 +187,7 @@ namespace qtnh {
     protected:
       /// @brief Convert any derived tensor to symmetric tensor
       /// @return Symmetric tensor equivalent to calling tensor
-      virtual SymmTensor* toSymm() noexcept override { return this; }
+      virtual SymmTensorBase* toSymm() noexcept override { return this; }
 
       /// @brief Swap input/output indices on current tensor. 
       /// @param idx1 First index to swap. 

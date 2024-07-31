@@ -16,7 +16,7 @@ namespace qtnh {
   DenseTensorBase::DenseTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, BcParams params)
     : Tensor(env, dis_dims, loc_dims, params) {}
 
-  DenseTensor* DenseTensorBase::toDense() {
+  DenseTensorBase* DenseTensorBase::toDense() noexcept {
     std::vector<qtnh::tel> els;
     els.reserve(locSize());
     

@@ -8,6 +8,13 @@
 #include "core/utils.hpp"
 
 namespace qtnh {
+  class Tensor;
+  typedef std::unique_ptr<Tensor> tptr;
+
+  class DenseTensor;
+  class SymmTensor;
+  class DiagTensor;
+
   /// General virtual tensor class
   class Tensor {
     public:
@@ -60,9 +67,13 @@ namespace qtnh {
 
       // This can be made constexpr in C++ 20
       virtual TT type() const noexcept { return TT::tensor; }
-      virtual bool isDense() const noexcept { return false; }
-      virtual bool isSymm() const noexcept { return false; }
-      virtual bool isDiag() const noexcept { return false; }
+
+      template<class T> bool canConvert() { return false; }
+      template<class T> static tptr convert(tptr) { return tptr(nullptr); }
+
+      // static tptr toDense(tptr tp) { return tptr(tp->toDense()); }
+      // static tptr toSymm(tptr tp) { return tptr(tp->toSymm()); }
+      // static tptr toDiag(tptr tp) { return tptr(tp->toDiag()); }
       
       qtnh::tidx_tup locDims() const noexcept { return loc_dims_; }
       qtnh::tidx_tup disDims() const noexcept { return dis_dims_; }
@@ -101,7 +112,7 @@ namespace qtnh {
       /// might have different values. 
       virtual qtnh::tel operator[](qtnh::tidx_tup loc_idxs) const = 0;
 
-      /// @brief Access element at total indices if present. 
+      /// @brief Access element at total indices if pr      virtual bool isSymm() const noexcept override { return true; }esent. 
       /// @param tot_idxs Indices with total position of the element. 
       /// @return Value of the element at given indices. Throws error if value is not present. 
       ///
@@ -121,7 +132,7 @@ namespace qtnh {
 
       /// @brief Contract two tensors via given wires. 
       /// @param t1u Unique pointer to first tensor to contract. 
-      /// @param t2u Unique pointer to second tensor to contract. 
+      /// @param t2u Unique pointer to second tensor      virtual bool isSymm() const noexcept override { return true; } to contract. 
       /// @param ws A vector of wires which indicate which pairs of indices to sum over. 
       /// @return Contracted tensor unique pointer. 
       static std::unique_ptr<Tensor> contract(std::unique_ptr<Tensor> t1u, std::unique_ptr<Tensor> t2u, const std::vector<qtnh::wire>& ws);
@@ -178,6 +189,14 @@ namespace qtnh {
 
       Broadcaster bc_;  ///< Tensor distributor. 
 
+      virtual Tensor* toDense() noexcept { return nullptr; }
+      virtual Tensor* toSymm() noexcept { return nullptr; }
+      virtual Tensor* toDiag() noexcept { return nullptr; }
+
+      virtual bool isDense() const noexcept { return false; }
+      virtual bool isSymm() const noexcept { return false; }
+      virtual bool isDiag() const noexcept { return false; }
+
       // ! The following methods only work if DenseTensor overrides all of them
       /// @brief Swap indices on current tensor. 
       /// @param idx1 First index to swap. 
@@ -197,8 +216,6 @@ namespace qtnh {
       /// @return Pointer to permuted tensor, which might be of a different derived type. 
       virtual Tensor* permute(std::vector<qtnh::tidx_tup_st> ptup) = 0;
   };
-
-  typedef std::unique_ptr<Tensor> tptr;
 
   namespace ops {
     /// Print tensor elements via std::cout. 

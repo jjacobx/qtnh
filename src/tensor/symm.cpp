@@ -8,7 +8,7 @@ namespace qtnh {
   SymmTensorBase::SymmTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims, BcParams params) 
     : DenseTensorBase(env, dis_dims, loc_dims, params), n_dis_in_dims_(n_dis_in_dims) {}
 
-  SymmTensor* SymmTensorBase::toSymm() {
+  SymmTensorBase* SymmTensorBase::toSymm() noexcept {
     std::vector<qtnh::tel> els;
     els.reserve(locSize());
 

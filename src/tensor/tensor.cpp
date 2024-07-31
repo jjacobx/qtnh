@@ -14,6 +14,14 @@ namespace qtnh {
   Tensor::Tensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, BcParams params)
     : dis_dims_(dis_dims), loc_dims_(loc_dims), bc_(env, utils::dims_to_size(dis_dims), params) {}
 
+  template<> bool Tensor::canConvert<DenseTensor>() { return isDense(); }
+  template<> bool Tensor::canConvert<SymmTensor>() { return isSymm(); }
+  template<> bool Tensor::canConvert<DiagTensor>() { return isDiag(); }
+
+  template<> tptr Tensor::convert<DenseTensor>(tptr tp) { return utils::one_unique(std::move(tp), tp->toDense()); }
+  template<> tptr Tensor::convert<SymmTensor>(tptr tp) { return utils::one_unique(std::move(tp), tp->toSymm()); }
+  template<> tptr Tensor::convert<DiagTensor>(tptr tp) { return utils::one_unique(std::move(tp), tp->toDiag()); }
+
   bool Tensor::has(qtnh::tidx_tup tot_idxs) const {
     if (!bc_.active) return false;
 
