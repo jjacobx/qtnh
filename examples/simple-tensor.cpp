@@ -100,42 +100,36 @@ int main() {
   tid4 = tn.contractBond(bid1);
   std::cout << env.proc_id << " | TN(4) = " << *tn.tensor(tid4) << "\n";
 
+  // ! This sometimes causes deadlock? 
   tp4 = tn.extract(tid4);
   tp4 = Tensor::permute(std::move(tp4), { 2, 1, 0 });
-  std::cout << env.proc_id << " | T4 (swap) = " << *tp4 << "\n";
+  std::cout << env.proc_id << " | T4 (permute) = " << *tp4 << "\n";
 
-  // qtnh::tidx_tup t5_dims = { 3, 3 };
-  // std::vector<qtnh::tel> t5_els = { 1, 2, 3, 1, 2, 3, 1, 2, 3 };
-  // auto t5u = std::make_unique<SDenseTensor>(env, t5_dims, t5_els);
+  tp5 = DenseTensor::make(env, {}, { 3, 3 }, { 0 ,1, 2, 0, 1, 2, 0, 1, 2 });
+  tp5 = Tensor::rescatter(std::move(tp5), 1);
+  std::cout << env.proc_id << " | T5 (new) = " << *tp5 << "\n";
 
-  // auto t6u = std::unique_ptr<DDenseTensor>(t5u->distribute(1));
-  // std::cout << env.proc_id << " | T6 = " << *t6u << "\n";
+  tp5 = Tensor::permute(std::move(tp5), { 1, 0 });
+  std::cout << env.proc_id << " | T5 (permute) = " << *tp5 << "\n";
 
-  // t6u->swap(0, 1);
-  // std::cout << env.proc_id << " | T6' = " << *t6u << "\n";
+  tptr tp6 = DenseTensor::make(env, {}, { 2, 2, 2, 2 }, { 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7 });
+  tp6 = Tensor::rescatter(std::move(tp6), 2);
+  std::cout << env.proc_id << " | T6 = " << *tp6 << "\n";
 
-  // qtnh::tidx_tup t7_dims = { 2, 2, 2, 2 };
-  // std::vector<qtnh::tel> t7_els = { 1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8 };
-  // auto t7u = std::make_unique<SDenseTensor>(env, t7_dims, t7_els);
+  tp6 = Tensor::permute(std::move(tp6), { 1, 0, 2, 3 });
+  std::cout << env.proc_id << " | T6 (permute) = " << *tp6 << "\n";
 
-  // auto t8u = std::unique_ptr<DDenseTensor>(t7u->distribute(2));
-  // std::cout << env.proc_id << " | T8 = " << *t8u << "\n";
+  tp6 = Tensor::permute(std::move(tp6), { 1, 0, 3, 2 });
+  std::cout << env.proc_id << " | T6 (permute 2) = " << *tp6 << "\n";
 
-  // t8u->swap(0, 1);
-  // std::cout << env.proc_id << " | T8' = " << *t8u << "\n";
+  tp6 = Tensor::permute(std::move(tp6), { 0, 1, 3, 2 });
+  std::cout << env.proc_id << " | T6 (normal) = " << *tp6 << "\n";
 
-  // t8u->swap(1, 0);
-  // t8u->swap(2, 3);
-  // std::cout << env.proc_id << " | T8'' = " << *t8u << "\n";
+  tptr tp7 = std::make_unique<SwapTensor>(env, 2, 0);
+  std::cout << env.proc_id << " | T7 = " << *tp7 << "\n";
 
-  // t8u->swap(3, 2);
-  // std::cout << env.proc_id << " | T8 = " << *t8u << "\n";
-
-  // auto stu = std::make_unique<SwapTensor>(env, 2, 2);
-  // std::cout << env.proc_id << " | SWAP = " << *stu << "\n";
-
-  // auto t9u = Tensor::contract(std::move(t8u), std::move(stu), {{ 2, 0 }, { 3, 1 }});
-  // std::cout << env.proc_id << " | T9 = " << *t9u << "\n";
+  tptr tp8 = Tensor::contract(std::move(tp6), std::move(tp7), {{ 2, 0 }, { 3, 2 }});
+  std::cout << env.proc_id << " | T8 = " << *tp8 << "\n";
   // if (env.proc_id == 0) {
   //   std::cout << "T9.dims = " << t9u->getDims() << "\n";
   // }
