@@ -11,10 +11,6 @@ namespace qtnh {
   class Tensor;
   typedef std::unique_ptr<Tensor> tptr;
 
-  class DenseTensor;
-  class SymmTensor;
-  class DiagTensor;
-
   /// General virtual tensor class
   class Tensor {
     public:
@@ -22,30 +18,14 @@ namespace qtnh {
       Tensor(const Tensor&) = delete;
       virtual ~Tensor() = default;
 
-      template<class T>
-      T* cast() {
-        return dynamic_cast<T*>(this);
-      }
-
-      template<class T>
-      static std::unique_ptr<T> cast(std::unique_ptr<Tensor> tp) {
-        return std::unique_ptr<T>(dynamic_cast<T*>(tp.release()));
-      }
-
-      /// @brief Duplicate dense tensor. 
-      /// @return Unique pointer to duplicated dense tensor. 
-      /// 
-      /// Overuse may cause memory shortage. 
-      virtual std::unique_ptr<Tensor> copy() const noexcept = 0;
-
       /// @brief Tensor broadcaster class responsible for handling how tensor is shared in distributed memory. 
       struct Broadcaster {
         const QTNHEnv& env;   ///< Environment to use MPI/OpenMP in. 
-        qtnh::uint base;  ///< Base distributed size of the tensor. 
+        qtnh::uint base;      ///< Base distributed size of the tensor. 
 
-        qtnh::uint str;   ///< Number of times each local tensor chunk is repeated across contiguous processes. 
-        qtnh::uint cyc;   ///< Number of times the entire tensor structure is repeated. 
-        qtnh::uint off;   ///< Number of empty processes before the tensor begins. 
+        qtnh::uint str;       ///< Number of times each local tensor chunk is repeated across contiguous processes. 
+        qtnh::uint cyc;       ///< Number of times the entire tensor structure is repeated. 
+        qtnh::uint off;       ///< Number of empty processes before the tensor begins. 
 
         bool active;          ///< Flag whether the tensor is stored on calling MPI rank. 
         MPI_Comm group_comm;  ///< Communicator that contains exactly one copy of the tensor. 
@@ -68,12 +48,36 @@ namespace qtnh {
       // This can be made constexpr in C++ 20
       virtual TT type() const noexcept { return TT::tensor; }
 
-      template<class T> bool canConvert() { return false; }
-      template<class T> static tptr convert(tptr) { return tptr(nullptr); }
+      /// @brief Cast to derived tensor class. 
+      /// @tparam T Derived tensor class to cast to. 
+      /// @return Pointer to derived tensor class, nullptr if cast is not possible. 
+      template<class T> T* cast() { return dynamic_cast<T*>(this); }
+      /// @brief Cast and transfer ownership to derived unique pointer. 
+      /// @tparam T Derived tensor class to cast to. 
+      /// @param tp Ownership of tptr to tensor to cast. 
+      /// @return Ownership of cast tensor unique pointer, nullptr if cast is not possible. 
+      /// 
+      /// Use this at your own risk, as the tensor will be destroyed if cast is unsuccessful. 
+      template<class T>
+      static std::unique_ptr<T> cast(qtnh::tptr tp) {
+        return std::unique_ptr<T>(dynamic_cast<T*>(tp.release()));
+      }
 
-      // static tptr toDense(tptr tp) { return tptr(tp->toDense()); }
-      // static tptr toSymm(tptr tp) { return tptr(tp->toSymm()); }
-      // static tptr toDiag(tptr tp) { return tptr(tp->toDiag()); }
+      /// @brief Check if conversion to given tensor class is possible. 
+      /// @tparam T Tensor class to convert to. 
+      /// @return True if conversion is possible, false otherwise. 
+      template<class T>  bool canConvert() { return false; }
+      /// @brief Convert to given tensor class. 
+      /// @tparam T Tensor class to convert to. 
+      /// @param tp Ownership of tptr to tensor to convert. 
+      /// @return Ownership of tptr with converted tensor, nullptr if conversion is not possible. 
+      template<class T>  static tptr convert(tptr tp) { return tptr(nullptr); }
+
+      /// @brief Create a copy of the tensor. 
+      /// @return Tptr to duplicated tensor. 
+      /// 
+      /// Overuse may cause memory shortage. 
+      virtual qtnh::tptr copy() const noexcept = 0;
       
       qtnh::tidx_tup locDims() const noexcept { return loc_dims_; }
       qtnh::tidx_tup disDims() const noexcept { return dis_dims_; }
@@ -135,35 +139,35 @@ namespace qtnh {
       /// @param t2u Unique pointer to second tensor      virtual bool isSymm() const noexcept override { return true; } to contract. 
       /// @param ws A vector of wires which indicate which pairs of indices to sum over. 
       /// @return Contracted tensor unique pointer. 
-      static std::unique_ptr<Tensor> contract(std::unique_ptr<Tensor> t1u, std::unique_ptr<Tensor> t2u, const std::vector<qtnh::wire>& ws);
+      static qtnh::tptr contract(qtnh::tptr t1u, qtnh::tptr t2u, const std::vector<qtnh::wire>& ws);
 
       /// @brief Swap indices on current tensor. 
       /// @param tu Unique pointer to the tensor. 
       /// @param idx1 First index to swap. 
       /// @param idx2 Second index to swap. 
       /// @return Unique to swapped tensor, which might be of a different derived type. 
-      static std::unique_ptr<Tensor> swap(std::unique_ptr<Tensor> tu, qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) {
+      static qtnh::tptr swap(qtnh::tptr tu, qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) {
         return utils::one_unique(std::move(tu), tu->swap(idx1, idx2));
       }
       /// @brief Re-broadcast current tensor. 
       /// @param tu Unique pointer to the tensor. 
       /// @param params Broadcast parameters of the tensor (str, cyc, off)
       /// @return Unique pointer to redistributed tensor, which might be of a different derived type. 
-      static std::unique_ptr<Tensor> rebcast(std::unique_ptr<Tensor> tu, BcParams params) {
+      static qtnh::tptr rebcast(qtnh::tptr tu, BcParams params) {
         return utils::one_unique(std::move(tu), tu->rebcast(params));
       }
       /// @brief Shift the border between shared and distributed dimensions by a given offset. 
       /// @param tu Unique pointer to the tensor. 
       /// @param offset New offset between distributed and local dimensions – negative gathers, while positive scatters. 
       /// @return Pointer to re-scattered tensor, which might be of a different derived type. 
-      static std::unique_ptr<Tensor> rescatter(std::unique_ptr<Tensor> tu, int offset) {
+      static qtnh::tptr rescatter(qtnh::tptr tu, int offset) {
         return utils::one_unique(std::move(tu), tu->rescatter(offset));
       }
       /// @brief Permute tensor indices according to mappings in the permutation tuple. 
       /// @param tu Unique pointer to the tensor. 
       /// @param ptup Permutation tuple of the same size as total dimensions, and each entry unique. 
       /// @return Unique pointer to permuted tensor, which might be of a different derived type. 
-      static std::unique_ptr<Tensor> permute(std::unique_ptr<Tensor> tu, std::vector<qtnh::tidx_tup_st> ptup) {
+      static qtnh::tptr permute(qtnh::tptr tu, std::vector<qtnh::tidx_tup_st> ptup) {
         return utils::one_unique(std::move(tu), tu->permute(ptup));
       }
 

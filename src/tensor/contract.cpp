@@ -7,7 +7,7 @@
 #include "tensor/indexing.hpp"
 
 namespace qtnh {
-  std::unique_ptr<DenseTensor> _contract_dense(std::unique_ptr<Tensor> t1p, std::unique_ptr<Tensor> t2p, std::vector<qtnh::wire> ws) {
+  qtnh::tptr _contract_dense(qtnh::tptr t1p, qtnh::tptr t2p, std::vector<qtnh::wire> ws) {
     auto ndis1 = t1p->disDims().size();
     auto nloc1 = t1p->locDims().size();
     auto ndis2 = t2p->disDims().size();
@@ -153,7 +153,7 @@ namespace qtnh {
   }
 
   // TODO: Implement this in a separate file using enums
-  std::unique_ptr<Tensor> Tensor::contract(std::unique_ptr<Tensor> t1u, std::unique_ptr<Tensor> t2u, const std::vector<qtnh::wire>& ws) {
+  tptr Tensor::contract(tptr t1u, tptr t2u, const std::vector<qtnh::wire>& ws) {
     // Validate contraction dimensions
     for (auto& w : ws) {
       if (t1u->totDims().at(w.first) != t2u->totDims().at(w.second)) {
@@ -164,7 +164,7 @@ namespace qtnh {
       }
     }
 
-    std::unique_ptr<Tensor> result;
+    tptr result;
     result = _contract_dense(std::move(t1u), std::move(t2u), ws);
     
     return result;

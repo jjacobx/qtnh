@@ -32,13 +32,6 @@ namespace qtnh {
       virtual ~DenseTensorBase() = default;
 
       virtual TT type() const noexcept override { return TT::denseTensorBase; }
-
-      /// @brief Convert any derived tensor to writable dense tensor. 
-      /// @param tu Unique pointer to derived dense tensor to convert. 
-      /// @return Unique pointer to an equivalent writable dense tensor. 
-      static std::unique_ptr<Tensor> toDense(std::unique_ptr<DenseTensorBase> tu) {
-        return utils::one_unique(std::move(tu), tu->toDense());
-      }
     
     protected:
       /// @brief Construct empty tensor with given local and distributed dimensions within environment with default distribution parameters. 
@@ -55,8 +48,8 @@ namespace qtnh {
 
       virtual bool isDense() const noexcept override { return true; }
 
-      /// @brief Convert any derived tensor to writable dense tensor. 
-      /// @return Pointer to equivalent writable dense tensor. 
+      /// @brief Convert derived tensor to dense tensor. 
+      /// @return Pointer to equivalent dense tensor. 
       virtual DenseTensorBase* toDense() noexcept override;
 
       /// @brief Swap indices on current tensor. 
@@ -66,7 +59,7 @@ namespace qtnh {
       virtual Tensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) override;
       /// @brief Re-broadcast current tensor. 
       /// @param params Broadcast parameters of the tensor (str, cyc, off)
-      /// @return Pointer to re-broadcasted tensor, which might be of a different derived type. 
+      /// @return Pointer to re-broadcasted tensor, which  might be of a different derived type. 
       virtual Tensor* rebcast(BcParams params) override;
       /// @brief Shift the border between shared and distributed dimensions by a given offset. 
       /// @param offset New offset between distributed and local dimensions – negative gathers, while positive scatters. 
@@ -82,26 +75,28 @@ namespace qtnh {
   class DenseTensor : public DenseTensorBase, private TIDense {
     public:
       friend class DenseTensorBase;
-      friend std::unique_ptr<DenseTensor> _contract_dense(std::unique_ptr<Tensor> t1p, std::unique_ptr<Tensor> t2p, std::vector<qtnh::wire> ws);
+      friend qtnh::tptr _contract_dense(qtnh::tptr t1p, qtnh::tptr t2p, std::vector<qtnh::wire> ws);
 
       DenseTensor() = delete;
       DenseTensor(const DenseTensor&) = delete;
       ~DenseTensor() = default;
 
-      /// @brief Construct empty tensor with given local and distributed dimensions within environment with default distribution parameters. 
+      /// @brief Construct dense tensor with default distribution parameters and transfer its ownership. 
       /// @param env Environment to use for construction. 
       /// @param dis_dims Distributed index dimensions. 
       /// @param loc_dims Local index dimensions. 
       /// @param els Complex vector of local elements. 
+      /// @return Ownership of unique pointer to created tensor.
       static std::unique_ptr<DenseTensor> make(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, std::vector<qtnh::tel>&& els) {
         return std::unique_ptr<DenseTensor>(new DenseTensor(env, dis_dims, loc_dims, std::move(els)));
       }
-      /// @brief Construct empty tensor with given local and distributed dimensions within environment with given distribution parameters. 
+      /// @brief Construct dense tensor and transfer its ownership. 
       /// @param env Environment to use for construction. 
       /// @param dis_dims Distributed index dimensions. 
       /// @param loc_dims Local index dimensions. 
       /// @param els Complex vector of local elements. 
-      /// @param params Distribution parameters of the tensor (str, cyc, off)
+      /// @param params Distribution parameters (str, cyc, off). 
+      /// @return Ownership of unique pointer to created tensor.
       static std::unique_ptr<DenseTensor> make(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, std::vector<qtnh::tel>&& els, BcParams params) {
         return std::unique_ptr<DenseTensor>(new DenseTensor(env, dis_dims, loc_dims, std::move(els), params));
       }
@@ -110,7 +105,7 @@ namespace qtnh {
       /// @return Unique pointer to duplicated dense tensor. 
       /// 
       /// Overuse may cause memory shortage. 
-      virtual std::unique_ptr<Tensor> copy() const noexcept override;
+      virtual qtnh::tptr copy() const noexcept override;
 
       virtual TT type() const noexcept override { return TT::denseTensor; }
 
