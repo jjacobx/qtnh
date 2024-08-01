@@ -27,9 +27,10 @@ namespace qtnh {
         qtnh::uint cyc;       ///< Number of times the entire tensor structure is repeated. 
         qtnh::uint off;       ///< Number of empty processes before the tensor begins. 
 
-        bool active;          ///< Flag whether the tensor is stored on calling MPI rank. 
-        MPI_Comm group_comm;  ///< Communicator that contains exactly one copy of the tensor. 
-        int group_id;         ///< Rank ID within current group. 
+        // The following may differ with rank so defaults are a must. 
+        bool active = false;                  ///< Flag whether the tensor is stored on calling MPI rank. 
+        MPI_Comm group_comm = MPI_COMM_NULL;  ///< Communicator that contains exactly one copy of the tensor. 
+        int group_id = 0;                     ///< Rank ID within current group. 
 
         Broadcaster() = delete;
         Broadcaster(const QTNHEnv& env, qtnh::uint base, BcParams params);
