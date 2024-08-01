@@ -459,9 +459,9 @@ namespace qtnh {
       #ifdef DEBUG
         using namespace ops;
         std::cout << new_bc.env.proc_id << " | Sc: (" << send_counts << "); ";
-        std::cout << "Sd: (" << send_displs << ")\n";
+        std::cout << "Sd: (" << send_displs << ")" << std::endl;
         std::cout << new_bc.env.proc_id << " | Rc: (" << recv_counts << "); ";
-        std::cout << "Rd: (" << recv_displs << ")\n";
+        std::cout << "Rd: (" << recv_displs << ")" << std::endl;
       #endif
 
       std::vector<qtnh::tel> new_els(utils::dims_to_size(new_loc_dims), 1.0);
