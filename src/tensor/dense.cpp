@@ -405,32 +405,34 @@ namespace qtnh {
     auto [old_dis_ifls, old_loc_ifls] = utils::split_vec(old_ifls, ndis);
     auto [new_dis_ifls, new_loc_ifls] = utils::split_vec(new_ifls, ndis);
 
+    // ! The broadcaster will fail if cyc > 1 and new base is of different size. 
+    // ! Might need to re-bcast to cyc = 1 in such case. 
+    auto& old_bc = target->bc();
+    Tensor::Broadcaster new_bc(old_bc.env, utils::dims_to_size(new_dis_dims), { old_bc.str, old_bc.cyc, old_bc.off });
+
+    auto max_base = std::max(old_bc.base, new_bc.base);
+    auto max_gid = (qtnh::uint)std::max(old_bc.group_id, new_bc.group_id);
+    
+    std::vector<int> send_counts(max_base, 0), recv_counts(max_base, 0);
+    std::vector<int> send_displs(max_base, 0), recv_displs(max_base, 0);
+
     TIndexing old_dis_ti(old_dis_dims, old_dis_ifls), old_loc_ti(old_loc_dims, old_loc_ifls);
     TIndexing new_dis_ti(new_dis_dims, new_dis_ifls), new_loc_ti(new_loc_dims, new_loc_ifls);
 
-    auto old_dis_idxs = utils::i_to_idxs(target->bc().group_id, old_dis_dims);
+    auto old_dis_idxs = utils::i_to_idxs(old_bc.group_id, old_dis_dims);
     qtnh::tidx_tup send_dis_idxs(ndis);
     for (std::size_t i = 0; i < ndis; ++i) {
       auto j = ptup.at(i);
       if (j < ndis) send_dis_idxs.at(j) = old_dis_idxs.at(i);
     }
 
-    auto ntargets = std::max(utils::dims_to_size(old_dis_dims), utils::dims_to_size(new_dis_dims));
-    
-    std::vector<int> send_counts(ntargets, 0), recv_counts(ntargets, 0);
-    std::vector<int> send_displs(ntargets, 0), recv_displs(ntargets, 0);
-
     auto old_loc_it = old_loc_ti.num("to-dis").begin();
     auto new_dis_it = new_dis_ti.num("from-loc", send_dis_idxs).begin();
-    while (old_loc_it != old_loc_it.end() && new_dis_it != new_dis_it.end()) {
+    while (old_loc_it != old_loc_it.end() && new_dis_it != new_dis_it.end() && max_gid < old_bc.base) {
       send_counts.at(*new_dis_it) = 1; // Datatype should cover all data
       send_displs.at(*new_dis_it) = *old_loc_it;
       old_loc_it++, new_dis_it++;
     }
-
-    // ! The broadcaster will fail if cyc > 1 and new base is of different size. 
-    // ! Might need to re-bcast to cyc = 1 in such case. 
-    Tensor::Broadcaster new_bc(target->bc().env, utils::dims_to_size(new_dis_dims), { target->bc().str, target->bc().cyc, target->bc().off });
 
     auto new_dis_idxs = utils::i_to_idxs(new_bc.group_id, old_dis_dims);
     qtnh::tidx_tup recv_dis_idxs(ndis);
@@ -441,7 +443,7 @@ namespace qtnh {
 
     auto new_loc_it = new_loc_ti.num("from-dis").begin();
     auto old_dis_it = old_dis_ti.num("to-loc", recv_dis_idxs).begin();
-    while (new_loc_it != new_loc_it.end() && old_dis_it != old_dis_it.end()) {
+    while (new_loc_it != new_loc_it.end() && old_dis_it != old_dis_it.end() && max_gid < new_bc.base) {
       recv_counts.at(*old_dis_it) = 1; // Datatype should cover all data
       recv_displs.at(*old_dis_it) = *new_loc_it;
       new_loc_it++, old_dis_it++;
