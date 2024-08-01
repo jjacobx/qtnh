@@ -179,7 +179,7 @@ namespace qtnh {
     for (auto& [bid, b] : temp_bonds) {
       #ifdef DEBUG
         using namespace qtnh::ops;
-        std::cout << "Contracting " << b << " in the followig tensor network: \n";
+        std::cout << "Contracting " << b << " in the following tensor network: \n";
 
         int proc_id;
         MPI_Comm_rank(MPI_COMM_WORLD, &proc_id);
@@ -211,7 +211,7 @@ namespace qtnh {
 
       #ifdef DEBUG
         using namespace qtnh::ops;
-        std::cout << "Contracting " << bonds_.at(b1_id) << " in the followig tensor network: \n";
+        std::cout << "Contracting " << bonds_.at(b1_id) << " in the following tensor network: \n";
 
         int proc_id;
         MPI_Comm_rank(MPI_COMM_WORLD, &proc_id);
