@@ -77,29 +77,35 @@ namespace qtnh {
       DiagTensor(const DiagTensor&) = delete;
       ~DiagTensor() = default;
 
-      /// @brief Duplicate tensor. 
-      /// @return Unique pointer to duplicated tensor. 
+      /// @brief Construct diagonal tensor with default distribution parameters and transfer its ownership. 
+      /// @param env Environment to use for construction. 
+      /// @param dis_dims Distributed index dimensions. 
+      /// @param loc_dims Local index dimensions. 
+      /// @param n_dis_in_dims Number of distributed input dimensions. 
+      /// @param diag_els Complex vector of local diagonal elements. 
+      /// @param truncated Flag for whether the front has been truncated to 0. 
+      /// @return Ownership of unique pointer to created tensor.
+      static std::unique_ptr<DiagTensor> make(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated, std::vector<qtnh::tel>&& diag_els) {
+        return std::unique_ptr<DiagTensor>(new DiagTensor(env, dis_dims, loc_dims, n_dis_in_dims, truncated, std::move(diag_els)));
+      }
+      /// @brief Construct diagonal tensor and transfer its ownership. 
+      /// @param env Environment to use for construction. 
+      /// @param dis_dims Distributed index dimensions. 
+      /// @param loc_dims Local index dimensions. 
+      /// @param n_dis_in_dims Number of distributed input dimensions. 
+      /// @param truncated Flag for whether the front has been truncated to 0. 
+      /// @param diag_els Complex vector of local diagonal elements. 
+      /// @param params Distribution parameters (str, cyc, off). 
+      /// @return Ownership of unique pointer to created tensor.
+      static std::unique_ptr<DiagTensor> make(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated, std::vector<qtnh::tel>&& diag_els, BcParams params) {
+        return std::unique_ptr<DiagTensor>(new DiagTensor(env, dis_dims, loc_dims, n_dis_in_dims, truncated, std::move(diag_els), params));
+      }
+
+      /// @brief Create a copy of the tensor. 
+      /// @return Tptr to duplicated tensor. 
       /// 
       /// Overuse may cause memory shortage. 
       virtual std::unique_ptr<Tensor> copy() const noexcept override;
-
-      /// @brief Construct empty tensor with given local and distributed dimensions within environment with default distribution parameters. 
-      /// @param env Environment to use for construction. 
-      /// @param loc_dims Local index dimensions. 
-      /// @param dis_dims Distributed index dimensions. 
-      /// @param n_dis_in_dims Number of distributed input dimensions. 
-      /// @param truncated Flag for whether the front has been truncated to 0. 
-      /// @param diag_els Complex vector of local diagonal elements. 
-      DiagTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated, std::vector<qtnh::tel>&& diag_els);
-      /// @brief Construct empty tensor with given local and distributed dimensions within environment with given distribution parameters. 
-      /// @param env Environment to use for construction. 
-      /// @param loc_dims Local index dimensions. 
-      /// @param dis_dims Distributed index dimensions. 
-      /// @param n_dis_in_dims Number of distributed input dimensions. 
-      /// @param truncated Flag for whether the front has been truncated to 0. 
-      /// @param diag_els Complex vector of local diagonal elements. 
-      /// @param params Distribution parameters of the tensor (str, cyc, off). 
-      DiagTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated, std::vector<qtnh::tel>&& diag_els, BcParams params);
 
       virtual TT type() const noexcept override { return TT::diagTensor; }
 
@@ -160,6 +166,24 @@ namespace qtnh {
       void put(qtnh::tidx_tup tot_idxs, qtnh::tel el);
 
     protected: 
+      /// @brief Construct diagonal tensor with default distribution parameters. 
+      /// @param env Environment to use for construction. 
+      /// @param dis_dims Distributed index dimensions. 
+      /// @param loc_dims Local index dimensions. 
+      /// @param n_dis_in_dims Number of distributed input dimensions. 
+      /// @param truncated Flag for whether the front has been truncated to 0. 
+      /// @param diag_els Complex vector of local diagonal elements. 
+      DiagTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated, std::vector<qtnh::tel>&& diag_els);
+      /// @brief Construct diagonal tensor. 
+      /// @param env Environment to use for construction. 
+      /// @param dis_dims Distributed index dimensions. 
+      /// @param loc_dims Local index dimensions. 
+      /// @param n_dis_in_dims Number of distributed input dimensions. 
+      /// @param truncated Flag for whether the front has been truncated to 0. 
+      /// @param diag_els Complex vector of local diagonal elements. 
+      /// @param params Distribution parameters of the tensor (str, cyc, off). 
+      DiagTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated, std::vector<qtnh::tel>&& diag_els, BcParams params);
+
       /// @brief Convert any derived tensor to writable diagonal tensor
       /// @return Pointer to an equivalent writable diagonal tensor. 
       virtual DiagTensorBase* toDiag() noexcept override { return this; }
@@ -190,27 +214,33 @@ namespace qtnh {
       IdenTensor(const IdenTensor&) = delete;
       ~IdenTensor() = default;
 
-      /// @brief Duplicate tensor. 
-      /// @return Unique pointer to duplicated tensor. 
+      /// @brief Construct identity tensor with default distribution parameters and transfer its ownership. 
+      /// @param env Environment to use for construction. 
+      /// @param dis_dims Distributed index dimensions. 
+      /// @param loc_dims Local index dimensions. 
+      /// @param n_dis_in_dims Number of distributed input dimensions. 
+      /// @param truncated Flag for whether the front has been truncated to 0. 
+      /// @return Ownership of unique pointer to created tensor.
+      static std::unique_ptr<IdenTensor> make(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated) {
+        return std::unique_ptr<IdenTensor>(new IdenTensor(env, dis_dims, loc_dims, n_dis_in_dims, truncated));
+      }
+      /// @brief Construct identity tensor and transfer its ownership. 
+      /// @param env Environment to use for construction. 
+      /// @param dis_dims Distributed index dimensions. 
+      /// @param loc_dims Local index dimensions. 
+      /// @param n_dis_in_dims Number of distributed input dimensions. 
+      /// @param truncated Flag for whether the front has been truncated to 0. 
+      /// @param params Distribution parameters (str, cyc, off). 
+      /// @return Ownership of unique pointer to created tensor.
+      static std::unique_ptr<IdenTensor> make(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated, BcParams params) {
+        return std::unique_ptr<IdenTensor>(new IdenTensor(env, dis_dims, loc_dims, n_dis_in_dims, truncated, params));
+      }
+
+      /// @brief Create a copy of the tensor. 
+      /// @return Tptr to duplicated tensor. 
       /// 
       /// Overuse may cause memory shortage. 
       virtual std::unique_ptr<Tensor> copy() const noexcept override;
-
-      /// @brief Construct empty tensor with given local and distributed dimensions within environment with default distribution parameters. 
-      /// @param env Environment to use for construction. 
-      /// @param loc_dims Local index dimensions. 
-      /// @param dis_dims Distributed index dimensions. 
-      /// @param n_dis_in_dims Number of distributed input dimensions. 
-      /// @param truncated Flag for whether the front has been truncated to 0. 
-      IdenTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated);
-      /// @brief Construct empty tensor with given local and distributed dimensions within environment with given distribution parameters. 
-      /// @param env Environment to use for construction. 
-      /// @param loc_dims Local index dimensions. 
-      /// @param dis_dims Distributed index dimensions. 
-      /// @param n_dis_in_dims Number of distributed input dimensions. 
-      /// @param truncated Flag for whether the front has been truncated to 0. 
-      /// @param params Distribution parameters of the tensor (str, cyc, off). 
-      IdenTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated, BcParams params);
 
       virtual TT type() const noexcept override { return TT::idenTensor; }
 
@@ -241,6 +271,22 @@ namespace qtnh {
       virtual qtnh::tel at(qtnh::tidx_tup tot_idxs) const override;
 
     protected:
+      /// @brief Construct identity tensor with default distribution parameters. 
+      /// @param env Environment to use for construction. 
+      /// @param loc_dims Local index dimensions. 
+      /// @param dis_dims Distributed index dimensions. 
+      /// @param n_dis_in_dims Number of distributed input dimensions. 
+      /// @param truncated Flag for whether the front has been truncated to 0. 
+      IdenTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated);
+      /// @brief Construct identity tensor. 
+      /// @param env Environment to use for construction. 
+      /// @param loc_dims Local index dimensions. 
+      /// @param dis_dims Distributed index dimensions. 
+      /// @param n_dis_in_dims Number of distributed input dimensions. 
+      /// @param truncated Flag for whether the front has been truncated to 0. 
+      /// @param params Distribution parameters (str, cyc, off). 
+      IdenTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated, BcParams params);
+
       /// @brief Re-broadcast current tensor. 
       /// @param params Broadcast parameters of the tensor (str, cyc, off)
       /// @return Pointer to re-broadcasted tensor, which might be of a different derived type. 
