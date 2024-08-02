@@ -29,7 +29,7 @@ namespace qtnh {
 
     TIndexing ti(totDims(), ifls);
     for (auto idxs : ti.tup("local", curr_idxs)) {
-      els.push_back(this->at(curr_idxs));
+      els.push_back(this->at(idxs));
     }
 
     // ? Is it better to use local members or accessors? 

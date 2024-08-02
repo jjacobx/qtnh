@@ -21,7 +21,7 @@ namespace qtnh {
 
     TIndexing ti(totDims(), ifls);
     for (auto idxs : ti.tup("local", curr_idxs)) {
-      els.push_back(this->at(curr_idxs));
+      els.push_back(this->at(idxs));
     }
 
     return new SymmTensor(bc_.env, dis_dims_, loc_dims_, n_dis_in_dims_, std::move(els), BcParams { bc_.str, bc_.cyc, bc_.off });
@@ -242,11 +242,11 @@ namespace qtnh {
     auto dis_idxs = utils::i_to_idxs(bc_.group_id, dis_dims_);
     auto tot_idxs = utils::concat_dims(dis_idxs, loc_idxs);
 
-    // CASE d = 1:
-    // 0 - | X | - 1 
+    // CASE d = 1: 
+    // 0 - | X | - 1
     // 2 - | X | - 3
     
-    // CASE d = 0 or d = 2:
+    // CASE d = 0 or d = 2: 
     // 0 - | X | - 2
     // 1 - | X | - 3
 
@@ -258,11 +258,11 @@ namespace qtnh {
     auto dis_idxs = utils::i_to_idxs(bc_.group_id, dis_dims_);
     auto tot_idxs = utils::concat_dims(dis_idxs, loc_idxs);
 
-    // CASE d = 1:
-    // 0 - | X | - 1 
+    // CASE d = 1: 
+    // 0 - | X | - 1
     // 2 - | X | - 3
     
-    // CASE d = 0 or d = 2:
+    // CASE d = 0 or d = 2: 
     // 0 - | X | - 2
     // 1 - | X | - 3
 
