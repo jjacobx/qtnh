@@ -76,6 +76,7 @@ int main() {
     t3_els = { 6.0, 7.0, 8.0, 9.0, 10.0, 11.0 };
   }
 
+  MPI_Barrier(MPI_COMM_WORLD);
   qtnh::tptr tp3 = DenseTensor::make(env, t3_dis_dims, t3_loc_dims, std::move(t3_els));
   tp3 = Tensor::rebcast(std::move(tp3), { 1, 1, 1 });
   std::cout << env.proc_id << " | T3 = " << *tp3 << std::endl;
@@ -85,6 +86,7 @@ int main() {
   std::vector<tel> t4_els = { 5.0 + 5.0i, 6.0 + 6.0i, 7.0 + 7.0i, 8.0 + 8.0i, 1.0 + 1.0i, 2.0 + 2.0i, 3.0 + 3.0i, 4.0 + 4.0i };
   std::vector<tel> t5_els = { 1.0 + 1.0i, 2.0 + 2.0i, 3.0 + 3.0i, 4.0 + 4.0i, 5.0 + 5.0i, 6.0 + 6.0i, 7.0 + 7.0i, 8.0 + 8.0i };
 
+  MPI_Barrier(MPI_COMM_WORLD);
   tptr tp4 = DenseTensor::make(env, t4_dis_dims, t4_loc_dims, std::move(t4_els));
   tptr tp5 = DenseTensor::make(env, t5_dis_dims, t5_loc_dims, std::move(t5_els));
   tp4 = Tensor::rescatter(std::move(tp4), 1);
@@ -97,42 +99,48 @@ int main() {
   auto tid5 = tn.insert(std::move(tp5));
   auto bid1 = tn.addBond(tid4, tid5, {{ 1, 2 }});
 
+  MPI_Barrier(MPI_COMM_WORLD);
   tid4 = tn.contractBond(bid1);
   std::cout << env.proc_id << " | TN(4) = " << *tn.tensor(tid4) << "\n";
 
-  // ! This sometimes causes deadlock? 
+  MPI_Barrier(MPI_COMM_WORLD);
   tp4 = tn.extract(tid4);
   tp4 = Tensor::permute(std::move(tp4), { 2, 1, 0 });
   std::cout << env.proc_id << " | T4 (permute) = " << *tp4 << "\n";
 
+  MPI_Barrier(MPI_COMM_WORLD);
   tp5 = DenseTensor::make(env, {}, { 3, 3 }, { 0 ,1, 2, 0, 1, 2, 0, 1, 2 });
   tp5 = Tensor::rescatter(std::move(tp5), 1);
   std::cout << env.proc_id << " | T5 (new) = " << *tp5 << "\n";
 
+  MPI_Barrier(MPI_COMM_WORLD);
   tp5 = Tensor::permute(std::move(tp5), { 1, 0 });
   std::cout << env.proc_id << " | T5 (permute) = " << *tp5 << "\n";
 
+  MPI_Barrier(MPI_COMM_WORLD);
   tptr tp6 = DenseTensor::make(env, {}, { 2, 2, 2, 2 }, { 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7 });
   tp6 = Tensor::rescatter(std::move(tp6), 2);
   std::cout << env.proc_id << " | T6 = " << *tp6 << "\n";
 
+  MPI_Barrier(MPI_COMM_WORLD);
   tp6 = Tensor::permute(std::move(tp6), { 1, 0, 2, 3 });
   std::cout << env.proc_id << " | T6 (permute) = " << *tp6 << "\n";
 
+  MPI_Barrier(MPI_COMM_WORLD);
   tp6 = Tensor::permute(std::move(tp6), { 1, 0, 3, 2 });
   std::cout << env.proc_id << " | T6 (permute 2) = " << *tp6 << "\n";
 
+  MPI_Barrier(MPI_COMM_WORLD);
   tp6 = Tensor::permute(std::move(tp6), { 0, 1, 3, 2 });
   std::cout << env.proc_id << " | T6 (normal) = " << *tp6 << "\n";
 
+  MPI_Barrier(MPI_COMM_WORLD);
   tptr tp7 = std::make_unique<SwapTensor>(env, 2, 0);
   std::cout << env.proc_id << " | T7 = " << *tp7 << "\n";
 
-  tptr tp8 = Tensor::contract(std::move(tp6), std::move(tp7), {{ 2, 0 }, { 3, 2 }});
+  MPI_Barrier(MPI_COMM_WORLD);
+  tptr tp8 = Tensor::contract(std::move(tp6), std::move(tp7), {{ 2, 0 }, { 3, 1 }});
   std::cout << env.proc_id << " | T8 = " << *tp8 << "\n";
-  // if (env.proc_id == 0) {
-  //   std::cout << "T9.dims = " << t9u->getDims() << "\n";
-  // }
 
   // auto idu = std::make_unique<IdentityTensor>(env, qtnh::tidx_tup{ 2, 2 });
   // std::cout << env.proc_id << " | ID = " << *idu << "\n";
