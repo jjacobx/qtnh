@@ -2,9 +2,6 @@
 #include <mpi.h>
 
 #include "tensor/tensor.hpp"
-#include "tensor/dense.hpp"
-#include "tensor/symm.hpp"
-#include "tensor/diag.hpp"
 #include "tensor/indexing.hpp"
 
 namespace qtnh {
@@ -31,15 +28,15 @@ namespace qtnh {
   }
 
   template<> 
-  qtnh::tptr Tensor::convert<DenseTensor>(qtnh::tptr tp) { 
+  tptr Tensor::convert<DenseTensor>(tptr tp) { 
     return utils::one_unique(std::move(tp), tp->toDense()); 
   }
   template<> 
-  qtnh::tptr Tensor::convert<SymmTensor>(qtnh::tptr tp) { 
+  tptr Tensor::convert<SymmTensor>(tptr tp) { 
     return utils::one_unique(std::move(tp), tp->toSymm()); 
   }
   template<> 
-  qtnh::tptr Tensor::convert<DiagTensor>(qtnh::tptr tp) { 
+  tptr Tensor::convert<DiagTensor>(tptr tp) { 
     return utils::one_unique(std::move(tp), tp->toDiag()); 
   }
 

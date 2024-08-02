@@ -222,6 +222,19 @@ namespace qtnh {
       virtual Tensor* permute(std::vector<qtnh::tidx_tup_st> ptup) = 0;
   };
 
+  // Specialised template declarations must be outside class scope. 
+  class DenseTensor; 
+  class SymmTensor;
+  class DiagTensor;
+
+  template<> bool Tensor::canConvert<DenseTensor>();
+  template<> bool Tensor::canConvert<SymmTensor>();
+  template<> bool Tensor::canConvert<DiagTensor>();
+
+  template<> tptr Tensor::convert<DenseTensor>(tptr tp);
+  template<> tptr Tensor::convert<SymmTensor>(tptr tp);
+  template<> tptr Tensor::convert<DiagTensor>(tptr tp);
+
   namespace ops {
     /// Print tensor elements via std::cout. 
     std::ostream& operator<<(std::ostream&, const Tensor&);
