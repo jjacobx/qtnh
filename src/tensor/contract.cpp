@@ -113,7 +113,6 @@ namespace qtnh {
             el3 += (*t1p)[*(it1++)] * (*t2p)[*(it2++)];
 
             #ifdef DEBUG
-              std::cout << " (" << el3 << ") ";
               if (it1 != it1.end() && it2 != it2.end()) std::cout << " + ";
             #endif
           }
@@ -127,13 +126,17 @@ namespace qtnh {
       }
 
       // STEP 4: All-reduce distributed wires. 
-      auto mod = utils::dims_to_size(dis_dims1);
-      auto div = utils::dims_to_size(dis_dims2);
+      auto dis_idxs = utils::i_to_idxs(t3.bc().group_id, t3.disDims());
+      for (std::size_t i = 0; i < dis_idxs.size(); ++i) {
+        if (ti3.ifls().at(i).label == "reduced") dis_idxs.at(i) = 0;
+      }
+      
+      auto colour = utils::idxs_to_i(dis_idxs, t3.disDims());
 
       // ! Expect MPI memory limit issues. 
       // ! Can be performed multiple times with offset for larger arrays. 
       MPI_Comm allr_comm;
-      MPI_Comm_split(t3.bc().group_comm, (t3.bc().group_id / div) % mod, t3.bc().group_id, &allr_comm);
+      MPI_Comm_split(t3.bc().group_comm, colour, t3.bc().group_id, &allr_comm);
       MPI_Allreduce(MPI_IN_PLACE, t3.loc_els_.data(), loc_size, MPI_C_DOUBLE_COMPLEX, MPI_SUM, allr_comm);
       MPI_Comm_free(&allr_comm);
     }
