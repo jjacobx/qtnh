@@ -8,7 +8,13 @@ namespace qtnh {
   SymmTensorBase::SymmTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims, BcParams params) 
     : DenseTensorBase(env, dis_dims, loc_dims, params), n_dis_in_dims_(n_dis_in_dims) {}
 
-  SymmTensorBase* SymmTensorBase::toSymm() noexcept {
+  // Specialised convert template from tensor header requires full class definition. 
+  template<> 
+  std::unique_ptr<SymmTensor> Tensor::convert<SymmTensor>(tptr tp) {
+    return utils::one_unique(std::move(tp), tp->toSymm()); 
+  }
+
+  SymmTensor* SymmTensorBase::toSymm() noexcept {
     std::vector<qtnh::tel> els;
     els.reserve(locSize());
 
@@ -44,18 +50,17 @@ namespace qtnh {
     return this->toSymm()->permute(ptup, io);
   }
 
-  std::unique_ptr<Tensor> SymmTensor::copy() const noexcept {
-    auto els = loc_els_;
-    auto tp = new SymmTensor(bc_.env, dis_dims_, loc_dims_, n_dis_in_dims_, std::move(els), { bc_.str, bc_.cyc, bc_.off });
-    return std::unique_ptr<SymmTensor>(tp);
-  }
-
   SymmTensor::SymmTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims, std::vector<qtnh::tel>&& els) 
     : SymmTensorBase(env, dis_dims, loc_dims, n_dis_in_dims), TIDense(std::move(els)) {}
 
   SymmTensor::SymmTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims, std::vector<qtnh::tel>&& els, BcParams params) 
     : SymmTensorBase(env, dis_dims, loc_dims, n_dis_in_dims, params), TIDense(std::move(els)) {}
 
+  std::unique_ptr<Tensor> SymmTensor::copy() const noexcept {
+    auto els = loc_els_;
+    auto tp = new SymmTensor(bc_.env, dis_dims_, loc_dims_, n_dis_in_dims_, std::move(els), { bc_.str, bc_.cyc, bc_.off });
+    return std::unique_ptr<SymmTensor>(tp);
+  }
 
   qtnh::tel SymmTensor::operator[](qtnh::tidx_tup loc_idxs) const {
     auto i = utils::idxs_to_i(loc_idxs, loc_dims_);
@@ -226,17 +231,17 @@ namespace qtnh {
     return this;
   }
 
-  std::unique_ptr<Tensor> SwapTensor::copy() const noexcept {
-    auto n = dis_dims_.size() > 0 ? dis_dims_.at(0) : loc_dims_.at(0);
-    auto tp = new SwapTensor(bc_.env, n, n_dis_in_dims_, { bc_.str, bc_.cyc, bc_.off });
-    return std::unique_ptr<SwapTensor>(tp);
-  }
-
   SwapTensor::SwapTensor(const QTNHEnv& env, std::size_t n, std::size_t d)
     : SymmTensorBase(env, qtnh::tidx_tup(2 * d, n), qtnh::tidx_tup(4 - 2 * d, n), d) {}
 
   SwapTensor::SwapTensor(const QTNHEnv& env, std::size_t n, std::size_t d, BcParams params)
     : SymmTensorBase(env, qtnh::tidx_tup(2 * d, n), qtnh::tidx_tup(4 - 2 * d, n), d, params) {}
+
+  std::unique_ptr<Tensor> SwapTensor::copy() const noexcept {
+    auto n = dis_dims_.size() > 0 ? dis_dims_.at(0) : loc_dims_.at(0);
+    auto tp = new SwapTensor(bc_.env, n, n_dis_in_dims_, { bc_.str, bc_.cyc, bc_.off });
+    return std::unique_ptr<SwapTensor>(tp);
+  }
 
   qtnh::tel SwapTensor::operator[](qtnh::tidx_tup loc_idxs) const {
     auto dis_idxs = utils::i_to_idxs(bc_.group_id, dis_dims_);

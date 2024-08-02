@@ -50,7 +50,7 @@ namespace qtnh {
 
       /// @brief Convert derived tensor to dense tensor. 
       /// @return Pointer to equivalent dense tensor. 
-      virtual DenseTensorBase* toDense() noexcept override;
+      virtual DenseTensor* toDense() noexcept override;
 
       /// @brief Swap indices on current tensor. 
       /// @param idx1 First index to swap. 
@@ -182,7 +182,7 @@ namespace qtnh {
 
       /// @brief Convert any derived tensor to writable dense tensor. 
       /// @return Pointer to equivalent writable dense tensor. 
-      virtual DenseTensorBase* toDense() noexcept override { return this; }
+      virtual DenseTensor* toDense() noexcept override { return this; }
       /// @brief Swap indices on current tensor. 
       /// @param idx1 First index to swap. 
       /// @param idx2 Second index to swap. 

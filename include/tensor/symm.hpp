@@ -44,13 +44,6 @@ namespace qtnh {
         return utils::concat_dims(disOutDims(), locOutDims());
       }
 
-      /// @brief Convert any derived tensor to writable symmetric tensor
-      /// @param tu Unique pointer to derived symmetric tensor to convert. 
-      /// @return Unique pointer to an equivalent writable symmetric tensor. 
-      static std::unique_ptr<Tensor> toSymm(std::unique_ptr<SymmTensorBase> tu) {
-        return utils::one_unique(std::move(tu), tu->toSymm());
-      }
-
     protected:
       /// @brief Construct empty tensor with given local and distributed dimensions within environment with default distribution parameters. 
       /// @param env Environment to use for construction. 
@@ -70,7 +63,7 @@ namespace qtnh {
 
       /// @brief Convert any derived tensor to writable symmetric tensor
       /// @return Pointer to an equivalent writable symmetric tensor. 
-      virtual SymmTensorBase* toSymm() noexcept override;
+      virtual SymmTensor* toSymm() noexcept override;
 
       /// @brief Swap input/output indices on current tensor. 
       /// @param idx1 First index to swap. 
@@ -209,7 +202,7 @@ namespace qtnh {
 
       /// @brief Convert any derived tensor to symmetric tensor. 
       /// @return Symmetric tensor equivalent to calling tensor. 
-      virtual SymmTensorBase* toSymm() noexcept override { return this; }
+      virtual SymmTensor* toSymm() noexcept override { return this; }
 
       /// @brief Swap input/output indices on current tensor. 
       /// @param idx1 First index to swap. 

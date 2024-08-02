@@ -8,7 +8,13 @@ namespace qtnh {
   DiagTensorBase::DiagTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated, BcParams params)
     : SymmTensorBase(env, dis_dims, loc_dims, n_dis_in_dims, params), truncated_(truncated) {}
 
-  DiagTensorBase* DiagTensorBase::toDiag() noexcept {
+  // Specialised convert template from tensor header requires full class definition. 
+  template<> 
+  std::unique_ptr<DiagTensor> Tensor::convert<DiagTensor>(tptr tp) {
+    return utils::one_unique(std::move(tp), tp->toDiag()); 
+  }
+
+  DiagTensor* DiagTensorBase::toDiag() noexcept {
     std::vector<qtnh::tel> els;
     els.reserve(utils::dims_to_size(locOutDims()));
 
@@ -50,17 +56,17 @@ namespace qtnh {
     return toDiag()->rescatter(offset, io);
   }
 
-  std::unique_ptr<Tensor> DiagTensor::copy() const noexcept {
-    // ! Unimplemented. 
-    utils::throw_unimplemented();
-    return std::unique_ptr<DiagTensor>(nullptr);
-  }
-
   DiagTensor::DiagTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated, std::vector<qtnh::tel>&& diag_els)
     : DiagTensorBase(env, dis_dims, loc_dims, n_dis_in_dims, truncated), loc_diag_els_(std::move(diag_els)) {}
   
   DiagTensor::DiagTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated, std::vector<qtnh::tel>&& diag_els, BcParams params)
     : DiagTensorBase(env, dis_dims, loc_dims, n_dis_in_dims, truncated, params), loc_diag_els_(std::move(diag_els)) {}
+
+  std::unique_ptr<Tensor> DiagTensor::copy() const noexcept {
+    // ! Unimplemented. 
+    utils::throw_unimplemented();
+    return std::unique_ptr<DiagTensor>(nullptr);
+  }
 
   qtnh::tel DiagTensor::operator[](qtnh::tidx_tup loc_idxs) const {
     // ! Unimplemented. 
@@ -110,16 +116,16 @@ namespace qtnh {
     return this;
   }
 
-  std::unique_ptr<Tensor> IdenTensor::copy() const noexcept {
-    auto tp = new IdenTensor(bc_.env, dis_dims_, loc_dims_, n_dis_in_dims_, truncated_, { bc_.str, bc_.cyc, bc_.off });
-    return std::unique_ptr<IdenTensor>(tp);
-  }
-
   IdenTensor::IdenTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated)
     : DiagTensorBase(env, dis_dims, loc_dims, n_dis_in_dims, truncated) {}
 
   IdenTensor::IdenTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated, BcParams params)
     : DiagTensorBase(env, dis_dims, loc_dims, n_dis_in_dims, truncated, params) {}
+
+  std::unique_ptr<Tensor> IdenTensor::copy() const noexcept {
+    auto tp = new IdenTensor(bc_.env, dis_dims_, loc_dims_, n_dis_in_dims_, truncated_, { bc_.str, bc_.cyc, bc_.off });
+    return std::unique_ptr<IdenTensor>(tp);
+  }
 
   qtnh::tel IdenTensor::operator[](qtnh::tidx_tup loc_idxs) const {
     auto dis_idxs = utils::i_to_idxs(bc_.group_id, dis_dims_);

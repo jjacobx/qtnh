@@ -20,13 +20,6 @@ namespace qtnh {
 
       virtual TT type() const noexcept override { return TT::diagTensorBase; }
 
-      /// @brief Convert any derived tensor to writable diagonal tensor. 
-      /// @param tu Unique pointer to derived diagonal tensor to convert. 
-      /// @return Unique pointer to an equivalent writable diagonal tensor. 
-      static std::unique_ptr<Tensor> toDiag(std::unique_ptr<DiagTensorBase> tu) {
-        return utils::one_unique(std::move(tu), tu->toDiag());
-      }
-
     protected:
       /// @brief Construct empty tensor with given local and distributed dimensions within environment with default distribution parameters. 
       /// @param env Environment to use for construction. 
@@ -48,7 +41,7 @@ namespace qtnh {
 
       /// @brief Convert any derived tensor to writable diagonal tensor. 
       /// @return Pointer to an equivalent writable diagonal tensor. 
-      virtual DiagTensorBase* toDiag() noexcept override;
+      virtual DiagTensor* toDiag() noexcept override;
 
       /// @brief Swap indices on current tensor. 
       /// @param idx1 First index to swap. 
@@ -186,7 +179,7 @@ namespace qtnh {
 
       /// @brief Convert any derived tensor to writable diagonal tensor
       /// @return Pointer to an equivalent writable diagonal tensor. 
-      virtual DiagTensorBase* toDiag() noexcept override { return this; }
+      virtual DiagTensor* toDiag() noexcept override { return this; }
 
       /// @brief Swap indices on current tensor. 
       /// @param idx1 First index to swap. 

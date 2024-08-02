@@ -11,6 +11,11 @@ namespace qtnh {
   class Tensor;
   typedef std::unique_ptr<Tensor> tptr;
 
+  // Forward declaration of these is required for conversion methods. 
+  class DenseTensor; 
+  class SymmTensor;
+  class DiagTensor;
+
   /// General virtual tensor class
   class Tensor {
     public:
@@ -72,7 +77,7 @@ namespace qtnh {
       /// @tparam T Tensor class to convert to. 
       /// @param tp Ownership of tptr to tensor to convert. 
       /// @return Ownership of tptr with converted tensor, nullptr if conversion is not possible. 
-      template<class T>  static tptr convert(tptr tp) { return tptr(nullptr); }
+      template<class T>  static std::unique_ptr<T> convert(tptr tp) { return std::unique_ptr<T>(nullptr); }
 
       /// @brief Create a copy of the tensor. 
       /// @return Tptr to duplicated tensor. 
@@ -194,9 +199,9 @@ namespace qtnh {
 
       Broadcaster bc_;  ///< Tensor distributor. 
 
-      virtual Tensor* toDense() noexcept { return nullptr; }
-      virtual Tensor* toSymm() noexcept { return nullptr; }
-      virtual Tensor* toDiag() noexcept { return nullptr; }
+      virtual DenseTensor* toDense() noexcept { return nullptr; }
+      virtual SymmTensor* toSymm() noexcept { return nullptr; }
+      virtual DiagTensor* toDiag() noexcept { return nullptr; }
 
       virtual bool isDense() const noexcept { return false; }
       virtual bool isSymm() const noexcept { return false; }
@@ -223,17 +228,13 @@ namespace qtnh {
   };
 
   // Specialised template declarations must be outside class scope. 
-  class DenseTensor; 
-  class SymmTensor;
-  class DiagTensor;
-
   template<> bool Tensor::canConvert<DenseTensor>();
   template<> bool Tensor::canConvert<SymmTensor>();
   template<> bool Tensor::canConvert<DiagTensor>();
 
-  template<> tptr Tensor::convert<DenseTensor>(tptr tp);
-  template<> tptr Tensor::convert<SymmTensor>(tptr tp);
-  template<> tptr Tensor::convert<DiagTensor>(tptr tp);
+  template<> std::unique_ptr<DenseTensor> Tensor::convert<DenseTensor>(tptr tp);
+  template<> std::unique_ptr<SymmTensor> Tensor::convert<SymmTensor>(tptr tp);
+  template<> std::unique_ptr<DiagTensor> Tensor::convert<DiagTensor>(tptr tp);
 
   namespace ops {
     /// Print tensor elements via std::cout. 
