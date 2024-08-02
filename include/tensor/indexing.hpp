@@ -1,142 +1,161 @@
-#ifndef _TENSOR__INDEXING_HPP
-#define _TENSOR__INDEXING_HPP
+#ifndef _TENSOR_NEW__INDEXING_HPP
+#define _TENSOR_NEW__INDEXING_HPP
+
+#include <string>
 
 #include "../core/typedefs.hpp"
 
-namespace qtnh{
+namespace qtnh {
+  struct TIFlag {
+    std::string label;
+    int tag;
+
+    TIFlag() : TIFlag("default", 0) {}
+    TIFlag(std::string label, int tag) : label(label), tag(tag) {}
+  };
+
   namespace ops {
     /// Print tensor index tuple via std::cout. 
     std::ostream& operator<<(std::ostream&, const qtnh::tidx_tup&);
+    std::ostream& operator<<(std::ostream&, const TIFlag&);
   }
 
-  /// This class can be used to easily iterate through tensor index tuples based on given restrictions 
-  /// due to dimensions or index flags. 
   class TIndexing {
     public:
-      /// Empty constructor creates a single element indexing of dimension 1. 
-      TIndexing();
-      /// @brief Create indexing with given dimensions and all elements open. 
+      /// @brief Create indexing with given dimensions. 
       /// @param dims Index dimensions of the indexing. 
-      TIndexing(const qtnh::tidx_tup& dims);
-      /// @brief Create indexing with given dimensions and all elements open except n. 
+      TIndexing(qtnh::tidx_tup dims);
+      /// @brief Create indexing with given dimensions and flags. 
       /// @param dims Index dimensions of the indexing. 
-      /// @param n Position of the closed index. 
-      ///
-      /// Index n is assigned { TIdxT::closed, 0 }. 
-      TIndexing(const qtnh::tidx_tup& dims, std::size_t n);
-      /// @brief Creat indexing with given dimensions and flags for each index. 
-      /// @param dims Index dimensions of the indexing. 
-      /// @param ifls Index flags of the indexing. 
-      TIndexing(const qtnh::tidx_tup& dims, const qtnh::tifl_tup& ifls);
+      /// @param ifl_label Index flags of the indexing. 
+      TIndexing(qtnh::tidx_tup dims, std::vector<TIFlag> ifls);
 
-      const qtnh::tidx_tup& getDims() const;  ///< Index dimensions getter. 
-      const qtnh::tifl_tup& getIFls() const;  ///< Index flags getter. 
+      const qtnh::tidx_tup& dims() const noexcept { return dims_; }
+      const std::vector<TIFlag>& ifls() const noexcept { return ifls_; }
 
       /// @brief Check if tensor index tuple is valid in current indexing. 
       /// @param idxs Tensor index tuple to check.
       /// @return A boolean, true if the tuple is valid and false otherwise. 
-      bool isValid(const qtnh::tidx_tup& idxs);
+      bool isValid(qtnh::tidx_tup idxs) const;
       /// @brief Check if two tensor index tuples are equal in current indexing. 
       /// @param idxs1 First tensor index tuple to compare. 
       /// @param idxs2 Second tensor index tuple to compare. 
-      /// @param type Type of the index flag to check. 
-      /// @param tag Tag of the index flag to check. 
+      /// @param ifl_label Index flag label to check. 
       /// @return A boolean, true if the tuples are equal and false otherwise. 
       ///
       /// Only indices with the given flag are checked. 
-      bool isEqual(const qtnh::tidx_tup& idxs1, const qtnh::tidx_tup& idxs2, TIdxT type = TIdxT::open, qtnh::tidx_tup_st tag = 0);
+      bool isEqual(qtnh::tidx_tup idxs1, qtnh::tidx_tup idxs2, std::string ifl_label = "default") const;
       /// @brief Check if tensor index tuple is the last allowed in current indexing. 
       /// @param idxs Tensor index tuple to check. 
-      /// @param type Type of the index flag to check. 
-      /// @param tag Tag of the index flag to check. 
+      /// @param ifl_label Index flag label to check. 
       /// @return A boolean, true if the tuple is the last one and false otherwise. 
       ///
       /// Only indices with the given flag are checked. 
-      bool isLast(const qtnh::tidx_tup& idxs, TIdxT type = TIdxT::open, qtnh::tidx_tup_st tag = 0);
+      bool isLast(qtnh::tidx_tup idxs, std::string ifl_label = "default") const;
 
       /// @brief Go to next tensor index tuple in current indexing, relative to the input tuple.  
       /// @param idxs Tensor index tuple to update. 
-      /// @param type Type of the index flag to check. 
-      /// @param tag Tag of the index flag to check. 
+      /// @param ifl_label Index flag label to update. 
       /// @return Next tensor index tuple. 
       ///
       /// Only indices with the given flag are updated. 
-      qtnh::tidx_tup next(qtnh::tidx_tup idxs, TIdxT type = TIdxT::open, qtnh::tidx_tup_st tag = 0);
+      qtnh::tidx_tup next(qtnh::tidx_tup idxs, std::string ifl_label = "default") const;
       /// @brief Go to previous tensor index tuple in current indexing, relative to the input tuple.  
       /// @param idxs Tensor index tuple to update. 
-      /// @param type Type of the index flag to check. 
-      /// @param tag Tag of the index flag to check. 
+      /// @param ifl_label Index flag label to update. 
       /// @return Previous tensor index tuple. 
       ///
       /// Only indices with the given flag are updated. 
-      qtnh::tidx_tup prev(qtnh::tidx_tup idxs, TIdxT type = TIdxT::open, qtnh::tidx_tup_st tag = 0);
-      /// @brief Reset tensor index tuple to zero in current indexing.  
+      qtnh::tidx_tup prev(qtnh::tidx_tup idxs, std::string ifl_label = "default") const;
+      /// @brief Reset tensor index tuple to zero in current indexing. 
       /// @param idxs Tensor index tuple to update. 
-      /// @param type Type of the index flag to check. 
-      /// @param tag Tag of the index flag to check. 
+      /// @param ifl_label Index flag label to update. 
       /// @return Reset tensor index tuple. 
       ///
       /// Only indices with the given flag are updated. 
-      qtnh::tidx_tup reset(qtnh::tidx_tup idxs, TIdxT type = TIdxT::open, qtnh::tidx_tup_st tag = 0);
+      qtnh::tidx_tup reset(qtnh::tidx_tup idxs, std::string ifl_label = "default") const;
 
-      /// @brief Cut given tensor index type out of the indexing. 
-      /// @param type Tensor index type to cut out. 
-      /// @return Trimmed indexing without the indicated type. 
-      TIndexing cut(TIdxT type = TIdxT::open);
-      /// @brief Cut given tensor index flag out of the indexing. 
-      /// @param ifl Tensor index flag to cut out, i.e. a pair of an index type and a tag. 
-      /// @return Trimmed indexing without the indicated flag. 
-      TIndexing cut(qtnh::tifl ifl);
+      /// @brief Cut given label type out of the indexing. 
+      /// @param ifl_label Index flag label to cut out. 
+      /// @return Trimmed indexing without the indicated label. 
+      TIndexing cut(std::string ifl_label = "default") const;
 
-      bool operator==(const TIndexing&);  ///< Equality operator for the indexing. 
-      bool operator!=(const TIndexing&);  ///< Inequality operator for the indexing. 
+      /// @brief Keep only given label in the indexing. 
+      /// @param ifl_label Index flag label to keep. 
+      /// @return Trimmed indexing without any other label. 
+      TIndexing keep(std::string ifl_label = "default") const;
 
-      /// Tensor indexing iterator class to enable for loops over given indexing. 
-      class iterator {
-        public:
-          /// @brief General constructor of the tensor indexing iterator. 
-          /// @param dims Tensor index dimensions of related indexing. 
-          /// @param ifls Tensor infex flags of related indexing. 
-          /// @param c_idx Current index in related indexing. 
-          /// @param type Type of index flag to iterate over. 
-          /// @param tag Tag of index flag to iterate over. 
-          ///
-          /// The constructed iterator only iterates over indices of given flag. 
-          iterator(const qtnh::tidx_tup& dims, const qtnh::tifl_tup& ifls, const qtnh::tidx_tup& c_idx, TIdxT type = TIdxT::open, qtnh::tidx_tup_st tag = 0);
+      struct TupIterator {
+        TupIterator(qtnh::tidx_tup dims, std::vector<std::size_t> order, qtnh::tidx_tup start, bool is_end);
 
-          const qtnh::tifl& getActiveIFl() const; ///< Active tensor index flag getter. 
+        TupIterator begin();
+        TupIterator end();
 
-          iterator& operator++();            ///< Next element operator. 
-          bool operator!=(const iterator&);  ///< Inequality operator. 
-          qtnh::tidx_tup operator*() const;  ///< Dereference operator. 
+        TupIterator& operator++();
+        TupIterator operator++(int);
+        constexpr bool operator!=(const TupIterator& rhs) {
+          // Only valid for checking the end element. 
+          return (is_end_ != rhs.is_end_);
+        }
+        qtnh::tidx_tup operator*() const;
 
         private:
-          qtnh::tidx_tup dims;  ///< Dimensions of each element of related indexing. 
-          qtnh::tifl_tup ifls;  ///< Flags of each element of related indexing. 
+          qtnh::tidx_tup dims_;
+          std::vector<std::size_t> order_;
 
-          qtnh::tidx_tup current;  ///< Current tensor index tuple. 
-          qtnh::tifl active_ifl;   ///< Active tensor index flag to iterate over. 
+          qtnh::tidx_tup current_;
+          bool is_end_;
       };
 
-      /// @brief Get begin iterator with given tensor index flag type and tag. 
-      /// @param type Type of index flag to iterate over. 
-      /// @param tag Tag of index flag to iterate over. 
-      /// @return Tensor indexing iterator from zero element in current indexing. 
-      iterator begin(TIdxT type = TIdxT::open, qtnh::tidx_tup_st tag = 0);
-      /// @brief Get end iterator of current indexing. 
-      /// @return Tensor indexing iterator with out-of-bounds elements. 
-      iterator end();
+      struct NumIterator {
+        NumIterator(qtnh::tidx_tup dims, std::vector<std::size_t> incrs, std::size_t zero, qtnh::tidx_tup current_idxs, bool is_end);
 
-      /// @brief Append two tensor indexings. 
-      /// @param ti1 First tensor indexing to append. 
-      /// @param ti2 Second tensor indexing to append. 
-      /// @return Tensor indexing with appended parameters of both arguments. 
-      static TIndexing app(const TIndexing& ti1, const TIndexing&ti2);
+        NumIterator begin();
+        NumIterator end();
+
+        NumIterator& operator++();
+        NumIterator operator++(int);
+        constexpr bool operator!=(const NumIterator& rhs) {
+          // Only valid for checking the end element. 
+          return (is_end_ != rhs.is_end_);
+        }
+        std::size_t operator*() const;
+
+        private:
+          qtnh::tidx_tup dims_;  ///< Dimensions for the following increments (already sorted in order). 
+          std::vector<std::size_t> incrs_;
+          std::size_t zero_;
+
+          qtnh::tidx_tup current_idxs_;
+          bool is_end_;
+      };
+
+      TupIterator tup(std::string ifl_label = "default") const;
+      TupIterator tup(std::string ifl_label, qtnh::tidx_tup start) const;
+      NumIterator num(std::string ifl_label = "default") const;
+      NumIterator num(std::string ifl_label, qtnh::tidx_tup start) const;
+
+      template<typename T>
+      static T app(T t) {
+        return t;
+      }
+
+      /// @brief Append multiple instances of tensor indexing. 
+      /// @param t First indexing instance to append. 
+      /// @param args All other indexing instances to append
+      /// @return Tensor indexing with appended parameters of all arguments. 
+      template<typename T, typename... Args>
+      static T app(T t, Args... args) {
+        return _app(t, app(args...));
+      }
 
     private:
-      qtnh::tidx_tup dims;  ///< Dimensions of each element of the indexing. 
-      qtnh::tifl_tup ifls;  ///< Flags of each element of the indexing. 
-  };  
+      qtnh::tidx_tup dims_;
+      std::vector<TIFlag> ifls_;
+      std::vector<std::size_t> maps_;
+
+      static TIndexing _app(const TIndexing& ti1, const TIndexing& ti2);
+  };
 }
 
 #endif

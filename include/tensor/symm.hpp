@@ -1,7 +1,7 @@
 #ifndef _TENSOR_NEW__SYMM_HPP
 #define _TENSOR_NEW__SYMM_HPP
 
-#include "tensor-new/dense.hpp"
+#include "tensor/dense.hpp"
 
 namespace qtnh {
   class SymmTensorBase;
@@ -44,53 +44,47 @@ namespace qtnh {
         return utils::concat_dims(disOutDims(), locOutDims());
       }
 
-      /// @brief Convert any derived tensor to writable symmetric tensor
-      /// @param tu Unique pointer to derived symmetric tensor to convert. 
-      /// @return Unique pointer to an equivalent writable symmetric tensor. 
-      static std::unique_ptr<SymmTensor> toSymm(std::unique_ptr<SymmTensorBase> tu) {
-        return std::unique_ptr<SymmTensor>(tu->toSymm());
-      }
-
     protected:
       /// @brief Construct empty tensor with given local and distributed dimensions within environment with default distribution parameters. 
       /// @param env Environment to use for construction. 
       /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
       /// @param n_dis_in_dims Number of distributed input dimensions
-      SymmTensorBase(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims);
+      SymmTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims);
       /// @brief Construct empty tensor with given local and distributed dimensions within environment with given distribution parameters. 
       /// @param env Environment to use for construction. 
       /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
       /// @param n_dis_in_dims Number of distributed input dimensions
       /// @param params Distribution parameters of the tensor (str, cyc, off)
-      SymmTensorBase(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, BcParams params);
+      SymmTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims, BcParams params);
+
+      virtual bool isSymm() const noexcept override { return true; }
 
       /// @brief Convert any derived tensor to writable symmetric tensor
       /// @return Pointer to an equivalent writable symmetric tensor. 
-      virtual SymmTensor* toSymm();
+      virtual SymmTensor* toSymm() noexcept override;
 
       /// @brief Swap input/output indices on current tensor. 
       /// @param idx1 First index to swap. 
       /// @param idx2 Second index to swap. 
       /// @param io Tensor index input/output label to indicate which indices to swap. 
       /// @return Pointer to swapped tensor, which might be of a different derived type. 
-      virtual Tensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2, TIdxIO io) {
-        return toSymm()->swap(idx1, idx2, io);
-      }
+      virtual Tensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2, TIdxIO io);
       /// @brief Re-broadcast current tensor. 
       /// @param params Broadcast parameters of the tensor (str, cyc, off)
       /// @return Pointer to re-broadcasted tensor, which might be of a different derived type. 
-      virtual Tensor* rebcast(BcParams params) override {
-        return toSymm()->rebcast(params);
-      }
+      virtual Tensor* rebcast(BcParams params) override;
       /// @brief Shift the border between input/output shared and distributed dimensions by a given offset. 
       /// @param offset New offset between distributed and local dimensions – negative gathers, while positive scatters. 
       /// @param io Tensor index input/output label to indicate which indices to scatter. 
       /// @return Pointer to re-scattered tensor, which might be of a different derived type. 
-      virtual Tensor* rescatter(int offset, TIdxIO io) {
-        return toSymm()->rescatter(offset, io);
-      }
+      virtual Tensor* rescatter(int offset, TIdxIO io);
+      /// @brief Permute tensor input/output indices according to mappings in the permutation tuple. 
+      /// @param ptup Permutation tuple of the same size as total dimensions, and each entry unique. 
+      /// @param io Tensor index input/output label to indicate which indices to scatter. 
+      /// @return Pointer to permuted tensor, which might be of a different derived type. 
+      virtual Tensor* permute(std::vector<qtnh::tidx_tup_st> ptup, TIdxIO io);
 
       qtnh::tidx_tup_st n_dis_in_dims_;  ///< Number of distributed input dimensions. 
   };
@@ -104,21 +98,33 @@ namespace qtnh {
       SymmTensor(const SymmTensor&) = delete;
       ~SymmTensor() = default;
 
-      /// @brief Construct empty tensor with given local and distributed dimensions within environment with default distribution parameters. 
+      /// @brief Construct symmetric tensor with default distribution parameters and transfer its ownership. 
       /// @param env Environment to use for construction. 
-      /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
-      /// @param n_dis_in_dims Number of distributed input dimensions
+      /// @param loc_dims Local index dimensions. 
+      /// @param n_dis_in_dims Number of distributed input dimensions. 
       /// @param els Complex vector of local elements. 
-      SymmTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, std::vector<qtnh::tel>&& els);
-      /// @brief Construct empty tensor with given local and distributed dimensions within environment with given distribution parameters. 
+      /// @return Ownership of unique pointer to created tensor.
+      static std::unique_ptr<SymmTensor> make(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims, std::vector<qtnh::tel>&& els) {
+        return std::unique_ptr<SymmTensor>(new SymmTensor(env, dis_dims, loc_dims, n_dis_in_dims, std::move(els)));
+      }
+      /// @brief Construct symmetric tensor and transfer its ownership. 
       /// @param env Environment to use for construction. 
-      /// @param loc_dims Local index dimensions. 
       /// @param dis_dims Distributed index dimensions. 
-      /// @param n_dis_in_dims Number of distributed input dimensions
+      /// @param loc_dims Local index dimensions. 
+      /// @param n_dis_in_dims Number of distributed input dimensions. 
       /// @param els Complex vector of local elements. 
-      /// @param params Distribution parameters of the tensor (str, cyc, off)
-      SymmTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, std::vector<qtnh::tel>&& els, BcParams params);
+      /// @param params Distribution parameters (str, cyc, off). 
+      /// @return Ownership of unique pointer to created tensor.
+      static std::unique_ptr<SymmTensor> make(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims, std::vector<qtnh::tel>&& els, BcParams params) {
+        return std::unique_ptr<SymmTensor>(new SymmTensor(env, dis_dims, loc_dims, n_dis_in_dims, std::move(els), params));
+      }
+
+      /// @brief Create a copy of the tensor. 
+      /// @return Tptr to duplicated tensor. 
+      /// 
+      /// Overuse may cause memory shortage. 
+      virtual std::unique_ptr<Tensor> copy() const noexcept override;
 
       virtual TT type() const noexcept override { return TT::symmTensor; }
 
@@ -178,8 +184,24 @@ namespace qtnh {
       void put(qtnh::tidx_tup tot_idxs, qtnh::tel el);
 
     protected:
-      /// @brief Convert any derived tensor to symmetric tensor
-      /// @return Symmetric tensor equivalent to calling tensor
+      /// @brief Construct symmetric tensor with default distribution parameters. 
+      /// @param env Environment to use for construction. 
+      /// @param dis_dims Distributed index dimensions. 
+      /// @param loc_dims Local index dimensions. 
+      /// @param n_dis_in_dims Number of distributed input dimensions
+      /// @param els Complex vector of local elements. 
+      SymmTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims, std::vector<qtnh::tel>&& els);
+      /// @brief Construct symmetric tensor. 
+      /// @param env Environment to use for construction. 
+      /// @param dis_dims Distributed index dimensions. 
+      /// @param loc_dims Local index dimensions. 
+      /// @param n_dis_in_dims Number of distributed input dimensions. 
+      /// @param els Complex vector of local elements. 
+      /// @param params Distribution parameters (str, cyc, off). 
+      SymmTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims, std::vector<qtnh::tel>&& els, BcParams params);
+
+      /// @brief Convert any derived tensor to symmetric tensor. 
+      /// @return Symmetric tensor equivalent to calling tensor. 
       virtual SymmTensor* toSymm() noexcept override { return this; }
 
       /// @brief Swap input/output indices on current tensor. 
@@ -197,6 +219,11 @@ namespace qtnh {
       /// @param io Tensor index input/output label to indicate which indices to scatter. 
       /// @return Pointer to re-scattered tensor, which might be of a different derived type. 
       virtual SymmTensor* rescatter(int offset, TIdxIO io) override;
+      /// @brief Permute tensor input/output indices according to mappings in the permutation tuple. 
+      /// @param ptup Permutation tuple of the same size as total dimensions, and each entry unique. 
+      /// @param io Tensor index input/output label to indicate which indices to scatter. 
+      /// @return Pointer to permuted tensor, which might be of a different derived type. 
+      virtual SymmTensor* permute(std::vector<qtnh::tidx_tup_st> ptup, TIdxIO io) override;
   };
 
   /// Rank 4 symmetric swap tensor for swapping two indices with dimension n. The swap tensor must have dimensions (n, n, n, n). 
@@ -206,17 +233,29 @@ namespace qtnh {
       SwapTensor(const SymmTensor&) = delete;
       ~SwapTensor() = default;
 
-      /// @brief Construct rank 4 swap tensor with given single index size within environment with default distribution parameters. 
+      /// @brief Construct swap tensor with default distribution parameters and transfer its ownership. 
       /// @param env Environment to use for construction. 
       /// @param n Dimension of swapped indices (both are expected to have the same size). 
       /// @param d Number of distributed input/output dimensions (can be either 0, 1 or 2), assuming input/output distribution is the same. 
-      SwapTensor(const QTNHEnv& env, std::size_t n, std::size_t d);
-      /// @brief Construct rank 4 swap tensor with given index size within environment with given distribution parameters. 
+      /// @return Ownership of unique pointer to created tensor. 
+      static std::unique_ptr<SwapTensor> make(const QTNHEnv& env, std::size_t n, std::size_t d) {
+        return std::unique_ptr<SwapTensor>(new SwapTensor(env, n, d));
+      }
+      /// @brief Construct swap tensor and transfer its ownership. 
       /// @param env Environment to use for construction. 
       /// @param n Dimension of swapped indices (both are expected to have the same size). 
       /// @param d Number of distributed input/output dimensions (can be either 0, 1 or 2), assuming input/output distribution is the same. 
-      /// @param params Distribution parameters of the tensor (str, cyc, off). 
-      SwapTensor(const QTNHEnv& env, std::size_t n, std::size_t d, BcParams params);
+      /// @param params Distribution parameters (str, cyc, off). 
+      /// @return Ownership of unique pointer to created tensor.
+      static std::unique_ptr<SwapTensor> make(const QTNHEnv& env, std::size_t n, std::size_t d, BcParams params) {
+        return std::unique_ptr<SwapTensor>(new SwapTensor(env, n, d, params));
+      }
+
+      /// @brief Create a copy of the tensor. 
+      /// @return Tptr to duplicated tensor. 
+      /// 
+      /// Overuse may cause memory shortage. 
+      virtual std::unique_ptr<Tensor> copy() const noexcept override;
 
       virtual TT type() const noexcept override { return TT::swapTensor; }
 
@@ -247,6 +286,18 @@ namespace qtnh {
       virtual qtnh::tel at(qtnh::tidx_tup tot_idxs) const override;
 
     protected:
+      /// @brief Construct rank 4 swap tensor with given single index size within environment with default distribution parameters. 
+      /// @param env Environment to use for construction. 
+      /// @param n Dimension of swapped indices (both are expected to have the same size). 
+      /// @param d Number of distributed input/output dimensions (can be either 0, 1 or 2), assuming input/output distribution is the same. 
+      SwapTensor(const QTNHEnv& env, std::size_t n, std::size_t d);
+      /// @brief Construct rank 4 swap tensor with given index size within environment with given distribution parameters. 
+      /// @param env Environment to use for construction. 
+      /// @param n Dimension of swapped indices (both are expected to have the same size). 
+      /// @param d Number of distributed input/output dimensions (can be either 0, 1 or 2), assuming input/output distribution is the same. 
+      /// @param params Distribution parameters of the tensor (str, cyc, off). 
+      SwapTensor(const QTNHEnv& env, std::size_t n, std::size_t d, BcParams params);
+
       /// @brief Re-broadcast current tensor. 
       /// @param params Broadcast parameters of the tensor (str, cyc, off)
       /// @return Pointer to re-broadcasted tensor, which might be of a different derived type. 

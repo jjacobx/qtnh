@@ -6,7 +6,7 @@
 namespace qtnh {
   namespace utils {
     void throw_unimplemented() { 
-      throw std::runtime_error("Unimplemented funciton!"); 
+      throw std::runtime_error("Unimplemented function!"); 
     }
 
     std::size_t dims_to_size(qtnh::tidx_tup dims) { 

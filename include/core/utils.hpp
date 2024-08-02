@@ -1,6 +1,9 @@
 #ifndef _CORE__UTILS_HPP
 #define _CORE__UTILS_HPP
 
+#include <memory>
+
+#include "tensor/indexing.hpp"
 #include "typedefs.hpp"
 
 namespace qtnh {
@@ -37,6 +40,8 @@ namespace qtnh {
     /// @param n Position of index dimension before which to insert the split. 
     /// @return A pair of tensor index dimensions tuples. 
     std::pair<qtnh::tidx_tup, qtnh::tidx_tup> split_dims(qtnh::tidx_tup dims, qtnh::tidx_tup_st n);
+
+    
     
     /// @brief Invert the direction of tensor cotraction wires. 
     /// @param ws A vector of cotraction wires to invert. 
@@ -49,6 +54,36 @@ namespace qtnh {
     /// @param tol Maximum allowed magnitude of the difference between the elements (default 1E-5). 
     /// @return True if elements are approximately equal and false otherwise. 
     bool equal(qtnh::tel a, qtnh::tel b, double tol = 1E-5);
+
+    template<typename T>
+    std::unique_ptr<T> one_unique(std::unique_ptr<T> u, T* t) {
+      if (u.get() == t) return u;
+      else return std::unique_ptr<T>(t);
+    }
+
+    template<typename T, typename U>
+    std::unique_ptr<T> one_unique(std::unique_ptr<U> u, T* t) {
+      auto p = u.release();
+      if (dynamic_cast<T*>(p) != t) delete p;
+      return std::unique_ptr<T>(t);
+    }
+
+    template <typename T>
+    std::pair<std::vector<T>, std::vector<T>> split_vec(std::vector<T> vec, std::size_t n) {
+      return { std::vector<T>(vec.begin(), vec.begin() + n), std::vector<T>(vec.begin() + n, vec.end()) };
+    }
+  }
+
+  namespace ops {
+    template<typename T>
+    std::ostream& operator<<(std::ostream& out, const std::vector<T>& v) {
+      for (std::size_t i = 0; i < v.size(); ++i) {
+        out << v.at(i);
+        if (i + 1 < v.size()) out << ", ";
+      }
+
+      return out;
+    }
   }
 }
 
