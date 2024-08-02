@@ -106,10 +106,14 @@ namespace qtnh {
           auto it1 = ti1.num("closed", idxs1);
           auto it2 = ti2.num("closed", idxs2);
           while(it1 != it1.end() && it2 != it2.end()) {
+            #ifdef DEBUG
+              std::cout << "t1[" << *it1 << "] * t2[" << *it2 << "]";
+            #endif
+
             el3 += (*t1p)[*(it1++)] * (*t2p)[*(it2++)];
 
             #ifdef DEBUG
-              std::cout << "t1[" << *it1 << "] * t2[" << *it2 << "]";
+              std::cout << " (" << el3 << ") ";
               if (it1 != it1.end() && it2 != it2.end()) std::cout << " + ";
             #endif
           }
