@@ -124,7 +124,7 @@ int main() {
 
   MPI_Barrier(MPI_COMM_WORLD);
   tp6 = Tensor::permute(std::move(tp6), { 1, 0, 2, 3 });
-  std::cout << env.proc_id << " | T6 (permute) = " << *tp6 << "\n";
+  std::cout << env.proc_id << " | T6 (permute 1) = " << *tp6 << "\n";
 
   MPI_Barrier(MPI_COMM_WORLD);
   tp6 = Tensor::permute(std::move(tp6), { 1, 0, 3, 2 });
@@ -135,28 +135,36 @@ int main() {
   std::cout << env.proc_id << " | T6 (normal) = " << *tp6 << "\n";
 
   MPI_Barrier(MPI_COMM_WORLD);
-  tptr tp7 = std::make_unique<SwapTensor>(env, 2, 0);
+  tptr tp7 = SwapTensor::make(env, 2, 0);
   std::cout << env.proc_id << " | T7 = " << *tp7 << "\n";
 
   MPI_Barrier(MPI_COMM_WORLD);
   tptr tp8 = Tensor::contract(std::move(tp6), std::move(tp7), {{ 2, 0 }, { 3, 1 }});
   std::cout << env.proc_id << " | T8 = " << *tp8 << "\n";
 
-  // auto idu = std::make_unique<IdentityTensor>(env, qtnh::tidx_tup{ 2, 2 });
-  // std::cout << env.proc_id << " | ID = " << *idu << "\n";
+  MPI_Barrier(MPI_COMM_WORLD);
+  tptr tpi = IdenTensor::make(env, {}, { 2, 2, 2, 2 }, 0, 0);
+  std::cout << env.proc_id << " | ID = " << *tpi << "\n";
   
-  // auto t10u = Tensor::contract(std::move(t9u), std::move(idu), {{ 3, 0 }, {2, 1}});
-  // std::cout << env.proc_id << " | T10 = " << *t10u << "\n";
+  MPI_Barrier(MPI_COMM_WORLD);
+  tp8 = Tensor::contract(std::move(tp8), std::move(tpi), {{ 2, 1 }, { 3, 0 }});
+  std::cout << env.proc_id << " | T8 (id) = " << *tp8 << "\n";
 
-  // auto cvu = std::make_unique<ConvertTensor>(env, qtnh::tidx_tup{ 2, 2 });
-  // std::cout << env.proc_id << " | CV = " << *cvu << "\n";
+  MPI_Barrier(MPI_COMM_WORLD);
+  tpi = IdenTensor::make(env, { 2 }, { 2 }, 1, 0);
+  std::cout << env.proc_id << " | ID (distributed) = " << *tpi << "\n";
 
-  // auto t11u = Tensor::contract(std::move(t10u), std::move(cvu), {{1, 1}, {0, 0}});
-  // std::cout << env.proc_id << " | T11 = " << *t11u << "\n";
+  MPI_Barrier(MPI_COMM_WORLD);
+  tp8 = Tensor::contract(std::move(tp8), std::move(tpi), {{ 1, 0 }});
+  std::cout << env.proc_id << " | T8 (convert 1) = " << *tp8 << "\n";
 
-  // auto shu = std::make_unique<ConvertTensor>(env, qtnh::tidx_tup{});
-  // auto t12u = Tensor::contract(std::move(t11u), std::move(shu), {});
-  // std::cout << env.proc_id << " | T12 = " << *t12u << "\n";
+  MPI_Barrier(MPI_COMM_WORLD);
+  tp8 = Tensor::rebcast(std::move(tp8), { 1, 1 ,0 });
+  std::cout << env.proc_id << " | T8 (re-bcast) = " << *tp8 << "\n";
+
+  tpi = IdenTensor::make(env, { 2 }, { 2 }, 0, 0);
+  tp8 = Tensor::contract(std::move(tp8), std::move(tpi), {{ 3, 1 }});
+  std::cout << env.proc_id << " | T8 (convert 2) = " << *tp8 << "\n";
 
   return 0;
 }
