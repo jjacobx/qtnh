@@ -3,9 +3,10 @@
 #include <vector>
 
 #include "core/utils.hpp"
+#include "tensor/tensor.hpp"
 #include "tensor/dense.hpp"
-#include "tensor/indexing.hpp"
-#include "tensor/special.hpp"
+#include "tensor/symm.hpp"
+#include "tensor/diag.hpp"
 
 #include "gen/random-tensors.hpp"
 
@@ -15,27 +16,30 @@ using namespace std::complex_literals;
 QTNHEnv ENV;
 
 TEST_CASE("tensor-construction") {
-  SECTION("swap-tensor") {
-    REQUIRE_NOTHROW(std::make_unique<SwapTensor>(ENV, 2, 2));
+  SECTION("dense-tensor") {
+    REQUIRE_NOTHROW(DenseTensor::make(ENV, {}, { 2, 2 }, { 1.0i, 2.0i, 3.0i, 4.0i }));
+    REQUIRE_NOTHROW(DenseTensor::make(ENV, {}, { 2, 2 }, { 1.0i, 2.0i, 3.0i, 4.0i }, { 1, 1, 0 }));
   }
+
+  SECTION("symmetric-tensor") {
+    REQUIRE_NOTHROW(SymmTensor::make(ENV, {}, { 2, 2 }, 0, { 1.0i, 2.0i, 3.0i, 4.0i }));
+    REQUIRE_NOTHROW(SymmTensor::make(ENV, {}, { 2, 2 }, 0, { 1.0i, 2.0i, 3.0i, 4.0i }, { 1, 1, 0 }));
+  }
+
+  SECTION("swap-tensor") {
+    REQUIRE_NOTHROW(SwapTensor::make(ENV, 2, 0));
+    REQUIRE_NOTHROW(SwapTensor::make(ENV, 2, 0, { 1, 1, 0 }));
+  }
+
+  // TODO: Implement diagonal tensors. 
+  // SECTION("diagonal-tensor") {
+  //   REQUIRE_NOTHROW(DiagTensor::make(ENV, {}, { 2, 2 }, 0, { 1.0i, 2.0i, 3.0i, 4.0i }, 0));
+  //   REQUIRE_NOTHROW(DiagTensor::make(ENV, {}, { 2, 2 }, 0, { 1.0i, 2.0i, 3.0i, 4.0i }, 0, { 1, 1, 0 }));
+  // }
 
   SECTION("identity-tensor") {
-    REQUIRE_NOTHROW(std::make_unique<IdentityTensor>(ENV, qtnh::tidx_tup { 2, 2 }));
-  }
-
-  SECTION("convert-tensor") {
-    REQUIRE_NOTHROW(std::make_unique<IdentityTensor>(ENV, qtnh::tidx_tup { 2, 2 }));
-  }
-
-  std::vector<qtnh::tel> els { 1.0i, 2.0i, 3.0i, 4.0i };
-
-  SECTION("shared-dense-tensor") {
-    REQUIRE_NOTHROW(std::make_unique<SDenseTensor>(ENV, qtnh::tidx_tup { 2, 2 }, els));
-    REQUIRE_NOTHROW(std::make_unique<SDenseTensor>(ENV, qtnh::tidx_tup { 2, 2 }, els, false));
-  }
-
-  SECTION("distributed-dense-tensor") {
-    REQUIRE_NOTHROW(std::make_unique<DDenseTensor>(ENV, qtnh::tidx_tup { 2, 2 }, els, 0));
+    REQUIRE_NOTHROW(IdenTensor::make(ENV, {}, { 2, 2 }, 0, 0));
+    REQUIRE_NOTHROW(IdenTensor::make(ENV, {}, { 2, 2 }, 0, 0, { 1, 1, 0 }));
   }
 }
 
