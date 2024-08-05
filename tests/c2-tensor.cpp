@@ -44,135 +44,96 @@ TEST_CASE("tensor-construction") {
 }
 
 TEST_CASE("tensor-accessors") {
-  auto t_swap_u = std::make_unique<SwapTensor>(ENV, 2, 2);
-  auto t_iden_u = std::make_unique<IdentityTensor>(ENV, qtnh::tidx_tup { 2 });
-  auto t_conv_u = std::make_unique<ConvertTensor>(ENV, qtnh::tidx_tup { 2 });
-
-  std::vector<qtnh::tel> els { 1.0i, 2.0i, 3.0i, 4.0i };
-  auto t_sden_u = std::make_unique<SDenseTensor>(ENV, qtnh::tidx_tup { 2, 2 }, els);
-  auto t_dden_u = std::make_unique<DDenseTensor>(ENV, qtnh::tidx_tup { 2, 2 }, els, 0);
+  auto tp_dense = DenseTensor::make(ENV, {}, { 2, 2 }, { 1.0i, 2.0i, 3.0i, 4.0i });
+  auto tp_symm = SymmTensor::make(ENV, {}, { 2, 2 }, 0, { 1.0i, 2.0i, 3.0i, 4.0i });
+  auto tp_swap = SwapTensor::make(ENV, 2, 0);
+  auto tp_iden = IdenTensor::make(ENV, {}, { 2, 2 }, 0, 0);
 
   SECTION("get-dims") {
-    REQUIRE(t_swap_u->getDims() == qtnh::tidx_tup { 2, 2, 2, 2 });
-    REQUIRE(t_iden_u->getDims() == qtnh::tidx_tup { 2, 2 });
-    REQUIRE(t_conv_u->getDims() == qtnh::tidx_tup { 2, 2 });
-    REQUIRE(t_sden_u->getDims() == qtnh::tidx_tup { 2, 2 });
-    REQUIRE(t_dden_u->getDims() == qtnh::tidx_tup { 2, 2 });
+    REQUIRE(tp_dense->totDims() == qtnh::tidx_tup { 2, 2 });
+    REQUIRE(tp_symm->totDims() == qtnh::tidx_tup { 2, 2 });
+    REQUIRE(tp_swap->totDims() == qtnh::tidx_tup { 2, 2, 2, 2 });
+    REQUIRE(tp_iden->totDims() == qtnh::tidx_tup { 2, 2 });
 
-    REQUIRE(t_swap_u->getLocDims() == qtnh::tidx_tup { 2, 2, 2, 2 });
-    REQUIRE(t_iden_u->getLocDims() == qtnh::tidx_tup { 2, 2 });
-    REQUIRE(t_conv_u->getLocDims() == qtnh::tidx_tup { 2, 2 });
-    REQUIRE(t_sden_u->getLocDims() == qtnh::tidx_tup { 2, 2 });
-    REQUIRE(t_dden_u->getLocDims() == qtnh::tidx_tup { 2, 2 });
+    REQUIRE(tp_dense->locDims() == qtnh::tidx_tup { 2, 2 });
+    REQUIRE(tp_symm->locDims() == qtnh::tidx_tup { 2, 2 });
+    REQUIRE(tp_swap->locDims() == qtnh::tidx_tup { 2, 2, 2, 2 });
+    REQUIRE(tp_iden->locDims() == qtnh::tidx_tup { 2, 2 });
 
-    REQUIRE(t_swap_u->getDistDims() == qtnh::tidx_tup {});
-    REQUIRE(t_iden_u->getDistDims() == qtnh::tidx_tup {});
-    REQUIRE(t_conv_u->getDistDims() == qtnh::tidx_tup {});
-    REQUIRE(t_sden_u->getDistDims() == qtnh::tidx_tup {});
-    REQUIRE(t_dden_u->getDistDims() == qtnh::tidx_tup {});
+    REQUIRE(tp_dense->disDims() == qtnh::tidx_tup {});
+    REQUIRE(tp_symm->disDims() == qtnh::tidx_tup {});
+    REQUIRE(tp_swap->disDims() == qtnh::tidx_tup {});
+    REQUIRE(tp_iden->disDims() == qtnh::tidx_tup {});
   }
 
   SECTION("get-size") {
-    REQUIRE(t_swap_u->getSize() == 16);
-    REQUIRE(t_iden_u->getSize() == 4);
-    REQUIRE(t_conv_u->getSize() == 4);
-    REQUIRE(t_sden_u->getSize() == 4);
-    REQUIRE(t_dden_u->getSize() == 4);
+    REQUIRE(tp_dense->totSize() == 4);
+    REQUIRE(tp_symm->totSize() == 4);
+    REQUIRE(tp_swap->totSize() == 16);
+    REQUIRE(tp_iden->totSize() == 4);
 
-    REQUIRE(t_swap_u->getLocSize() == 16);
-    REQUIRE(t_iden_u->getLocSize() == 4);
-    REQUIRE(t_conv_u->getLocSize() == 4);
-    REQUIRE(t_sden_u->getLocSize() == 4);
-    REQUIRE(t_dden_u->getLocSize() == 4);
+    REQUIRE(tp_dense->locSize() == 4);
+    REQUIRE(tp_symm->locSize() == 4);
+    REQUIRE(tp_swap->locSize() == 16);
+    REQUIRE(tp_iden->locSize() == 4);
 
-    REQUIRE(t_swap_u->getDistSize() == 1);
-    REQUIRE(t_iden_u->getDistSize() == 1);
-    REQUIRE(t_conv_u->getDistSize() == 1);
-    REQUIRE(t_sden_u->getDistSize() == 1);
-    REQUIRE(t_dden_u->getDistSize() == 1);
+    REQUIRE(tp_dense->disSize() == 1);
+    REQUIRE(tp_symm->disSize() == 1);
+    REQUIRE(tp_swap->disSize() == 1);
+    REQUIRE(tp_iden->disSize() == 1);
   }
 
-  std::vector<qtnh::tel> t_swap_els { 
+  std::vector<qtnh::tel> els_dense { 
+    1.0i, 2.0i, 
+    3.0i, 4.0i 
+  };
+  std::vector<qtnh::tel> els_symm { 
+    1.0i, 2.0i, 
+    3.0i, 4.0i 
+  };
+  std::vector<qtnh::tel> els_swap { 
     1.0, 0.0, 0.0, 0.0, 
     0.0, 0.0, 1.0, 0.0, 
     0.0, 1.0, 0.0, 0.0, 
     0.0, 0.0, 0.0, 1.0 
   };
-  std::vector<qtnh::tel> t_iden_els { 
+  std::vector<qtnh::tel> els_iden { 
     1.0, 0.0, 
     0.0, 1.0 
-  };
-  std::vector<qtnh::tel> t_conv_els { 
-    1.0, 0.0, 
-    0.0, 1.0 
-  };
-  std::vector<qtnh::tel> t_sden_els { 
-    1.0i, 2.0i, 
-    3.0i, 4.0i 
-  };
-  std::vector<qtnh::tel> t_dden_els { 
-    1.0i, 2.0i, 
-    3.0i, 4.0i 
   };
 
   SECTION("get-element") {
-    TIndexing ti_swap(t_swap_u->getDims());
-    for (auto idxs : ti_swap) {
-      auto el = t_swap_els.at(utils::idxs_to_i(idxs, t_swap_u->getDims()));
-      REQUIRE(t_swap_u->getEl(idxs).value() == el);
-      REQUIRE(t_swap_u->getLocEl(idxs).value() == el);
-      REQUIRE((*t_swap_u)[idxs] == el);
+    TIndexing ti_dense(tp_dense->totDims());
+    for (auto idxs : ti_dense.tup()) {
+      auto el = els_dense.at(utils::idxs_to_i(idxs, tp_dense->totDims()));
+      REQUIRE(tp_dense->at(idxs) == el);
     }
 
-    TIndexing ti_iden(t_iden_u->getDims());
-    for (auto idxs : ti_iden) {
-      auto el = t_iden_els.at(utils::idxs_to_i(idxs, t_iden_u->getDims()));
-      REQUIRE(t_iden_u->getEl(idxs).value() == el);
-      REQUIRE(t_iden_u->getLocEl(idxs).value() == el);
-      REQUIRE((*t_iden_u)[idxs] == el);
+    TIndexing ti_symm(tp_symm->totDims());
+    for (auto idxs : ti_symm.tup()) {
+      auto el = els_symm.at(utils::idxs_to_i(idxs, tp_symm->totDims()));
+      REQUIRE(tp_symm->at(idxs) == el);
     }
 
-    TIndexing ti_conv(t_conv_u->getDims());
-    for (auto idxs : ti_conv) {
-      auto el = t_conv_els.at(utils::idxs_to_i(idxs, t_conv_u->getDims()));
-      REQUIRE(t_conv_u->getEl(idxs).value() == el);
-      REQUIRE(t_conv_u->getLocEl(idxs).value() == el);
-      REQUIRE((*t_conv_u)[idxs] == el);
+    TIndexing ti_swap(tp_swap->totDims());
+    for (auto idxs : ti_swap.tup()) {
+      auto el = els_swap.at(utils::idxs_to_i(idxs, tp_swap->totDims()));
+      REQUIRE(tp_swap->at(idxs) == el);
     }
 
-    TIndexing ti_sden(t_sden_u->getDims());
-    for (auto idxs : ti_sden) {
-      auto el = t_sden_els.at(utils::idxs_to_i(idxs, t_sden_u->getDims()));
-      REQUIRE(t_sden_u->getEl(idxs).value() == el);
-      REQUIRE(t_sden_u->getLocEl(idxs).value() == el);
-      REQUIRE((*t_sden_u)[idxs] == el);
-    }
-
-    TIndexing ti_dden(t_dden_u->getDims());
-    for (auto idxs : ti_dden) {
-      auto el = t_dden_els.at(utils::idxs_to_i(idxs, t_dden_u->getDims()));
-      REQUIRE(t_dden_u->getEl(idxs).value() == el);
-      REQUIRE(t_dden_u->getLocEl(idxs).value() == el);
-      REQUIRE((*t_dden_u)[idxs] == el);
+    TIndexing ti_iden(tp_iden->totDims());
+    for (auto idxs : ti_iden.tup()) {
+      auto el = els_iden.at(utils::idxs_to_i(idxs, tp_iden->totDims()));
+      REQUIRE(tp_iden->at(idxs) == el);
     }
   }
 
   SECTION("set-element") {
-    REQUIRE_NOTHROW(t_sden_u->setEl({ 0, 0 }, 0.1i));
-    REQUIRE_NOTHROW(t_sden_u->setLocEl({ 0, 1 }, 0.2i));
-    REQUIRE_NOTHROW((*t_sden_u)[{ 1, 0 }] = 0.3i);
+    REQUIRE_NOTHROW(tp_dense->at({ 0, 0 }) = 0.1i);
+    REQUIRE(tp_dense->at({ 0, 0 }) == 0.1i);
 
-    REQUIRE(t_sden_u->getEl({ 0, 0 }) == 0.1i);
-    REQUIRE(t_sden_u->getLocEl({ 0, 1 }) == 0.2i);
-    REQUIRE((*t_sden_u)[{ 1, 0 }] == 0.3i);
-
-    REQUIRE_NOTHROW(t_dden_u->setEl({ 0, 0 }, 0.1i));
-    REQUIRE_NOTHROW(t_dden_u->setLocEl({ 0, 1 }, 0.2i));
-    REQUIRE_NOTHROW((*t_dden_u)[{ 1, 0 }] = 0.3i);
-
-    REQUIRE(t_dden_u->getEl({ 0, 0 }) == 0.1i);
-    REQUIRE(t_dden_u->getLocEl({ 0, 1 }) == 0.2i);
-    REQUIRE((*t_dden_u)[{ 1, 0 }] == 0.3i);
+    REQUIRE_NOTHROW(tp_symm->at({ 0, 0 }) = 0.1i);
+    REQUIRE(tp_symm->at({ 0, 0 }) == 0.1i);
   }
 }
 
