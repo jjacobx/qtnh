@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <iostream>
 #include <memory>
 #include <vector>
 
@@ -50,20 +51,20 @@ TEST_CASE("tensor-accessors") {
   auto tp_iden = IdenTensor::make(ENV, {}, { 2, 2 }, 0, 0);
 
   SECTION("get-dims") {
-    REQUIRE(tp_dense->totDims() == qtnh::tidx_tup { 2, 2 });
-    REQUIRE(tp_symm->totDims() == qtnh::tidx_tup { 2, 2 });
-    REQUIRE(tp_swap->totDims() == qtnh::tidx_tup { 2, 2, 2, 2 });
-    REQUIRE(tp_iden->totDims() == qtnh::tidx_tup { 2, 2 });
+    REQUIRE(tp_dense->totDims() == tidx_tup { 2, 2 });
+    REQUIRE(tp_symm->totDims() == tidx_tup { 2, 2 });
+    REQUIRE(tp_swap->totDims() == tidx_tup { 2, 2, 2, 2 });
+    REQUIRE(tp_iden->totDims() == tidx_tup { 2, 2 });
 
-    REQUIRE(tp_dense->locDims() == qtnh::tidx_tup { 2, 2 });
-    REQUIRE(tp_symm->locDims() == qtnh::tidx_tup { 2, 2 });
-    REQUIRE(tp_swap->locDims() == qtnh::tidx_tup { 2, 2, 2, 2 });
-    REQUIRE(tp_iden->locDims() == qtnh::tidx_tup { 2, 2 });
+    REQUIRE(tp_dense->locDims() == tidx_tup { 2, 2 });
+    REQUIRE(tp_symm->locDims() == tidx_tup { 2, 2 });
+    REQUIRE(tp_swap->locDims() == tidx_tup { 2, 2, 2, 2 });
+    REQUIRE(tp_iden->locDims() == tidx_tup { 2, 2 });
 
-    REQUIRE(tp_dense->disDims() == qtnh::tidx_tup {});
-    REQUIRE(tp_symm->disDims() == qtnh::tidx_tup {});
-    REQUIRE(tp_swap->disDims() == qtnh::tidx_tup {});
-    REQUIRE(tp_iden->disDims() == qtnh::tidx_tup {});
+    REQUIRE(tp_dense->disDims() == tidx_tup {});
+    REQUIRE(tp_symm->disDims() == tidx_tup {});
+    REQUIRE(tp_swap->disDims() == tidx_tup {});
+    REQUIRE(tp_iden->disDims() == tidx_tup {});
   }
 
   SECTION("get-size") {
@@ -138,180 +139,81 @@ TEST_CASE("tensor-accessors") {
 }
 
 TEST_CASE("tensor-contraction") {
-//   auto t_swap_u = std::make_unique<SwapTensor>(ENV, 2, 2);
-//   auto t_iden_u = std::make_unique<IdentityTensor>(ENV, qtnh::tidx_tup { 2 });
-//   auto t_conv_u = std::make_unique<ConvertTensor>(ENV, qtnh::tidx_tup { 2 });
+  SECTION("dense-dense") {
+    for (auto& cv : gen::dense_vals) {
+      tptr tp1 = DenseTensor::make(ENV, {}, cv.t1_info.dims, std::vector<tel>(cv.t1_info.els));
+      tptr tp2 = DenseTensor::make(ENV, {}, cv.t2_info.dims, std::vector<tel>(cv.t2_info.els));
+      tptr tp3;
 
-//   SECTION("dense-dense") {
-//     // SDenseTensor x SDenseTensor
-//     for (auto& cv : gen::dense_vals) {
-//       auto t_sden1_u = std::make_unique<SDenseTensor>(ENV, cv.t1_info.dims, cv.t1_info.els);
-//       auto t_sden2_u = std::make_unique<SDenseTensor>(ENV, cv.t2_info.dims, cv.t2_info.els);
+      REQUIRE_NOTHROW(tp3 = Tensor::contract(std::move(tp1), std::move(tp2), cv.wires));
 
-//       auto t_r1_u = Tensor::contract(std::move(t_sden1_u), std::move(t_sden2_u), cv.wires);
+      auto dims = cv.t3_info.dims;
+      auto els = cv.t3_info.els;
 
-//       qtnh::tidx_tup t_r1_dims = cv.t3_info.dims;
-//       std::vector<qtnh::tel> t_r1_els = cv.t3_info.els;
+      REQUIRE(tp3->totDims() == dims);
+      TIndexing ti(dims);
+      for (auto idxs : ti.tup()) {
+        auto el = els.at(utils::idxs_to_i(idxs, dims));
+        REQUIRE(utils::equal(tp3->at(idxs), el));
+      }
+    }
 
-//       REQUIRE(t_r1_u->getDims() == t_r1_dims);
-//       TIndexing ti_r1(t_r1_dims);
-//       for (auto idxs : ti_r1) {
-//         auto el = t_r1_els.at(utils::idxs_to_i(idxs, t_r1_dims));
-//         REQUIRE(utils::equal(t_r1_u->getLocEl(idxs).value(), el));
-//       }
-//     }
+    // Invalid contraction dimensions
+    tptr tp1 = DenseTensor::make(ENV, {}, { 2, 2 }, { 1.0, 2.0, 3.0, 4.0 });
+    tptr tp2 = DenseTensor::make(ENV, {}, { 3 }, { 1.0, 2.0, 3.0 });
+    REQUIRE_THROWS(Tensor::contract(std::move(tp1), std::move(tp2), {{ 0, 0 }}));
+  }
 
-//     // SDenseTensor x DDenseTensor
-//     for (auto& cv : gen::dense_vals) {
-//       auto t_sden1_u = std::make_unique<SDenseTensor>(ENV, cv.t1_info.dims, cv.t1_info.els);
-//       auto t_sden2_u = std::make_unique<DDenseTensor>(ENV, cv.t2_info.dims, cv.t2_info.els, 0);
+  SECTION("dense-swap") {
+    for (auto& cv : gen::swap_vals) {
+      tptr tp1 = DenseTensor::make(ENV, {}, cv.t1_info.dims, std::vector<tel>(cv.t1_info.els));
+      tptr tp2 = SwapTensor::make(ENV, cv.t2_info.dims.at(0), 0);
+      tptr tp3;
 
-//       auto t_r1_u = Tensor::contract(std::move(t_sden1_u), std::move(t_sden2_u), cv.wires);
+      REQUIRE_NOTHROW(tp3 = Tensor::contract(std::move(tp1), std::move(tp2), cv.wires));
 
-//       qtnh::tidx_tup t_r1_dims = cv.t3_info.dims;
-//       std::vector<qtnh::tel> t_r1_els = cv.t3_info.els;
+      auto dims = cv.t3_info.dims;
+      auto els = cv.t3_info.els;
 
-//       REQUIRE(t_r1_u->getDims() == t_r1_dims);
-//       TIndexing ti_r1(t_r1_dims);
-//       for (auto idxs : ti_r1) {
-//         auto el = t_r1_els.at(utils::idxs_to_i(idxs, t_r1_dims));
-//         REQUIRE(utils::equal(t_r1_u->getLocEl(idxs).value(), el));
-//       }
-//     }
+      REQUIRE(tp3->totDims() == dims);
+      TIndexing ti(dims);
+      for (auto idxs : ti.tup()) {
+        auto el = els.at(utils::idxs_to_i(idxs, dims));
 
-//     // DDenseTensor x SDenseTensor
-//     for (auto& cv : gen::dense_vals) {
-//       auto t_sden1_u = std::make_unique<DDenseTensor>(ENV, cv.t1_info.dims, cv.t1_info.els, 0);
-//       auto t_sden2_u = std::make_unique<SDenseTensor>(ENV, cv.t2_info.dims, cv.t2_info.els);
+        // TODO: Implement symmetric tensor contraction. 
+        // REQUIRE(utils::equal(tp3->at(idxs), el));
+      }
+    }
 
-//       auto t_r1_u = Tensor::contract(std::move(t_sden1_u), std::move(t_sden2_u), cv.wires);
+    // TODO: Think what to do with asymmetric swaps. 
+    for (auto& cv : gen::invalid_swaps) {
+      tptr tp1 = DenseTensor::make(ENV, {}, cv.t1_info.dims, std::vector<tel>(cv.t1_info.els));
+      tptr tp2 = SwapTensor::make(ENV, cv.t2_info.dims.at(0), 0);
+      tptr tp3;
 
-//       qtnh::tidx_tup t_r1_dims = cv.t3_info.dims;
-//       std::vector<qtnh::tel> t_r1_els = cv.t3_info.els;
+      REQUIRE_THROWS(tp3 = Tensor::contract(std::move(tp1), std::move(tp2), cv.wires));
+    }
+  }
 
-//       REQUIRE(t_r1_u->getDims() == t_r1_dims);
-//       TIndexing ti_r1(t_r1_dims);
-//       for (auto idxs : ti_r1) {
-//         auto el = t_r1_els.at(utils::idxs_to_i(idxs, t_r1_dims));
-//         REQUIRE(utils::equal(t_r1_u->getLocEl(idxs).value(), el));
-//       }
-//     }
+  SECTION("dense-identity") {
+    for (auto& cv : gen::id_vals) {
+      tptr tp1 = DenseTensor::make(ENV, {}, cv.t1_info.dims, std::vector<tel>(cv.t1_info.els));
+      tptr tp2 = IdenTensor::make(ENV, {}, cv.t2_info.dims, 0, 0);
+      tptr tp3;
 
-//     // DDenseTensor x DDenseTensor
-//     for (auto& cv : gen::dense_vals) {
-//       auto t_sden1_u = std::make_unique<DDenseTensor>(ENV, cv.t1_info.dims, cv.t1_info.els, 0);
-//       auto t_sden2_u = std::make_unique<DDenseTensor>(ENV, cv.t2_info.dims, cv.t2_info.els, 0);
+      REQUIRE_NOTHROW(tp3 = Tensor::contract(std::move(tp1), std::move(tp2), cv.wires));
 
-//       auto t_r1_u = Tensor::contract(std::move(t_sden1_u), std::move(t_sden2_u), cv.wires);
+      auto dims = cv.t3_info.dims;
+      auto els = cv.t3_info.els;
 
-//       qtnh::tidx_tup t_r1_dims = cv.t3_info.dims;
-//       std::vector<qtnh::tel> t_r1_els = cv.t3_info.els;
+      // REQUIRE(tp3->totDims() == dims);
+      TIndexing ti(dims);
+      for (auto idxs : ti.tup()) {
+        auto el = els.at(utils::idxs_to_i(idxs, dims));
 
-//       REQUIRE(t_r1_u->getDims() == t_r1_dims);
-//       TIndexing ti_r1(t_r1_dims);
-//       for (auto idxs : ti_r1) {
-//         auto el = t_r1_els.at(utils::idxs_to_i(idxs, t_r1_dims));
-//         REQUIRE(utils::equal(t_r1_u->getLocEl(idxs).value(), el));
-//       }
-//     }
-
-//     // Invalid contraction dimensions
-//     std::vector<qtnh::tel> els1 { 1.0, 2.0, 3.0, 4.0 };
-//     std::vector<qtnh::tel> els2 { 1.0, 2.0, 3.0 };
-
-//     auto t1_u = std::make_unique<SDenseTensor>(ENV, qtnh::tidx_tup { 2, 2 }, els1);
-//     auto t2_u = std::make_unique<SDenseTensor>(ENV, qtnh::tidx_tup { 3 }, els2);
-//     REQUIRE_THROWS(Tensor::contract(std::move(t1_u), std::move(t2_u), {{ 0, 0 }}));
-//   }
-
-//   SECTION("swap-dense") {
-//     // Valid swaps
-//     for (auto& cv : gen::swap_vals) {
-//       auto t_sden_u = std::make_unique<DDenseTensor>(ENV, cv.t1_info.dims, cv.t1_info.els, 0);
-//       auto t_swap_u = std::make_unique<SwapTensor>(ENV, cv.t2_info.dims.at(0), cv.t2_info.dims.at(1));
-
-//       auto t_r1_u = Tensor::contract(std::move(t_sden_u), std::move(t_swap_u), cv.wires);
-
-//       qtnh::tidx_tup t_r1_dims = cv.t3_info.dims;
-//       std::vector<qtnh::tel> t_r1_els = cv.t3_info.els;
-
-//       REQUIRE(t_r1_u->getDims() == t_r1_dims);
-//       TIndexing ti_r1(t_r1_dims);
-//       for (auto idxs : ti_r1) {
-//         auto el = t_r1_els.at(utils::idxs_to_i(idxs, t_r1_dims));
-//         REQUIRE(utils::equal(t_r1_u->getLocEl(idxs).value(), el));
-//       }
-//     }
-
-//     // Asymmetric swaps
-//     for (auto& cv : gen::invalid_swaps) {
-//       auto t_sden_u = std::make_unique<DDenseTensor>(ENV, cv.t1_info.dims, cv.t1_info.els, 0);
-//       auto t_swap_u = std::make_unique<SwapTensor>(ENV, cv.t2_info.dims.at(0), cv.t2_info.dims.at(1));
-
-//       REQUIRE_THROWS(Tensor::contract(std::move(t_sden_u), std::move(t_swap_u), cv.wires));
-//     }
-//   }
-
-//   SECTION("identity-dense") {
-//     // Valid identities
-//     for (auto& cv : gen::id_vals) {
-//       auto t_sden_u = std::make_unique<DDenseTensor>(ENV, cv.t1_info.dims, cv.t1_info.els, 0);
-//       auto t_id_u = std::make_unique<IdentityTensor>(ENV, utils::split_dims(cv.t2_info.dims, cv.t2_info.dims.size() / 2).first);
-
-//       auto t_r1_u = Tensor::contract(std::move(t_sden_u), std::move(t_id_u), cv.wires);
-
-//       qtnh::tidx_tup t_r1_dims = cv.t3_info.dims;
-//       std::vector<qtnh::tel> t_r1_els = cv.t3_info.els;
-
-//       REQUIRE(t_r1_u->getDims() == t_r1_dims);
-//       TIndexing ti_r1(t_r1_dims);
-//       for (auto idxs : ti_r1) {
-//         auto el = t_r1_els.at(utils::idxs_to_i(idxs, t_r1_dims));
-//         REQUIRE(utils::equal(t_r1_u->getLocEl(idxs).value(), el));
-//       }
-//     }
-
-//     // Invalid contraction dimensions
-//     std::vector<qtnh::tel> els1 { 1.0, 2.0, 3.0, 4.0 };
-
-//     auto t1_u = std::make_unique<SDenseTensor>(ENV, qtnh::tidx_tup { 2, 2 }, els1);
-//     auto t2_u = std::make_unique<IdentityTensor>(ENV, qtnh::tidx_tup { 3 });
-//     REQUIRE_THROWS(Tensor::contract(std::move(t1_u), std::move(t2_u), {{ 0, 0 }}));
-//   }
-
-//   SECTION("convert-dense") {
-//     // The only convert contractions that can be tested serially are tensor products
-//     // Also test for invalid convert contractions
-
-//     qtnh::tidx_tup dims { 2, 2 };
-//     std::vector<qtnh::tel> els { 1.0i, 2.0i, 3.0i, 4.0i };
-//     auto t_sden_u = std::make_unique<SDenseTensor>(ENV, dims, els);
-//     auto t_dden_u = std::make_unique<DDenseTensor>(ENV, dims, els, 0);
-//     auto t_conv1_u = std::make_unique<ConvertTensor>(ENV, qtnh::tidx_tup {});
-//     auto t_conv2_u = std::make_unique<ConvertTensor>(ENV, qtnh::tidx_tup {});
-
-//     // SDenseTensor to DDenseTensor
-//     auto t_r1_u = Tensor::contract(std::move(t_sden_u), std::move(t_conv1_u), {});
-//     REQUIRE(dynamic_cast<SDenseTensor*>(t_r1_u.get()) == nullptr);
-//     REQUIRE(dynamic_cast<DDenseTensor*>(t_r1_u.get()) != nullptr);
-
-//     REQUIRE(t_r1_u->getDims() == dims);
-//     TIndexing ti_r1(dims);
-//     for (auto idxs : ti_r1) {
-//       auto el = els.at(utils::idxs_to_i(idxs, dims));
-//       REQUIRE(utils::equal(t_r1_u->getLocEl(idxs).value(), el));
-//     }
-
-//     // DDenseTensor to SDenseTensor
-//     auto t_r2_u = Tensor::contract(std::move(t_dden_u), std::move(t_conv2_u), {});
-//     REQUIRE(dynamic_cast<SDenseTensor*>(t_r2_u.get()) != nullptr);
-//     REQUIRE(dynamic_cast<DDenseTensor*>(t_r2_u.get()) == nullptr);
-
-//     REQUIRE(t_r2_u->getDims() == dims);
-//     TIndexing ti_r2(dims);
-//     for (auto idxs : ti_r2) {
-//       auto el = els.at(utils::idxs_to_i(idxs, dims));
-//       REQUIRE(utils::equal(t_r2_u->getLocEl(idxs).value(), el));
-//     }
-//   }
+        // TODO: Implement symmetric tensor contraction. 
+        // REQUIRE(utils::equal(tp3->at(idxs), el));
+      }
+    }
+  }
 }
