@@ -43,9 +43,9 @@ namespace qtnh {
 
     
     
-    /// @brief Invert the direction of tensor cotraction wires. 
-    /// @param ws A vector of cotraction wires to invert. 
-    /// @return A vector of cotraction wires, where each wire has a reversed direction. 
+    /// @brief Invert the direction of tensor contraction wires. 
+    /// @param ws A vector of contraction wires to invert. 
+    /// @return A vector of contraction wires, where each wire has a reversed direction. 
     std::vector<qtnh::wire> invert_wires(std::vector<qtnh::wire> ws);
 
     /// @brief Compare two complex elements within given tolerance. 
@@ -71,6 +71,11 @@ namespace qtnh {
     template <typename T>
     std::pair<std::vector<T>, std::vector<T>> split_vec(std::vector<T> vec, std::size_t n) {
       return { std::vector<T>(vec.begin(), vec.begin() + n), std::vector<T>(vec.begin() + n, vec.end()) };
+    }
+
+    namespace wirecomp {
+      constexpr bool first(qtnh::wire w1, qtnh::wire w2) { return (w1.first < w2.first); }
+      constexpr bool second(qtnh::wire w1, qtnh::wire w2) { return (w1.second < w2.second); }
     }
   }
 
