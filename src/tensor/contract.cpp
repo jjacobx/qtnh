@@ -87,8 +87,8 @@ namespace qtnh {
       std::vector<qtnh::wire> ws_loc(ws.begin() + ndis_cons, ws.end());
 
       auto ti1_loc_size = ti1.keep("local").dims().size();
-      for (std::size_t i = 0; i < ws_loc.size(); ++i) {
-        ptup_loc.at(ti1_loc_size + i) = ws_loc.at(i).first;
+      for (std::size_t i = 0; (i < ws_loc.size() ) && (ptup_loc.size() > ti1_loc_size); ++i) {
+        ptup_loc.at(ti1_loc_size + i) = ws_loc.at(i).first - ndis1;
         for (std::size_t j = 0; j < ti1_loc_size; ++j) {
           if (ptup_loc.at(j) >= ws_loc.at(i).first) ++ptup_loc.at(j);
         }
@@ -173,9 +173,23 @@ namespace qtnh {
     std::vector<qtnh::tidx_tup_st> ptup3(t3.totDims().size());
     std::iota(ptup3.begin(), ptup3.end(), 0);
     
-    for (std::size_t i = 0; i < ndis_cons; ++i) {
-      ptup3.insert(ptup3.begin() + t3.disDims().size(), dis_dims1.size());
-      ptup3.erase(ptup3.begin() + dis_dims1.size());
+    for (std::size_t i = 1; i <= ndis_cons; ++i) {
+      ptup3.at(ndis1 - i) = t3.disDims().size() - i;
+    }
+    for (auto i = ndis1; i < t3.disDims().size(); ++i) {
+      ptup3.at(i) -= ndis_cons;
+    }
+
+    if (in_place) {
+      std::sort(ws.begin(), ws.end(), utils::wirecomp::second);
+      std::vector<qtnh::wire> ws_dis(ws.begin(), ws.begin() + ndis_cons);
+
+      for (std::size_t i = 0; (i < ws_dis.size()) && (ndis2 - ndis_cons > 0); ++i) {
+        ptup3.at(ndis1 + i) = ws_dis.at(i).first;
+        for (std::size_t j = 0; j < ndis1 - ndis_cons; ++j) {
+          if (ptup3.at(j) >= ws_dis.at(i).first) ++ptup3.at(j);
+        }
+      }
     }
 
     t3._permute_internal(&t3, ptup3);
