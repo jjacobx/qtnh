@@ -44,18 +44,18 @@ target_link_libraries(c2-tensor
 
 catch_discover_tests(c2-tensor)
 
-# add_executable(c2-network
-#   c2-network.cpp
-# )
+add_executable(c2-network
+  c2-network.cpp
+)
 
-# target_compile_features(c2-network
-#   PUBLIC
-#   cxx_std_17
-# )
+target_compile_features(c2-network
+  PUBLIC
+  cxx_std_17
+)
 
-# target_link_libraries(c2-network
-#   Catch2::Catch2WithMain
-#   qtnh
-# )
+target_link_libraries(c2-network
+  Catch2::Catch2WithMain
+  qtnh
+)
 
-# catch_discover_tests(c2-network)
+catch_discover_tests(c2-network)
