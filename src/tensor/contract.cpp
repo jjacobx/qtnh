@@ -1,13 +1,15 @@
+#include <algorithm>
 #include <iostream>
 #include <numeric>
 
 #include "core/utils.hpp"
 #include "tensor/tensor.hpp"
 #include "tensor/dense.hpp"
+#include "tensor/symm.hpp"
 #include "tensor/indexing.hpp"
 
 namespace qtnh {
-  qtnh::tptr _contract_dense(qtnh::tptr t1p, qtnh::tptr t2p, std::vector<qtnh::wire> ws) {
+  qtnh::tptr _contract_dense(qtnh::tptr t1p, qtnh::tptr t2p, std::vector<qtnh::wire> ws, bool in_place = false) {
     auto ndis1 = t1p->disDims().size();
     auto nloc1 = t1p->locDims().size();
     auto ndis2 = t2p->disDims().size();
@@ -18,6 +20,8 @@ namespace qtnh {
     std::vector<qtnh::tidx_tup_st> ptup2(t2p->totDims().size());
     std::iota(ptup1.begin(), ptup1.end(), 0);
     std::iota(ptup2.begin(), ptup2.end(), 0);
+
+    std::sort(ws.begin(), ws.end(), utils::wirecomp::first);
 
     std::size_t ndis_cons = 0;
     for (auto w : ws) {
@@ -70,15 +74,39 @@ namespace qtnh {
       }
     }
 
-    // ! Need to change this later to accommodate different index insertion policies. 
     TIndexing ti1(t1p->totDims(), ifls1);
     TIndexing ti2(t2p->totDims(), ifls2);
+    auto ti3_loc = TIndexing::app(ti1.keep("local"), ti2.keep("local"));
+
+    std::vector<qtnh::tidx_tup_st> ptup_loc(ti3_loc.dims().size());
+    std::iota(ptup_loc.begin(), ptup_loc.end(), 0);
+
+    // TODO: Move this to a separate function. Dense contraction should directly accept permutation tuples. 
+    if (in_place) {
+      std::sort(ws.begin(), ws.end(), utils::wirecomp::second);
+      std::vector<qtnh::wire> ws_loc(ws.begin() + ndis_cons, ws.end());
+
+      auto ti1_loc_size = ti1.keep("local").dims().size();
+      for (std::size_t i = 0; i < ws_loc.size(); ++i) {
+        ptup_loc.at(ti1_loc_size + i) = ws_loc.at(i).first;
+        for (std::size_t j = 0; j < ti1_loc_size; ++j) {
+          if (ptup_loc.at(j) >= ws_loc.at(i).first) ++ptup_loc.at(j);
+        }
+      }
+    }
+
+    qtnh::tidx_tup dims_ti3_loc(ti3_loc.dims().size());
+    std::vector<TIFlag> ifls_ti3_loc(ti3_loc.ifls().size());
+    for (std::size_t i = 0; i < ti3_loc.dims().size(); ++i) {
+      dims_ti3_loc.at(ptup_loc.at(i)) = ti3_loc.dims().at(i);
+      ifls_ti3_loc.at(ptup_loc.at(i)) = { "local", (int)i };
+    }
+
     auto ti3 = TIndexing::app(
       ti1.keep("distributed"), 
       ti1.keep("reduced"), 
       ti2.keep("distributed"), 
-      ti1.keep("local"), 
-      ti2.keep("local")
+      TIndexing(dims_ti3_loc, ifls_ti3_loc)
     );
 
     std::size_t loc_size = 0;
@@ -171,9 +199,13 @@ namespace qtnh {
       }
     }
 
-    tptr result;
-    result = _contract_dense(std::move(t1u), std::move(t2u), ws);
-    
-    return result;
+    if (t2u->cast<SymmTensorBase>() != nullptr) {
+      std::cout << "Symmetric contraction\n";
+      t2u = Tensor::cast<SymmTensorBase>(std::move(t2u));
+      return _contract_dense(std::move(t1u), std::move(t2u), ws, true);
+    }
+
+    std::cout << "Dense contraction\n";
+    return _contract_dense(std::move(t1u), std::move(t2u), ws);
   }
 }
