@@ -14,19 +14,19 @@ target_link_libraries(c2-indexing
 
 catch_discover_tests(c2-indexing)
 
-# add_executable(c2-mpi
-#   c2-mpi.cpp
-# )
+add_executable(c2-mpi
+  c2-mpi.cpp
+)
 
-# target_compile_features(c2-mpi
-#   PUBLIC
-#   cxx_std_17
-# )
+target_compile_features(c2-mpi
+  PUBLIC
+  cxx_std_17
+)
 
-# target_link_libraries(c2-mpi
-#   Catch2::Catch2WithMain
-#   qtnh
-# )
+target_link_libraries(c2-mpi
+  Catch2::Catch2WithMain
+  qtnh
+)
 
 add_executable(c2-tensor
   c2-tensor.cpp
