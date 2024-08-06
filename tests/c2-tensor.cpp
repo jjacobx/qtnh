@@ -179,9 +179,7 @@ TEST_CASE("tensor-contraction") {
       TIndexing ti(dims);
       for (auto idxs : ti.tup()) {
         auto el = els.at(utils::idxs_to_i(idxs, dims));
-
-        // TODO: Implement symmetric tensor contraction. 
-        // REQUIRE(utils::equal(tp3->at(idxs), el));
+        REQUIRE(utils::equal(tp3->at(idxs), el));
       }
     }
 
@@ -206,13 +204,11 @@ TEST_CASE("tensor-contraction") {
       auto dims = cv.t3_info.dims;
       auto els = cv.t3_info.els;
 
-      // REQUIRE(tp3->totDims() == dims);
+      REQUIRE(tp3->totDims() == dims);
       TIndexing ti(dims);
       for (auto idxs : ti.tup()) {
         auto el = els.at(utils::idxs_to_i(idxs, dims));
-
-        // TODO: Implement symmetric tensor contraction. 
-        // REQUIRE(utils::equal(tp3->at(idxs), el));
+        REQUIRE(utils::equal(tp3->at(idxs), el));
       }
     }
   }
