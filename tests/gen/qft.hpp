@@ -51,16 +51,16 @@ namespace gen {
       // Distribute the Hadamard gate if it acts on a distributed qubit. 
       if (i < DQUBITS) {
         tid1 = tn.make<IdenTensor>(env, tidx_tup { 2 }, tidx_tup { 2 }, 1, 0);
-        auto bid1 = tn.addBond(tid1, hid, {{ 1, 0 }}, true);
+        auto bid1 = tn.addBond(tid1, hid, {{ 1, 0 }});
         con_ord.push_back(bid1);
 
         tid2 = tn.make<IdenTensor>(env, tidx_tup { 2 }, tidx_tup { 2 }, 0, 0);
-        auto bid2 = tn.addBond(hid, tid2, {{ 1, 1 }}, true);
+        auto bid2 = tn.addBond(hid, tid2, {{ 1, 1 }});
         con_ord.push_back(bid2);
         idxi2 = 0;
       }
 
-      auto bid = tn.addBond(qid.at(i), tid1, {{ qidxi.at(i), 0 }}, true);
+      auto bid = tn.addBond(qid.at(i), tid1, {{ qidxi.at(i), 0 }});
       con_ord.push_back(bid);
 
       qid.at(i) = tid2; 
@@ -74,57 +74,59 @@ namespace gen {
         
         if (i < DQUBITS) {
           tid1 = tn.make<IdenTensor>(env, tidx_tup { 2 }, tidx_tup { 2 }, 1, 0);
-          auto bid1 = tn.addBond(tid1, cpid, {{ 1, 0 }}, true);
+          auto bid1 = tn.addBond(tid1, cpid, {{ 1, 0 }});
           con_ord.push_back(bid1);
           idxi1 = 0;
 
           tid3 = tn.make<IdenTensor>(env, tidx_tup { 2 }, tidx_tup { 2 }, 0, 0);
-          auto bid2 = tn.addBond(cpid, tid3, {{ 2, 0 }}, true);
+          auto bid2 = tn.addBond(cpid, tid3, {{ 2, 1 }});
           con_ord.push_back(bid2);
-          idxi3 = 1;
+          idxi3 = 0;
         }
 
         if (j < DQUBITS) {
           tid2 = tn.make<IdenTensor>(env, tidx_tup { 2 }, tidx_tup { 2 }, 1, 0);
-          auto bid1 = tn.addBond(tid2, cpid, {{ 1, 1 }}, true);
+          auto bid1 = tn.addBond(tid2, cpid, {{ 1, 1 }});
           con_ord.push_back(bid1);
           idxi2 = 0;
 
           tid4 = tn.make<IdenTensor>(env, tidx_tup { 2 }, tidx_tup { 2 }, 0, 0);
-          auto bid2 = tn.addBond(cpid, tid3, {{ 3, 0 }}, true);
+          auto bid2 = tn.addBond(cpid, tid4, {{ 3, 1 }});
           con_ord.push_back(bid2);
-          idxi4 = 1;
+          idxi4 = 0;
         }
 
-        auto bid1 = tn.addBond(qid.at(i), tid1, {{ qidxi.at(i), idxi1 }}, true);
-        auto bid2 = tn.addBond(qid.at(j), tid2, {{ qidxi.at(j), idxi2 }}, true);
+        auto bid1 = tn.addBond(qid.at(i), tid1, {{ qidxi.at(i), idxi1 }});
+        auto bid2 = tn.addBond(qid.at(j), tid2, {{ qidxi.at(j), idxi2 }});
+        con_ord.push_back(bid1);
+        con_ord.push_back(bid2);
 
         qid.at(i) = tid3; qidxi.at(i) = idxi3;
         qid.at(j) = tid4; qidxi.at(j) = idxi4;
       }
     }
 
-    for (uint i = 0; i < NQUBITS / 2; ++i) {
-      auto j = NQUBITS - i - 1;
-      tidx_tup_st d = 0;
-      auto idxi1 = 0, idxi2 = 1, idxi3 = 2, idxi4 = 3;
+    // for (uint i = 0; i < NQUBITS / 2; ++i) {
+    //   auto j = NQUBITS - i - 1;
+    //   tidx_tup_st d = 0;
+    //   auto idxi1 = 0, idxi2 = 1, idxi3 = 2, idxi4 = 3;
 
-      if (i < DQUBITS) {
-        d = 1;
-        std::swap(idxi2, idxi3);
-      }
-      if (j < DQUBITS) {
-        d = 2;
-      }
+    //   if (i < DQUBITS) {
+    //     d = 1;
+    //     std::swap(idxi2, idxi3);
+    //   }
+    //   if (j < DQUBITS) {
+    //     d = 2;
+    //   }
 
-      auto sid = tn.make<SwapTensor>(env, 2, d);
-      auto bid1 = tn.addBond(qid.at(i), sid, {{ qidxi.at(i), idxi1 }}, true);
-      auto bid2 = tn.addBond(qid.at(j), sid, {{ qidxi.at(j), idxi2 }}, true);
+    //   auto sid = tn.make<SwapTensor>(env, 2, d);
+    //   auto bid1 = tn.addBond(qid.at(i), sid, {{ qidxi.at(i), idxi1 }}, true);
+    //   auto bid2 = tn.addBond(qid.at(j), sid, {{ qidxi.at(j), idxi2 }}, true);
 
-      con_ord.push_back(bid1); con_ord.push_back(bid2);
-      qid.at(i) = qid.at(j) = sid;
-      qidxi.at(i) = idxi3; qidxi.at(j) = idxi4;
-    }
+    //   con_ord.push_back(bid1); con_ord.push_back(bid2);
+    //   qid.at(i) = qid.at(j) = sid;
+    //   qidxi.at(i) = idxi3; qidxi.at(j) = idxi4;
+    // }
 
     return con_ord;
   }
