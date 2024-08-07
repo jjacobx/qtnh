@@ -8,7 +8,7 @@
 #include "qtnh.hpp"
 
 #include "gen/random-tensors.hpp"
-// #include "gen/qft.hpp"
+#include "gen/qft.hpp"
 
 qtnh::QTNHEnv ENV;
 
@@ -237,24 +237,23 @@ TEST_CASE("collectives", "[mpi][4rank]") {
 }
 
 // TODO: Re-implement QFT. 
-// TEST_CASE("qft", "[mpi][4rank]") {
-//   using namespace qtnh;
+TEST_CASE("qft", "[qft][mpi][4rank]") {
+  using namespace qtnh;
 
-//   SECTION("5-qubits") {
-//     TensorNetwork tn;
-//     auto con_ord = gen::qft(ENV, tn, 5, 2);
+  SECTION("5-qubits") {
+    TensorNetwork tn;
+    auto con_ord = gen::qft(ENV, tn, 5, 2);
 
-//     auto id = tn.contractAll(con_ord);
-//     auto tfu = tn.extractTensor(id);
+    auto id = tn.contractAll(con_ord);
+    auto tp = tn.extract(id);
 
-//     auto idxs = utils::i_to_idxs(0, tfu->getLocDims());
+    auto idxs = utils::i_to_idxs(0, tp->totDims());
 
-//     if (ENV.proc_id == 0) {
-//       REQUIRE(utils::equal(tfu->getLocEl(idxs).value(), 1, 1E-4));
-//     } else {
-//       REQUIRE(utils::equal(tfu->getLocEl(idxs).value(), 0, 1E-4));
-//     }
-//   }
+    if (ENV.proc_id == 0) {
+      REQUIRE(utils::equal(tp->at(idxs), 1, 1E-4));
+    }
+  }
+}
 
 //   SECTION("6-qubits") {
 //     TensorNetwork tn;
