@@ -213,13 +213,13 @@ namespace qtnh {
       }
     }
 
-    if (t2u->cast<SymmTensorBase>() != nullptr) {
-      std::cout << "Symmetric contraction\n";
-      t2u = Tensor::cast<SymmTensorBase>(std::move(t2u));
-      return _contract_dense(std::move(t1u), std::move(t2u), ws, true);
-    }
+    // if (t2u->cast<SymmTensorBase>() != nullptr) {
+    //   std::cout << "Symmetric contraction\n";
+    //   t2u = Tensor::cast<SymmTensorBase>(std::move(t2u));
+    //   return _contract_dense(std::move(t1u), std::move(t2u), ws, true);
+    // }
 
-    std::cout << "Dense contraction\n";
+    // std::cout << "Dense contraction\n";
     return _contract_dense(std::move(t1u), std::move(t2u), ws);
   }
 }
