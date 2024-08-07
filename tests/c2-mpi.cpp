@@ -27,6 +27,7 @@ class RootReporter : public Catch::StreamingReporterBase {
     }
 
     void testCaseEnded(Catch::TestCaseStats const& testCaseStats) override {
+      MPI_Barrier(MPI_COMM_WORLD);
       if (ENV.proc_id == 0) {
         std::cout << "Test case ended: " << testCaseStats.testInfo->name << "\n";
         if (testCaseStats.totals.assertions.failed == 0 && testCaseStats.totals.testCases.failed == 0) {
@@ -237,7 +238,7 @@ TEST_CASE("collectives", "[mpi][4rank]") {
 }
 
 // TODO: Re-implement QFT. 
-TEST_CASE("qft", "[qft][mpi][4rank]") {
+TEST_CASE("qft", "[qft][mpi][16rank]") {
   using namespace qtnh;
 
   SECTION("5-qubits") {
@@ -253,59 +254,52 @@ TEST_CASE("qft", "[qft][mpi][4rank]") {
       REQUIRE(utils::equal(tp->at(idxs), 1, 1E-4));
     }
   }
+
+  SECTION("6-qubits") {
+    TensorNetwork tn;
+    auto con_ord = gen::qft(ENV, tn, 6, 2);
+
+    auto id = tn.contractAll(con_ord);
+    auto tp = tn.extract(id);
+
+    auto idxs = utils::i_to_idxs(0, tp->totDims());
+
+    if (ENV.proc_id == 0) {
+      REQUIRE(utils::equal(tp->at(idxs), 1, 1E-4));
+    }
+  }
 }
 
-//   SECTION("6-qubits") {
-//     TensorNetwork tn;
-//     auto con_ord = gen::qft(ENV, tn, 6, 2);
+TEST_CASE("qft", "[mpi][32rank]") {
+  using namespace qtnh;
 
-//     auto id = tn.contractAll(con_ord);
-//     auto tfu = tn.extractTensor(id);
+  SECTION("7-qubits") {
+    TensorNetwork tn;
+    auto con_ord = gen::qft(ENV, tn, 5, 1);
 
-//     auto idxs = utils::i_to_idxs(0, tfu->getLocDims());
+    auto id = tn.contractAll(con_ord);
+    auto tp = tn.extract(id);
 
-//     if (ENV.proc_id == 0) {
-//       REQUIRE(utils::equal(tfu->getLocEl(idxs).value(), 1, 1E-4));
-//     } else {
-//       REQUIRE(utils::equal(tfu->getLocEl(idxs).value(), 0, 1E-4));
-//     }
-//   }
-// }
+    auto idxs = utils::i_to_idxs(0, tp->totDims());
 
-// TEST_CASE("qft", "[mpi][8rank]") {
-//   using namespace qtnh;
+    if (ENV.proc_id == 0) {
+      REQUIRE(utils::equal(tp->at(idxs), 1, 1E-4));
+    }
+  }
 
-//   SECTION("7-qubits") {
-//     TensorNetwork tn;
-//     auto con_ord = gen::qft(ENV, tn, 7, 3);
+  // SECTION("8-qubits") {
+  //   TensorNetwork tn;
+  //   auto con_ord = gen::qft(ENV, tn, 8, 3);
 
-//     auto id = tn.contractAll(con_ord);
-//     auto tfu = tn.extractTensor(id);
+  //   auto id = tn.contractAll(con_ord);
+  //   auto tp = tn.extract(id);
 
-//     auto idxs = utils::i_to_idxs(0, tfu->getLocDims());
+  //   auto idxs = utils::i_to_idxs(0, tp->totDims());
 
-//     if (ENV.proc_id == 0) {
-//       REQUIRE(utils::equal(tfu->getLocEl(idxs).value(), 1, 1E-4));
-//     } else {
-//       REQUIRE(utils::equal(tfu->getLocEl(idxs).value(), 0, 1E-4));
-//     }
-//   }
-
-//   SECTION("8-qubits") {
-//     TensorNetwork tn;
-//     auto con_ord = gen::qft(ENV, tn, 8, 3);
-
-//     auto id = tn.contractAll(con_ord);
-//     auto tfu = tn.extractTensor(id);
-
-//     auto idxs = utils::i_to_idxs(0, tfu->getLocDims());
-
-//     if (ENV.proc_id == 0) {
-//       REQUIRE(utils::equal(tfu->getLocEl(idxs).value(), 1, 1E-4));
-//     } else {
-//       REQUIRE(utils::equal(tfu->getLocEl(idxs).value(), 0, 1E-4));
-//     }
-//   }
-// }
+  //   if (ENV.proc_id == 0) {
+  //     REQUIRE(utils::equal(tp->at(idxs), 1, 1E-4));
+  //   }
+  // }
+}
 
 // Swap local/distributed and distributed/distributed
