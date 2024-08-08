@@ -65,7 +65,7 @@ namespace qtnh {
     return tensors_.at(k).get();
   }
 
-  const TensorNetwork::Bond& TensorNetwork::bond(qtnh::uint k) { 
+  const TensorNetwork::Bond& TensorNetwork::bond(qtnh::uint k) {
     return bonds_.at(k);
   }
 
@@ -125,23 +125,27 @@ namespace qtnh {
     auto t3_id = insert(std::move(t3_p));
 
     #ifdef DEBUG
-      std::cout << "Remapping indices: \n";
+      utils::barrier();
+      if (utils::is_root()) {
+        std::cout << "Remapping indices: \n";
 
-      int _i = 0;
-      std::cout << "T1: ";
-      for (auto& [k, v]: t1_imaps) {
-        if (_i++) std::cout << ", ";
-        std::cout << k << "->" << v;
+        int _i = 0;
+        std::cout << "T1: ";
+        for (auto& [k, v]: t1_imaps) {
+          if (_i++) std::cout << ", ";
+          std::cout << k << "->" << v;
+        }
+
+        _i = 0;
+        std::cout << "\nT2: ";
+        for (auto& [k, v]: t2_imaps) {
+          if (_i++) std::cout << ", ";
+          std::cout << k << "->" << v;
+        }
+
+        std::cout << "\n";
       }
-
-      _i = 0;
-      std::cout << "\nT2: ";
-      for (auto& [k, v]: t2_imaps) {
-        if (_i++) std::cout << ", ";
-        std::cout << k << "->" << v;
-      }
-
-      std::cout << "\n";
+      utils::barrier();
     #endif
 
     for (auto& [id, b] : bonds_) {
@@ -178,12 +182,13 @@ namespace qtnh {
     auto temp_bonds = bonds_;
     for (auto& [bid, b] : temp_bonds) {
       #ifdef DEBUG
-        using namespace qtnh::ops;
-        std::cout << "Contracting " << b << " in the following tensor network: \n";
-
-        int proc_id;
-        MPI_Comm_rank(MPI_COMM_WORLD, &proc_id);
-        if (!proc_id) print();
+        utils::barrier();
+        if (utils::is_root()) {
+          using namespace qtnh::ops;
+          std::cout << "Contracting " << b << " in the following tensor network: \n";
+          print();
+        }
+        utils::barrier();
       #endif
 
       tid = contractBond(bid);
@@ -210,15 +215,27 @@ namespace qtnh {
       }
 
       #ifdef DEBUG
-        using namespace qtnh::ops;
-        std::cout << "Contracting " << bonds_.at(b1_id) << " in the following tensor network: \n";
-
-        int proc_id;
-        MPI_Comm_rank(MPI_COMM_WORLD, &proc_id);
-        if (!proc_id) print();
+        utils::barrier();
+        if (utils::is_root()) {
+          using namespace qtnh::ops;
+          std::cout << "Contracting " << bonds_.at(b1_id) << " in the following tensor network: \n";
+          print();
+        }
+        utils::barrier();
       #endif
 
       tid = contractBond(b1_id);
+      tensors_.at(tid) = Tensor::rebcast(std::move(tensors_.at(tid)), { 1, 1, 0 });
+
+      #ifdef DEBUG
+        utils::barrier();
+        auto& t = *tensors_.at(tid);
+        if (t.bc().active) {
+          using namespace ops;
+          std::cout << t.bc().env.proc_id << " | T (result) = " << t << "\n";
+        }
+        utils::barrier();
+      #endif
     }
 
     return tid;
