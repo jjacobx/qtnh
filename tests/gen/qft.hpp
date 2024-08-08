@@ -7,6 +7,7 @@
 using namespace std::complex_literals;
 
 namespace gen {
+  tensor_info zero_state {{ 2 }, { 1, 0 }};
   tensor_info plus_state {{ 2 }, { std::pow(2, -.5), std::pow(2, -.5) }};
   tensor_info hadamard {{ 2, 2 }, { std::pow(2, -.5),  std::pow(2, -.5), std::pow(2, -.5), -std::pow(2, -.5) }};
 
@@ -63,7 +64,7 @@ namespace gen {
       auto bid = tn.addBond(qid.at(i), tid1, {{ qidxi.at(i), 0 }});
       con_ord.push_back(bid);
 
-      qid.at(i) = tid2; 
+      qid.at(i) = tid2;
       qidxi.at(i) = idxi2;
 
       for (uint j = i + 1; j < NQUBITS; ++j) {
@@ -105,28 +106,6 @@ namespace gen {
         qid.at(j) = tid4; qidxi.at(j) = idxi4;
       }
     }
-
-    // for (uint i = 0; i < NQUBITS / 2; ++i) {
-    //   auto j = NQUBITS - i - 1;
-    //   tidx_tup_st d = 0;
-    //   auto idxi1 = 0, idxi2 = 1, idxi3 = 2, idxi4 = 3;
-
-    //   if (i < DQUBITS) {
-    //     d = 1;
-    //     std::swap(idxi2, idxi3);
-    //   }
-    //   if (j < DQUBITS) {
-    //     d = 2;
-    //   }
-
-    //   auto sid = tn.make<SwapTensor>(env, 2, d);
-    //   auto bid1 = tn.addBond(qid.at(i), sid, {{ qidxi.at(i), idxi1 }}, true);
-    //   auto bid2 = tn.addBond(qid.at(j), sid, {{ qidxi.at(j), idxi2 }}, true);
-
-    //   con_ord.push_back(bid1); con_ord.push_back(bid2);
-    //   qid.at(i) = qid.at(j) = sid;
-    //   qidxi.at(i) = idxi3; qidxi.at(j) = idxi4;
-    // }
 
     return con_ord;
   }
