@@ -238,7 +238,7 @@ TEST_CASE("collectives", "[mpi][4rank]") {
 }
 
 // TODO: Re-implement QFT. 
-TEST_CASE("qft", "[qft][mpi][16rank]") {
+TEST_CASE("qft", "[mpi][16rank][qft]") {
   using namespace qtnh;
 
   SECTION("5-qubits") {
@@ -270,12 +270,12 @@ TEST_CASE("qft", "[qft][mpi][16rank]") {
   }
 }
 
-TEST_CASE("qft", "[mpi][32rank]") {
+TEST_CASE("qft", "[mpi][32rank][qft]") {
   using namespace qtnh;
 
   SECTION("7-qubits") {
     TensorNetwork tn;
-    auto con_ord = gen::qft(ENV, tn, 5, 1);
+    auto con_ord = gen::qft(ENV, tn, 7, 3);
 
     auto id = tn.contractAll(con_ord);
     auto tp = tn.extract(id);
@@ -287,19 +287,19 @@ TEST_CASE("qft", "[mpi][32rank]") {
     }
   }
 
-  // SECTION("8-qubits") {
-  //   TensorNetwork tn;
-  //   auto con_ord = gen::qft(ENV, tn, 8, 3);
+  SECTION("8-qubits") {
+    TensorNetwork tn;
+    auto con_ord = gen::qft(ENV, tn, 8, 3);
 
-  //   auto id = tn.contractAll(con_ord);
-  //   auto tp = tn.extract(id);
+    auto id = tn.contractAll(con_ord);
+    auto tp = tn.extract(id);
 
-  //   auto idxs = utils::i_to_idxs(0, tp->totDims());
+    auto idxs = utils::i_to_idxs(0, tp->totDims());
 
-  //   if (ENV.proc_id == 0) {
-  //     REQUIRE(utils::equal(tp->at(idxs), 1, 1E-4));
-  //   }
-  // }
+    if (ENV.proc_id == 0) {
+      REQUIRE(utils::equal(tp->at(idxs), 1, 1E-4));
+    }
+  }
 }
 
 // Swap local/distributed and distributed/distributed
