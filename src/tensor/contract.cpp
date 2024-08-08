@@ -21,25 +21,23 @@ namespace qtnh {
     std::iota(ptup1.begin(), ptup1.end(), 0);
     std::iota(ptup2.begin(), ptup2.end(), 0);
 
-    std::sort(ws.begin(), ws.end(), utils::wirecomp::first);
+    std::sort(ws.begin(), ws.end(), utils::wirecomp::second);
 
     std::size_t ndis_cons = 0;
     for (auto w : ws) {
       if (w.first < ndis1) {
-        std::size_t i1, i2;
-        for (i1 = 0; i1 < ndis1; ++i1) {
-          if (ptup1.at(i1) == w.first) break; } 
-        for (i2 = 0; i2 < ndis2; ++i2) {
-          if (ptup2.at(i2) == w.second) break; }
+        if (w.first < ndis1) ptup1.at(w.first) = ndis1 - ndis_cons - 1;
+        for (qtnh::tidx_tup_st i = w.first + 1; i < ndis1; ++i) {
+          if (ptup1.at(i) < ndis1 - ndis_cons) --ptup1.at(i);
+        }
 
-        ptup1.erase(ptup1.begin() + i1);
-        ptup2.erase(ptup2.begin() + i2);
+        // Wires are sorted by second, so this is guaranteed to update all previous values. 
+        if (w.second < ndis2) ptup2.at(w.second) = 0;
+        for (qtnh::tidx_tup_st i = w.second ; i > 0; --i) {
+          ++ptup2.at(i - 1);
+        }
 
-        // Ensure same ordering; -1 is necessary as one element has been erased. 
-        ptup1.insert(ptup1.begin() + ndis1 - ndis_cons - 1, w.first);
-        ptup2.insert(ptup2.begin(), w.second);
-
-        ndis_cons++;
+        ++ndis_cons;
       }
     }
 
@@ -189,7 +187,7 @@ namespace qtnh {
         for (std::size_t j = 0; j < ndis1 - ndis_cons; ++j) {
           if (ptup3.at(j) >= ws_dis.at(i).first) ++ptup3.at(j);
         }
-      }
+      }  
     }
 
     t3._permute_internal(&t3, ptup3);
