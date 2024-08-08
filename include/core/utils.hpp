@@ -12,6 +12,13 @@ namespace qtnh {
     /// Throws error if invoked. 
     void throw_unimplemented();
 
+    /// @brief Check if calling process is the root process. 
+    /// @return True if root, false otherwise. 
+    bool is_root();
+
+    /// @brief Call MPI Barrier. 
+    void barrier();
+
     /// @brief Convert tensor index dimensions tuple to tensor size. 
     /// @param dims Tensor index dimensions. 
     /// @return Number of tensor elements. 
