@@ -9,7 +9,9 @@
 #include "tensor/indexing.hpp"
 
 namespace qtnh {
-  qtnh::tptr _contract_dense(qtnh::tptr t1p, qtnh::tptr t2p, std::vector<qtnh::wire> ws, bool in_place = false) {
+  qtnh::tptr _contract_dense(qtnh::tptr t1p, qtnh::tptr t2p, ConParams& params) {
+    auto ws = params.wires;
+
     auto ndis1 = t1p->disDims().size();
     auto nloc1 = t1p->locDims().size();
     auto ndis2 = t2p->disDims().size();
@@ -74,22 +76,26 @@ namespace qtnh {
 
     TIndexing ti1(t1p->totDims(), ifls1);
     TIndexing ti2(t2p->totDims(), ifls2);
+    auto ti3_dis = TIndexing::app(ti1.keep("distributed"), ti2.keep("distributed"));
     auto ti3_loc = TIndexing::app(ti1.keep("local"), ti2.keep("local"));
 
     std::vector<qtnh::tidx_tup_st> ptup_loc(ti3_loc.dims().size());
     std::iota(ptup_loc.begin(), ptup_loc.end(), 0);
 
-    // TODO: Move this to a separate function. Dense contraction should directly accept permutation tuples. 
-    if (in_place) {
-      std::sort(ws.begin(), ws.end(), utils::wirecomp::second);
-      std::vector<qtnh::wire> ws_loc(ws.begin() + ndis_cons, ws.end());
+    for (std::size_t i = t1p->disDims().size(), j = 0; i < t1p->totDims().size(); ++i) {
+      if (ifls1.at(i).label != "closed") {
+        ptup_loc.at(i - j) = params.dimRepls1.at(i) - ti3_dis.dims().size();
+      } else {
+        ++j;
+      }
+    }
 
-      auto ti1_loc_size = ti1.keep("local").dims().size();
-      for (std::size_t i = 0; (i < ws_loc.size() ) && (ptup_loc.size() > ti1_loc_size); ++i) {
-        ptup_loc.at(ti1_loc_size + i) = ws_loc.at(i).first - ndis1;
-        for (std::size_t j = 0; j < ti1_loc_size; ++j) {
-          if (ptup_loc.at(j) >= ws_loc.at(i).first) ++ptup_loc.at(j);
-        }
+    auto split = ti1.keep("local").dims().size();
+    for (std::size_t i = t2p->disDims().size(), j = 0; i < t2p->totDims().size(); ++i) {
+      if (ifls1.at(i).label != "closed") {
+        ptup_loc.at(split + i - j) = params.dimRepls2.at(i) - ti3_dis.dims().size();
+      } else {
+        ++j;
       }
     }
 
@@ -178,18 +184,6 @@ namespace qtnh {
       ptup3.at(i) -= ndis_cons;
     }
 
-    if (in_place) {
-      std::sort(ws.begin(), ws.end(), utils::wirecomp::second);
-      std::vector<qtnh::wire> ws_dis(ws.begin(), ws.begin() + ndis_cons);
-
-      for (std::size_t i = 0; (i < ws_dis.size()) && (ndis2 - ndis_cons > 0); ++i) {
-        ptup3.at(ndis1 + i) = ws_dis.at(i).first;
-        for (std::size_t j = 0; j < ndis1 - ndis_cons; ++j) {
-          if (ptup3.at(j) >= ws_dis.at(i).first) ++ptup3.at(j);
-        }
-      }  
-    }
-
     t3._permute_internal(&t3, ptup3);
 
     // Last n distributed indices are virtual. 
@@ -200,24 +194,96 @@ namespace qtnh {
   }
 
   // TODO: Implement this in a separate file using enums
-  tptr Tensor::contract(tptr t1u, tptr t2u, const std::vector<qtnh::wire>& ws) {
+  tptr Tensor::contract(tptr t1u, tptr t2u, ConParams& params) {
+    std::size_t n_dis_ws;
+
     // Validate contraction dimensions
-    for (auto& w : ws) {
+    for (auto& w : params.wires) {
       if (t1u->totDims().at(w.first) != t2u->totDims().at(w.second)) {
         throw std::invalid_argument("Incompatible contraction dimensions.");
       }
       if ((w.first < t1u->disDims().size()) != (w.second < t2u->disDims().size())) {
         throw std::invalid_argument("Attempted to contract distributed and local dimensions.");
       }
+
+      if (w.first < t1u->disDims().size()) ++n_dis_ws;
     }
 
-    // if (t2u->cast<SymmTensorBase>() != nullptr) {
-    //   std::cout << "Symmetric contraction\n";
-    //   t2u = Tensor::cast<SymmTensorBase>(std::move(t2u));
-    //   return _contract_dense(std::move(t1u), std::move(t2u), ws, true);
-    // }
+    // Create default index replacements. 
+    if (params.useDefRepls) {
+      params.dimRepls1 = std::vector<qtnh::tidx_tup_st>(t1u->totDims().size(), UINT16_MAX);
+      std::sort(params.wires.begin(), params.wires.end(), utils::wirecomp::first);
+
+      for  (std::size_t i = 0, j = 0; i < t1u->totDims().size(); ++i) {
+        if (params.dimRepls1.at(i) != params.wires.at(j).first) {
+          params.dimRepls1.at(i) = i - j;
+          if (i >= t1u->disDims().size()) {
+            params.dimRepls1.at(i) += (t2u->disDims().size() - n_dis_ws);
+          }
+        } else {
+          ++j;
+        }
+      }
+
+      params.dimRepls2 = std::vector<qtnh::tidx_tup_st>(t2u->totDims().size(), UINT16_MAX);
+      std::sort(params.wires.begin(), params.wires.end(), utils::wirecomp::second);
+
+      for  (std::size_t i = 0, j = 0; i < t2u->totDims().size(); ++i) {
+        if (params.dimRepls2.at(i) != params.wires.at(j).second) {
+          params.dimRepls2.at(i) = t1u->disDims().size() - n_dis_ws + i - j;
+          if (i >= t2u->disDims().size()) {
+            params.dimRepls2.at(i) += (t1u->totDims().size() - params.wires.size());
+          }
+        } else {
+          ++j;
+        }
+      }
+    }
+
+    if (t2u->cast<SymmTensorBase>() != nullptr) {
+      // std::cout << "Symmetric contraction\n";
+      auto tp2_symm = Tensor::cast<SymmTensorBase>(std::move(t2u));
+
+      std::size_t input_count = 0;
+      for (auto w : params.wires) {
+        if (w.second < tp2_symm->disInDims().size() || ((w.second >= tp2_symm->disDims().size()) && (w.second < tp2_symm->disDims().size() + tp2_symm->locInDims().size()))) {
+          ++input_count;
+        }
+      }
+
+      if (input_count == tp2_symm->disInDims().size() + tp2_symm->locInDims().size()) {
+        params.dimRepls1 = std::vector<qtnh::tidx_tup_st>(t1u->totDims().size(), UINT16_MAX);
+        std::sort(params.wires.begin(), params.wires.end(), utils::wirecomp::first);
+
+        for  (std::size_t i = 0, j = 0; i < t1u->totDims().size(); ++i) {
+          if (params.dimRepls1.at(i) != params.wires.at(j).first) {
+            params.dimRepls1.at(i) = i;
+          } else {
+            ++j;
+          }
+        }
+
+        params.dimRepls2 = std::vector<qtnh::tidx_tup_st>(t2u->totDims().size(), UINT16_MAX);
+        std::sort(params.wires.begin(), params.wires.end(), utils::wirecomp::second);
+
+        std::vector<qtnh::tidx_tup_st> from_dims(params.wires.size());
+        for (std::size_t i = 0; i < params.wires.size(); ++i) {
+          from_dims.at(i) = params.wires.at(i).first;
+        }
+
+        for (std::size_t i = 0, j = 0, k = 0; i < t2u->totDims().size(); ++i) {
+          if (params.dimRepls2.at(i) != params.wires.at(j).second) {
+            params.dimRepls2.at(i) = from_dims.at(k++);
+          } else {
+            ++j;
+          }
+        }
+      }
+
+      return _contract_dense(std::move(t1u), std::move(tp2_symm), params);
+    }
 
     // std::cout << "Dense contraction\n";
-    return _contract_dense(std::move(t1u), std::move(t2u), ws);
+    return _contract_dense(std::move(t1u), std::move(t2u), params);
   }
 }
