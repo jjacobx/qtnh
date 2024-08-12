@@ -35,7 +35,7 @@ namespace qtnh {
 
         // Wires are sorted by second, so this is guaranteed to update all previous values. 
         if (w.second < ndis2) ptup2.at(w.second) = 0;
-        for (qtnh::tidx_tup_st i = w.second ; i > 0; --i) {
+        for (qtnh::tidx_tup_st i = w.second; i > 0; --i) {
           ++ptup2.at(i - 1);
         }
 
@@ -45,6 +45,10 @@ namespace qtnh {
 
     t1p = Tensor::permute(std::move(t1p), ptup1);
     t2p = Tensor::permute(std::move(t2p), ptup2);
+
+    // Update dimension replacements after permutations. 
+    params.dimRepls1 = utils::permute_vec(params.dimRepls1, ptup1);
+    params.dimRepls2 = utils::permute_vec(params.dimRepls2, ptup2);
 
     // STEP 2: Align by broadcast. 
     auto dis_dims1 = t1p->disDims();
@@ -92,7 +96,7 @@ namespace qtnh {
 
     auto split = ti1.keep("local").dims().size();
     for (std::size_t i = t2p->disDims().size(), j = 0; i < t2p->totDims().size(); ++i) {
-      if (ifls1.at(i).label != "closed") {
+      if (ifls2.at(i).label != "closed") {
         ptup_loc.at(split + i - j) = params.dimRepls2.at(i) - ti3_dis.dims().size();
       } else {
         ++j;
@@ -177,11 +181,14 @@ namespace qtnh {
     std::vector<qtnh::tidx_tup_st> ptup3(t3.totDims().size());
     std::iota(ptup3.begin(), ptup3.end(), 0);
     
+    for (std::size_t i = 0; i < ndis1 - ndis_cons; ++i) {
+      ptup3.at(i) = params.dimRepls1.at(i);
+    } 
     for (std::size_t i = 1; i <= ndis_cons; ++i) {
       ptup3.at(ndis1 - i) = t3.disDims().size() - i;
     }
-    for (auto i = ndis1; i < t3.disDims().size(); ++i) {
-      ptup3.at(i) -= ndis_cons;
+    for (std::size_t i = 0; i < ndis2 - ndis_cons; ++i) {
+      ptup3.at(ndis1 + i) = params.dimRepls2.at(ndis_cons + i);
     }
 
     t3._permute_internal(&t3, ptup3);
@@ -195,7 +202,7 @@ namespace qtnh {
 
   // TODO: Implement this in a separate file using enums
   tptr Tensor::contract(tptr t1u, tptr t2u, ConParams& params) {
-    std::size_t n_dis_ws;
+    std::size_t n_dis_ws = 0;
 
     // Validate contraction dimensions
     for (auto& w : params.wires) {
@@ -215,13 +222,13 @@ namespace qtnh {
       std::sort(params.wires.begin(), params.wires.end(), utils::wirecomp::first);
 
       for  (std::size_t i = 0, j = 0; i < t1u->totDims().size(); ++i) {
-        if (params.dimRepls1.at(i) != params.wires.at(j).first) {
+        if ((j < params.wires.size()) && (i == params.wires.at(j).first)) {
+          ++j;
+        } else {
           params.dimRepls1.at(i) = i - j;
           if (i >= t1u->disDims().size()) {
             params.dimRepls1.at(i) += (t2u->disDims().size() - n_dis_ws);
           }
-        } else {
-          ++j;
         }
       }
 
@@ -229,19 +236,18 @@ namespace qtnh {
       std::sort(params.wires.begin(), params.wires.end(), utils::wirecomp::second);
 
       for  (std::size_t i = 0, j = 0; i < t2u->totDims().size(); ++i) {
-        if (params.dimRepls2.at(i) != params.wires.at(j).second) {
+        if ((j < params.wires.size()) && (i == params.wires.at(j).second)) {
+          ++j;
+        } else {
           params.dimRepls2.at(i) = t1u->disDims().size() - n_dis_ws + i - j;
           if (i >= t2u->disDims().size()) {
             params.dimRepls2.at(i) += (t1u->totDims().size() - params.wires.size());
           }
-        } else {
-          ++j;
         }
       }
     }
 
     if (t2u->cast<SymmTensorBase>() != nullptr) {
-      // std::cout << "Symmetric contraction\n";
       auto tp2_symm = Tensor::cast<SymmTensorBase>(std::move(t2u));
 
       std::size_t input_count = 0;
@@ -256,14 +262,14 @@ namespace qtnh {
         std::sort(params.wires.begin(), params.wires.end(), utils::wirecomp::first);
 
         for  (std::size_t i = 0, j = 0; i < t1u->totDims().size(); ++i) {
-          if (params.dimRepls1.at(i) != params.wires.at(j).first) {
-            params.dimRepls1.at(i) = i;
-          } else {
+          if ((j < params.wires.size()) && (i == params.wires.at(j).first)) {
             ++j;
+          } else {
+            params.dimRepls1.at(i) = i;
           }
         }
 
-        params.dimRepls2 = std::vector<qtnh::tidx_tup_st>(t2u->totDims().size(), UINT16_MAX);
+        params.dimRepls2 = std::vector<qtnh::tidx_tup_st>(tp2_symm->totDims().size(), UINT16_MAX);
         std::sort(params.wires.begin(), params.wires.end(), utils::wirecomp::second);
 
         std::vector<qtnh::tidx_tup_st> from_dims(params.wires.size());
@@ -271,19 +277,18 @@ namespace qtnh {
           from_dims.at(i) = params.wires.at(i).first;
         }
 
-        for (std::size_t i = 0, j = 0, k = 0; i < t2u->totDims().size(); ++i) {
-          if (params.dimRepls2.at(i) != params.wires.at(j).second) {
-            params.dimRepls2.at(i) = from_dims.at(k++);
-          } else {
+        for (std::size_t i = 0, j = 0, k = 0; i < tp2_symm->totDims().size(); ++i) {
+          if ((j < params.wires.size()) && (i == params.wires.at(j).second)) {
             ++j;
+          } else if (k < params.wires.size()) {
+            params.dimRepls2.at(i) = from_dims.at(k++);
           }
         }
       }
 
       return _contract_dense(std::move(t1u), std::move(tp2_symm), params);
     }
-
-    // std::cout << "Dense contraction\n";
+    
     return _contract_dense(std::move(t1u), std::move(t2u), params);
   }
 }
