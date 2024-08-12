@@ -195,7 +195,7 @@ namespace qtnh {
 
       static qtnh::tptr contract(qtnh::tptr t1u, qtnh::tptr t2u, std::vector<qtnh::wire> wires) {
         ConParams params(wires);
-        contract(std::move(t1u), std::move(t2u), params);
+        return contract(std::move(t1u), std::move(t2u), params);
       }
 
     protected:
