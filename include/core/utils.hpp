@@ -80,6 +80,16 @@ namespace qtnh {
       return { std::vector<T>(vec.begin(), vec.begin() + n), std::vector<T>(vec.begin() + n, vec.end()) };
     }
 
+    template <typename T>
+    std::vector<T> permute_vec(std::vector<T> vec, std::vector<qtnh::tidx_tup_st> ptup) {
+      auto vec_perm = vec;
+      for (std::size_t i = 0; i < vec.size(); ++i) {
+        vec_perm.at(ptup.at(i)) = vec.at(i);
+      }
+
+      return vec_perm;
+    }
+
     namespace wirecomp {
       constexpr bool first(qtnh::wire w1, qtnh::wire w2) { return (w1.first < w2.first); }
       constexpr bool second(qtnh::wire w1, qtnh::wire w2) { return (w1.second < w2.second); }
@@ -87,6 +97,12 @@ namespace qtnh {
   }
 
   namespace ops {
+    template<typename T, typename U>
+    std::ostream& operator<<(std::ostream& out, const std::pair<T, U>& p) {
+      out << "(" << p.first << ", " << p.second << ")";
+      return out;
+    }
+
     template<typename T>
     std::ostream& operator<<(std::ostream& out, const std::vector<T>& v) {
       for (std::size_t i = 0; i < v.size(); ++i) {
