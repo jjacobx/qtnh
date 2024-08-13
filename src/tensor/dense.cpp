@@ -352,6 +352,14 @@ namespace qtnh {
   }
 
   void TIDense::_permute_internal(Tensor* target, std::vector<qtnh::tidx_tup_st> ptup) {
+    #ifdef DEBUG
+      utils::barrier();
+      if (utils::is_root()) {
+        using namespace ops;
+        std::cout << "Permuting: " << ptup << std::endl;
+      }
+      utils::barrier();
+    #endif
     auto ndis = target->disDims().size();
 
     auto old_dims = target->totDims();

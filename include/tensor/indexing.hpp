@@ -10,6 +10,14 @@ namespace qtnh {
     std::string label;
     int tag;
 
+    bool operator==(const TIFlag& rhs) const {
+      return (label == rhs.label) && (tag == rhs.tag);
+    }
+    bool operator!=(const TIFlag& rhs) const {
+      return !(*this == rhs);
+    }
+
+
     TIFlag() : TIFlag("default", 0) {}
     TIFlag(std::string label, int tag) : label(label), tag(tag) {}
   };

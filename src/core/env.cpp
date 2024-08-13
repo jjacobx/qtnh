@@ -17,12 +17,6 @@ namespace qtnh {
 
     proc_id = _proc_id;
     num_processes = _num_processes;
-
-    #ifdef DEBUG
-      if (!_proc_id) {
-        std::cout << "DEF_STENSOR_BCAST is " << (DEF_STENSOR_BCAST ? "on" : "off") << "\n";
-      }
-    #endif
   }
 
   QTNHEnv::~QTNHEnv() {

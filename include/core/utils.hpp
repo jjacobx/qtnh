@@ -12,6 +12,13 @@ namespace qtnh {
     /// Throws error if invoked. 
     void throw_unimplemented();
 
+    /// @brief Check if calling process is the root process. 
+    /// @return True if root, false otherwise. 
+    bool is_root();
+
+    /// @brief Call MPI Barrier. 
+    void barrier();
+
     /// @brief Convert tensor index dimensions tuple to tensor size. 
     /// @param dims Tensor index dimensions. 
     /// @return Number of tensor elements. 
@@ -43,9 +50,9 @@ namespace qtnh {
 
     
     
-    /// @brief Invert the direction of tensor cotraction wires. 
-    /// @param ws A vector of cotraction wires to invert. 
-    /// @return A vector of cotraction wires, where each wire has a reversed direction. 
+    /// @brief Invert the direction of tensor contraction wires. 
+    /// @param ws A vector of contraction wires to invert. 
+    /// @return A vector of contraction wires, where each wire has a reversed direction. 
     std::vector<qtnh::wire> invert_wires(std::vector<qtnh::wire> ws);
 
     /// @brief Compare two complex elements within given tolerance. 
@@ -72,9 +79,30 @@ namespace qtnh {
     std::pair<std::vector<T>, std::vector<T>> split_vec(std::vector<T> vec, std::size_t n) {
       return { std::vector<T>(vec.begin(), vec.begin() + n), std::vector<T>(vec.begin() + n, vec.end()) };
     }
+
+    template <typename T>
+    std::vector<T> permute_vec(std::vector<T> vec, std::vector<qtnh::tidx_tup_st> ptup) {
+      auto vec_perm = vec;
+      for (std::size_t i = 0; i < vec.size(); ++i) {
+        vec_perm.at(ptup.at(i)) = vec.at(i);
+      }
+
+      return vec_perm;
+    }
+
+    namespace wirecomp {
+      constexpr bool first(qtnh::wire w1, qtnh::wire w2) { return (w1.first < w2.first); }
+      constexpr bool second(qtnh::wire w1, qtnh::wire w2) { return (w1.second < w2.second); }
+    }
   }
 
   namespace ops {
+    template<typename T, typename U>
+    std::ostream& operator<<(std::ostream& out, const std::pair<T, U>& p) {
+      out << "(" << p.first << ", " << p.second << ")";
+      return out;
+    }
+
     template<typename T>
     std::ostream& operator<<(std::ostream& out, const std::vector<T>& v) {
       for (std::size_t i = 0; i < v.size(); ++i) {

@@ -58,14 +58,14 @@ namespace qtnh {
     tensors_(std::unordered_map<qtnh::uint, std::unique_ptr<Tensor>>()), 
     bonds_(std::unordered_map<qtnh::uint, Bond>()) {}
   
-  TensorNetwork::Bond::Bond(std::pair<qtnh::uint, qtnh::uint> t_ids, std::vector<qtnh::wire> ws, bool in_place) : 
-    tensor_ids(t_ids), wires(ws), in_place(in_place) {}
+  TensorNetwork::Bond::Bond(std::pair<qtnh::uint, qtnh::uint> t_ids, std::vector<qtnh::wire> ws) : 
+    tensor_ids(t_ids), wires(ws) {}
   
   Tensor* TensorNetwork::tensor(qtnh::uint k) {
     return tensors_.at(k).get();
   }
 
-  const TensorNetwork::Bond& TensorNetwork::bond(qtnh::uint k) { 
+  const TensorNetwork::Bond& TensorNetwork::bond(qtnh::uint k) {
     return bonds_.at(k);
   }
 
@@ -99,8 +99,8 @@ namespace qtnh {
     return tensor_counter; 
   }
 
-  qtnh::uint TensorNetwork::addBond(qtnh::uint t1_id, qtnh::uint t2_id, std::vector<qtnh::wire> ws, bool in_place) {
-    Bond b({ t1_id, t2_id }, ws, in_place);
+  qtnh::uint TensorNetwork::addBond(qtnh::uint t1_id, qtnh::uint t2_id, std::vector<qtnh::wire> ws) {
+    Bond b({ t1_id, t2_id }, ws);
     bonds_.insert({ ++bond_counter, b });
 
     return bond_counter;
@@ -115,8 +115,13 @@ namespace qtnh {
     auto t1_up = std::move(tensors_.at(t1_id));
     auto t2_up = std::move(tensors_.at(t2_id));
 
-    auto [t1_imaps, t2_imaps] = _get_timaps(*t1_up, *t2_up, b.wires, b.in_place);
-    auto t3_p = Tensor::contract(std::move(t1_up), std::move(t2_up), b.wires);
+    // auto [t1_imaps, t2_imaps] = _get_timaps(*t1_up, *t2_up, b.wires, b.in_place);
+
+    ConParams params(b.wires);
+    auto t3_p = Tensor::contract(std::move(t1_up), std::move(t2_up), params);
+
+    auto t1_imaps = params.dimRepls1;
+    auto t2_imaps = params.dimRepls2;
 
     bonds_.erase(id);
     tensors_.erase(t1_id);
@@ -124,25 +129,30 @@ namespace qtnh {
 
     auto t3_id = insert(std::move(t3_p));
 
-    #ifdef DEBUG
-      std::cout << "Remapping indices: \n";
+    // ! The following only works if dimension replacements are maps. 
+    // #ifdef DEBUG
+      // utils::barrier();
+      // if (utils::is_root()) {
+      //   std::cout << "Remapping indices: \n";
 
-      int _i = 0;
-      std::cout << "T1: ";
-      for (auto& [k, v]: t1_imaps) {
-        if (_i++) std::cout << ", ";
-        std::cout << k << "->" << v;
-      }
+      //   int _i = 0;
+      //   std::cout << "T1: ";
+      //   for (auto& [k, v]: t1_imaps) {
+      //     if (_i++) std::cout << ", ";
+      //     std::cout << k << "->" << v;
+      //   }
 
-      _i = 0;
-      std::cout << "\nT2: ";
-      for (auto& [k, v]: t2_imaps) {
-        if (_i++) std::cout << ", ";
-        std::cout << k << "->" << v;
-      }
+      //   _i = 0;
+      //   std::cout << "\nT2: ";
+      //   for (auto& [k, v]: t2_imaps) {
+      //     if (_i++) std::cout << ", ";
+      //     std::cout << k << "->" << v;
+      //   }
 
-      std::cout << "\n";
-    #endif
+      //   std::cout << "\n";
+      // }
+      // utils::barrier();
+    // #endif
 
     for (auto& [id, b] : bonds_) {
       if (b.tensor_ids.first == t1_id) {
@@ -178,12 +188,13 @@ namespace qtnh {
     auto temp_bonds = bonds_;
     for (auto& [bid, b] : temp_bonds) {
       #ifdef DEBUG
-        using namespace qtnh::ops;
-        std::cout << "Contracting " << b << " in the following tensor network: \n";
-
-        int proc_id;
-        MPI_Comm_rank(MPI_COMM_WORLD, &proc_id);
-        if (!proc_id) print();
+        utils::barrier();
+        if (utils::is_root()) {
+          using namespace qtnh::ops;
+          std::cout << "Contracting " << b << " in the following tensor network: \n";
+          print();
+        }
+        utils::barrier();
       #endif
 
       tid = contractBond(bid);
@@ -210,15 +221,27 @@ namespace qtnh {
       }
 
       #ifdef DEBUG
-        using namespace qtnh::ops;
-        std::cout << "Contracting " << bonds_.at(b1_id) << " in the following tensor network: \n";
-
-        int proc_id;
-        MPI_Comm_rank(MPI_COMM_WORLD, &proc_id);
-        if (!proc_id) print();
+        utils::barrier();
+        if (utils::is_root()) {
+          using namespace qtnh::ops;
+          std::cout << "Contracting " << bonds_.at(b1_id) << " in the following tensor network: \n";
+          print();
+        }
+        utils::barrier();
       #endif
 
       tid = contractBond(b1_id);
+      tensors_.at(tid) = Tensor::rebcast(std::move(tensors_.at(tid)), { 1, 1, 0 });
+
+      #ifdef DEBUG
+        utils::barrier();
+        auto& t = *tensors_.at(tid);
+        if (t.bc().active) {
+          using namespace ops;
+          std::cout << t.bc().env.proc_id << " | T (result) = " << t << "\n";
+        }
+        utils::barrier();
+      #endif
     }
 
     return tid;

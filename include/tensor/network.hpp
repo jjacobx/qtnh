@@ -23,13 +23,12 @@ namespace qtnh {
       struct Bond {
         std::pair<qtnh::uint, qtnh::uint> tensor_ids;  ///< IDs of two target tensors. 
         std::vector<qtnh::wire> wires;                 ///< Wires connecting tensor indices. 
-        bool in_place;
 
         /// @brief General bond constructor, can specify if contraction is in-place. 
         /// @param t_ids Pair of IDs of target tensors. 
         /// @param ws Vector of wires for contraction. 
         /// @param in_place Flag for whether the contraction modified indices in-place. 
-        Bond(std::pair<qtnh::uint, qtnh::uint> t_ids, std::vector<qtnh::wire> ws, bool in_place);
+        Bond(std::pair<qtnh::uint, qtnh::uint> t_ids, std::vector<qtnh::wire> ws);
 
         /// Default destructor. 
         ~Bond() = default;
@@ -75,7 +74,7 @@ namespace qtnh {
       /// @param t2_id Second tensor ID. 
       /// @param ws Wires between given tensors. 
       /// @return ID of created bond. 
-      qtnh::uint addBond(qtnh::uint t1_id, qtnh::uint t2_id, std::vector<qtnh::wire> ws, bool in_place = false);
+      qtnh::uint addBond(qtnh::uint t1_id, qtnh::uint t2_id, std::vector<qtnh::wire> ws);
 
       /// @brief Contract bond with ID. 
       /// @param id ID of the bond to be contracted. 

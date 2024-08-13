@@ -16,6 +16,24 @@ namespace qtnh {
   class SymmTensor;
   class DiagTensor;
 
+  struct ConParams {
+    public:
+      ConParams() = delete;
+      ConParams(std::vector<qtnh::wire> wires) :
+        wires(wires), useDefRepls(true), dimRepls1(0), dimRepls2(0) {}
+      ConParams(std::vector<qtnh::wire> wires, std::vector<qtnh::tidx_tup_st> dim_repls1, std::vector<qtnh::tidx_tup_st> dim_repls2) :
+        wires(wires), useDefRepls(false), dimRepls1(dim_repls1), dimRepls2(dim_repls2) {}
+      ~ConParams() = default;
+
+      std::vector<qtnh::wire> wires;
+
+      bool useDefRepls;
+
+      // TODO: reimplement the following as maps. 
+      std::vector<qtnh::tidx_tup_st> dimRepls1;
+      std::vector<qtnh::tidx_tup_st> dimRepls2;
+  };
+
   /// General virtual tensor class
   class Tensor {
     public:
@@ -140,13 +158,6 @@ namespace qtnh {
       /// Because of the broadcast, it is inefficient to use it too often. 
       virtual qtnh::tel fetch(qtnh::tidx_tup tot_idxs) const;
 
-      /// @brief Contract two tensors via given wires. 
-      /// @param t1u Unique pointer to first tensor to contract. 
-      /// @param t2u Unique pointer to second tensor      virtual bool isSymm() const noexcept override { return true; } to contract. 
-      /// @param ws A vector of wires which indicate which pairs of indices to sum over. 
-      /// @return Contracted tensor unique pointer. 
-      static qtnh::tptr contract(qtnh::tptr t1u, qtnh::tptr t2u, const std::vector<qtnh::wire>& ws);
-
       /// @brief Swap indices on current tensor. 
       /// @param tu Unique pointer to the tensor. 
       /// @param idx1 First index to swap. 
@@ -177,6 +188,17 @@ namespace qtnh {
         return utils::one_unique(std::move(tu), tu->permute(ptup));
       }
 
+      /// @brief Contract two tensors via given wires. 
+      /// @param t1u Unique pointer to first tensor to contract. 
+      /// @param t2u Unique pointer to second tensor      virtual bool isSymm() const noexcept override { return true; } to contract. 
+      /// @param ws A vector of wires which indicate which pairs of indices to sum over. 
+      /// @return Contracted tensor unique pointer. 
+      static qtnh::tptr contract(qtnh::tptr t1u, qtnh::tptr t2u, ConParams& params);
+
+      static qtnh::tptr contract(qtnh::tptr t1u, qtnh::tptr t2u, std::vector<qtnh::wire> wires) {
+        ConParams params(wires);
+        return contract(std::move(t1u), std::move(t2u), params);
+      }
 
     protected:
       /// @brief Construct empty tensor of zero size within environment and with default distribution parameters. 

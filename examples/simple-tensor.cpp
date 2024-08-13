@@ -166,5 +166,15 @@ int main() {
   tp8 = Tensor::contract(std::move(tp8), std::move(tpi), {{ 3, 1 }});
   std::cout << env.proc_id << " | T8 (convert 2) = " << *tp8 << "\n";
 
+  tp1 = DenseTensor::make(env, {}, { 2 }, { 1, 1 });
+  tp2 = IdenTensor::make(env, { 2 }, { 2 }, 0, 0);
+  tp1 = Tensor::contract(std::move(tp1), std::move(tp2), {{ 0, 1 }});
+  std::cout << env.proc_id << " | T1 (fully distributed) = " << *tp1 << "\n";
+
+  tp2 = IdenTensor::make(env, { 2 }, { 2 }, 1, 0);
+  tp1 = Tensor::contract(std::move(tp1), std::move(tp2), {{ 0, 0 }});
+  tp1 = Tensor::rebcast(std::move(tp1), { 1, 1, 0 });
+  std::cout << env.proc_id << " | T1 (fully local) = " << *tp1 << "\n";
+
   return 0;
 }
