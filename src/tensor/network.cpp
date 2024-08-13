@@ -58,8 +58,8 @@ namespace qtnh {
     tensors_(std::unordered_map<qtnh::uint, std::unique_ptr<Tensor>>()), 
     bonds_(std::unordered_map<qtnh::uint, Bond>()) {}
   
-  TensorNetwork::Bond::Bond(std::pair<qtnh::uint, qtnh::uint> t_ids, std::vector<qtnh::wire> ws, bool in_place) : 
-    tensor_ids(t_ids), wires(ws), in_place(in_place) {}
+  TensorNetwork::Bond::Bond(std::pair<qtnh::uint, qtnh::uint> t_ids, std::vector<qtnh::wire> ws) : 
+    tensor_ids(t_ids), wires(ws) {}
   
   Tensor* TensorNetwork::tensor(qtnh::uint k) {
     return tensors_.at(k).get();
@@ -99,8 +99,8 @@ namespace qtnh {
     return tensor_counter; 
   }
 
-  qtnh::uint TensorNetwork::addBond(qtnh::uint t1_id, qtnh::uint t2_id, std::vector<qtnh::wire> ws, bool in_place) {
-    Bond b({ t1_id, t2_id }, ws, in_place);
+  qtnh::uint TensorNetwork::addBond(qtnh::uint t1_id, qtnh::uint t2_id, std::vector<qtnh::wire> ws) {
+    Bond b({ t1_id, t2_id }, ws);
     bonds_.insert({ ++bond_counter, b });
 
     return bond_counter;
