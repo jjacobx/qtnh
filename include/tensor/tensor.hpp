@@ -95,7 +95,10 @@ namespace qtnh {
       /// @tparam T Tensor class to convert to. 
       /// @param tp Ownership of tptr to tensor to convert. 
       /// @return Ownership of tptr with converted tensor, nullptr if conversion is not possible. 
-      template<class T>  static std::unique_ptr<T> convert(tptr tp) { return std::unique_ptr<T>(nullptr); }
+      template<class T> 
+      static std::unique_ptr<T> convert(qtnh::tptr tp) { 
+        return std::unique_ptr<T>(nullptr); 
+      }
 
       /// @brief Create a copy of the tensor. 
       /// @return Tptr to duplicated tensor. 
@@ -159,45 +162,51 @@ namespace qtnh {
       virtual qtnh::tel fetch(qtnh::tidx_tup tot_idxs) const;
 
       /// @brief Swap indices on current tensor. 
-      /// @param tu Unique pointer to the tensor. 
+      /// @param tp Ownership of tptr to tensor to swap. 
       /// @param idx1 First index to swap. 
       /// @param idx2 Second index to swap. 
-      /// @return Unique to swapped tensor, which might be of a different derived type. 
-      static qtnh::tptr swap(qtnh::tptr tu, qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) {
-        return utils::one_unique(std::move(tu), tu->swap(idx1, idx2));
+      /// @return Ownership of tptr to swapped tensor. 
+      static qtnh::tptr swap(qtnh::tptr tp, qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) {
+        return utils::one_unique(std::move(tp), tp->swap(idx1, idx2));
       }
       /// @brief Re-broadcast current tensor. 
-      /// @param tu Unique pointer to the tensor. 
+      /// @param tp Ownership of tptr to tensor to re-broadcast. 
       /// @param params Broadcast parameters of the tensor (str, cyc, off)
-      /// @return Unique pointer to redistributed tensor, which might be of a different derived type. 
-      static qtnh::tptr rebcast(qtnh::tptr tu, BcParams params) {
-        return utils::one_unique(std::move(tu), tu->rebcast(params));
+      /// @return Ownership of tptr to re-broadcasted tensor. 
+      static qtnh::tptr rebcast(qtnh::tptr tp, BcParams params) {
+        return utils::one_unique(std::move(tp), tp->rebcast(params));
       }
       /// @brief Shift the border between shared and distributed dimensions by a given offset. 
-      /// @param tu Unique pointer to the tensor. 
+      /// @param tp Ownership of tptr to tensor to re-scatter. 
       /// @param offset New offset between distributed and local dimensions – negative gathers, while positive scatters. 
-      /// @return Pointer to re-scattered tensor, which might be of a different derived type. 
-      static qtnh::tptr rescatter(qtnh::tptr tu, int offset) {
-        return utils::one_unique(std::move(tu), tu->rescatter(offset));
+      /// @return Ownership of tptr to re-scattered tensor. 
+      static qtnh::tptr rescatter(qtnh::tptr tp, int offset) {
+        return utils::one_unique(std::move(tp), tp->rescatter(offset));
       }
       /// @brief Permute tensor indices according to mappings in the permutation tuple. 
-      /// @param tu Unique pointer to the tensor. 
+      /// @param tp Ownership of tptr to tensor to permute. 
       /// @param ptup Permutation tuple of the same size as total dimensions, and each entry unique. 
-      /// @return Unique pointer to permuted tensor, which might be of a different derived type. 
-      static qtnh::tptr permute(qtnh::tptr tu, std::vector<qtnh::tidx_tup_st> ptup) {
-        return utils::one_unique(std::move(tu), tu->permute(ptup));
+      /// @return Ownership of tptr to permuted tensor. 
+      static qtnh::tptr permute(qtnh::tptr tp, std::vector<qtnh::tidx_tup_st> ptup) {
+        return utils::one_unique(std::move(tp), tp->permute(ptup));
       }
 
-      /// @brief Contract two tensors via given wires. 
-      /// @param t1u Unique pointer to first tensor to contract. 
-      /// @param t2u Unique pointer to second tensor      virtual bool isSymm() const noexcept override { return true; } to contract. 
-      /// @param ws A vector of wires which indicate which pairs of indices to sum over. 
-      /// @return Contracted tensor unique pointer. 
-      static qtnh::tptr contract(qtnh::tptr t1u, qtnh::tptr t2u, ConParams& params);
-
-      static qtnh::tptr contract(qtnh::tptr t1u, qtnh::tptr t2u, std::vector<qtnh::wire> wires) {
+      /// @brief Contract two tensors with given contraction parameters. 
+      /// @param tp1 Ownership of tptr to first tensor. 
+      /// @param tp2 Ownership of tptr to second tensor. 
+      /// @param params Reference to contraction parameters to use. 
+      /// @return Ownership of tptr to result. 
+      /// 
+      /// If using default dimension replacements, they can be extracted from the params argument. 
+      static qtnh::tptr contract(qtnh::tptr tp1, qtnh::tptr tp2, ConParams& params);
+      /// @brief Contract two tensors with given wires and default contraction parameters. 
+      /// @param tp1 Ownership of tptr to first tensor. 
+      /// @param tp2 Ownership of tptr to second tensor. 
+      /// @param wires Vector of wires between indices to be contracted. 
+      /// @return Ownership of tptr to result. 
+      static qtnh::tptr contract(qtnh::tptr tp1, qtnh::tptr tp2, std::vector<qtnh::wire> wires) {
         ConParams params(wires);
-        return contract(std::move(t1u), std::move(t2u), params);
+        return contract(std::move(tp1), std::move(tp2), params);
       }
 
     protected:
@@ -254,9 +263,9 @@ namespace qtnh {
   template<> bool Tensor::canConvert<SymmTensor>();
   template<> bool Tensor::canConvert<DiagTensor>();
 
-  template<> std::unique_ptr<DenseTensor> Tensor::convert<DenseTensor>(tptr tp);
-  template<> std::unique_ptr<SymmTensor> Tensor::convert<SymmTensor>(tptr tp);
-  template<> std::unique_ptr<DiagTensor> Tensor::convert<DiagTensor>(tptr tp);
+  template<> std::unique_ptr<DenseTensor> Tensor::convert<DenseTensor>(qtnh::tptr tp);
+  template<> std::unique_ptr<SymmTensor> Tensor::convert<SymmTensor>(qtnh::tptr tp);
+  template<> std::unique_ptr<DiagTensor> Tensor::convert<DiagTensor>(qtnh::tptr tp);
 
   namespace ops {
     /// Print tensor elements via std::cout. 
