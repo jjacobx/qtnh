@@ -28,6 +28,8 @@ namespace qtnh {
       std::vector<qtnh::wire> wires;
 
       bool useDefRepls;
+
+      // TODO: reimplement the following as maps. 
       std::vector<qtnh::tidx_tup_st> dimRepls1;
       std::vector<qtnh::tidx_tup_st> dimRepls2;
   };

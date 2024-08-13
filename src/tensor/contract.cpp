@@ -47,8 +47,8 @@ namespace qtnh {
     t2p = Tensor::permute(std::move(t2p), ptup2);
 
     // Update dimension replacements after permutations. 
-    params.dimRepls1 = utils::permute_vec(params.dimRepls1, ptup1);
-    params.dimRepls2 = utils::permute_vec(params.dimRepls2, ptup2);
+    auto dim_repls1_p = utils::permute_vec(params.dimRepls1, ptup1);
+    auto dim_repls2_p = utils::permute_vec(params.dimRepls2, ptup2);
 
     // STEP 2: Align by broadcast. 
     auto dis_dims1 = t1p->disDims();
@@ -86,18 +86,25 @@ namespace qtnh {
     std::vector<qtnh::tidx_tup_st> ptup_loc(ti3_loc.dims().size());
     std::iota(ptup_loc.begin(), ptup_loc.end(), 0);
 
-    for (std::size_t i = t1p->disDims().size(), j = 0; i < t1p->totDims().size(); ++i) {
+    using namespace ops;
+    if (utils::is_root()) std::cout << "ifls1 = " << ifls1 << "\n";
+    if (utils::is_root()) std::cout << "ifls2 = " << ifls2 << "\n";
+    if (utils::is_root()) std::cout << "wires = " << params.wires << "\n";
+    if (utils::is_root()) std::cout << "dim replacements 1 = " << dim_repls1_p << "\n";
+    if (utils::is_root()) std::cout << "dim replacements 2 = " << dim_repls2_p << "\n";
+
+    for (std::size_t i = t1p->disDims().size(), j = i; i < t1p->totDims().size(); ++i) {
       if (ifls1.at(i).label != "closed") {
-        ptup_loc.at(i - j) = params.dimRepls1.at(i) - ti3_dis.dims().size();
+        ptup_loc.at(i - j) = dim_repls1_p.at(i) - ti3_dis.dims().size();
       } else {
         ++j;
       }
     }
 
     auto split = ti1.keep("local").dims().size();
-    for (std::size_t i = t2p->disDims().size(), j = 0; i < t2p->totDims().size(); ++i) {
+    for (std::size_t i = t2p->disDims().size(), j = i; i < t2p->totDims().size(); ++i) {
       if (ifls2.at(i).label != "closed") {
-        ptup_loc.at(split + i - j) = params.dimRepls2.at(i) - ti3_dis.dims().size();
+        ptup_loc.at(split + i - j) = dim_repls2_p.at(i) - ti3_dis.dims().size();
       } else {
         ++j;
       }
@@ -182,13 +189,13 @@ namespace qtnh {
     std::iota(ptup3.begin(), ptup3.end(), 0);
     
     for (std::size_t i = 0; i < ndis1 - ndis_cons; ++i) {
-      ptup3.at(i) = params.dimRepls1.at(i);
+      ptup3.at(i) = dim_repls1_p.at(i);
     } 
     for (std::size_t i = 1; i <= ndis_cons; ++i) {
       ptup3.at(ndis1 - i) = t3.disDims().size() - i;
     }
     for (std::size_t i = 0; i < ndis2 - ndis_cons; ++i) {
-      ptup3.at(ndis1 + i) = params.dimRepls2.at(ndis_cons + i);
+      ptup3.at(ndis1 + i) = dim_repls2_p.at(ndis_cons + i);
     }
 
     t3._permute_internal(&t3, ptup3);
@@ -241,7 +248,7 @@ namespace qtnh {
         } else {
           params.dimRepls2.at(i) = t1u->disDims().size() - n_dis_ws + i - j;
           if (i >= t2u->disDims().size()) {
-            params.dimRepls2.at(i) += (t1u->totDims().size() - params.wires.size());
+            params.dimRepls2.at(i) = t1u->totDims().size() - params.wires.size() + i - j;
           }
         }
       }
@@ -252,12 +259,14 @@ namespace qtnh {
 
       std::size_t input_count = 0;
       for (auto w : params.wires) {
-        if (w.second < tp2_symm->disInDims().size() || ((w.second >= tp2_symm->disDims().size()) && (w.second < tp2_symm->disDims().size() + tp2_symm->locInDims().size()))) {
+        if (w.second < tp2_symm->disInDims().size() || ((w.second >= tp2_symm->disDims().size()) && (w.second < (tp2_symm->disDims().size() + tp2_symm->locInDims().size())))) {
           ++input_count;
         }
       }
 
-      if (input_count == tp2_symm->disInDims().size() + tp2_symm->locInDims().size()) {
+      auto dis_imbal = (int)tp2_symm->disInDims().size() - (int)tp2_symm->disOutDims().size();
+
+      if ((dis_imbal == 0) && (input_count == tp2_symm->disInDims().size() + tp2_symm->locInDims().size())) {
         params.dimRepls1 = std::vector<qtnh::tidx_tup_st>(t1u->totDims().size(), UINT16_MAX);
         std::sort(params.wires.begin(), params.wires.end(), utils::wirecomp::first);
 
@@ -286,9 +295,27 @@ namespace qtnh {
         }
       }
 
+      #ifdef DEBUG
+        using namespace ops;
+        if (utils::is_root()) {
+          std::cout << "Starting symmetric contraction\n";
+          std::cout << "T1 dimension replacements: " << params.dimRepls1 << "\n";
+          std::cout << "T2 dimension replacements: " << params.dimRepls2 << "\n";
+        }
+      #endif
+
       return _contract_dense(std::move(t1u), std::move(tp2_symm), params);
     }
-    
+
+    #ifdef DEBUG
+      using namespace ops;
+      if (utils::is_root()) {
+        std::cout << "Starting dense contraction\n";
+        std::cout << "T1 dimension replacements: " << params.dimRepls1 << "\n";
+        std::cout << "T2 dimension replacements: " << params.dimRepls2 << "\n";
+      }
+    #endif
+
     return _contract_dense(std::move(t1u), std::move(t2u), params);
   }
 }
