@@ -1,5 +1,5 @@
-#ifndef _TENSOR_NEW__DENSE_HPP
-#define _TENSOR_NEW__DENSE_HPP
+#ifndef _TENSOR_DENSE_HPP
+#define _TENSOR_DENSE_HPP
 
 #include "tensor/tensor.hpp"
 

@@ -1,5 +1,5 @@
-#ifndef _TENSOR_NEW__DIAG_HPP
-#define _TENSOR_NEW__DIAG_HPP
+#ifndef _TENSOR_DIAG_HPP
+#define _TENSOR_DIAG_HPP
 
 #include "tensor/symm.hpp"
 

@@ -1,5 +1,5 @@
-#ifndef _TENSOR_NEW__SYMM_HPP
-#define _TENSOR_NEW__SYMM_HPP
+#ifndef _TENSOR_SYMM_HPP
+#define _TENSOR_SYMM_HPP
 
 #include "tensor/dense.hpp"
 

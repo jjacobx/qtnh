@@ -1,5 +1,5 @@
-#ifndef _TENSOR_NEW__INDEXING_HPP
-#define _TENSOR_NEW__INDEXING_HPP
+#ifndef _TENSOR_INDEXING_HPP
+#define _TENSOR_INDEXING_HPP
 
 #include <string>
 

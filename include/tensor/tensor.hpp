@@ -1,5 +1,5 @@
-#ifndef _TENSOR_NEW__TENSOR_HPP
-#define _TENSOR_NEW__TENSOR_HPP
+#ifndef _TENSOR_TENSOR_HPP
+#define _TENSOR_TENSOR_HPP
 
 #include <memory>
 
