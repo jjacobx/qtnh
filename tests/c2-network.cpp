@@ -6,7 +6,7 @@
 #include "tensor/network.hpp"
 
 #include "gen/random-tn.hpp"
-// #include "gen/qft.hpp"
+#include "gen/qft.hpp"
 
 using namespace qtnh;
 using namespace std::complex_literals;
@@ -152,49 +152,48 @@ TEST_CASE("tn-contraction") {
   }
 }
 
-// TODO: Re-implement QFT. 
-// TEST_CASE("qft") {
-//   SECTION("2-qubits") {
-//     TensorNetwork tn;
-//     auto con_ord = gen::qft(ENV, tn, 2, 0);
+TEST_CASE("qft") {
+  SECTION("2-qubits") {
+    TensorNetwork tn;
+    auto con_ord = gen::qft(ENV, tn, 2, 0);
 
-//     auto id = tn.contractAll(con_ord);
-//     auto tfu = tn.extractTensor(id);
+    auto id = tn.contractAll(con_ord);
+    auto tp = tn.extract(id);
 
-//     auto idxs = utils::i_to_idxs(0, tfu->getLocDims());
-//     REQUIRE(utils::equal(tfu->getLocEl(idxs).value(), 1, 1E-2));
-//   }
+    auto idxs = utils::i_to_idxs(0, tp->totDims());
+    REQUIRE(utils::equal(tp->at(idxs), 1, 1E-4));
+  }
 
-//   SECTION("3-qubits") {
-//     TensorNetwork tn;
-//     auto con_ord = gen::qft(ENV, tn, 3, 0);
+  SECTION("3-qubits") {
+    TensorNetwork tn;
+    auto con_ord = gen::qft(ENV, tn, 3, 0);
 
-//     auto id = tn.contractAll(con_ord);
-//     auto tfu = tn.extractTensor(id);
+    auto id = tn.contractAll(con_ord);
+    auto tp = tn.extract(id);
 
-//     auto idxs = utils::i_to_idxs(0, tfu->getLocDims());
-//     REQUIRE(utils::equal(tfu->getLocEl(idxs).value(), 1, 1E-2));
-//   }
+    auto idxs = utils::i_to_idxs(0, tp->totDims());
+    REQUIRE(utils::equal(tp->at(idxs), 1, 1E-4));
+  }
 
-//   SECTION("4-qubits") {
-//     TensorNetwork tn;
-//     auto con_ord = gen::qft(ENV, tn, 4, 0);
+  SECTION("4-qubits") {
+    TensorNetwork tn;
+    auto con_ord = gen::qft(ENV, tn, 4, 0);
 
-//     auto id = tn.contractAll(con_ord);
-//     auto tfu = tn.extractTensor(id);
+    auto id = tn.contractAll(con_ord);
+    auto tp = tn.extract(id);
 
-//     auto idxs = utils::i_to_idxs(0, tfu->getLocDims());
-//     REQUIRE(utils::equal(tfu->getLocEl(idxs).value(), 1, 1E-2));
-//   }
+    auto idxs = utils::i_to_idxs(0, tp->totDims());
+    REQUIRE(utils::equal(tp->at(idxs), 1, 1E-4));
+  }
 
-//   SECTION("5-qubits") {
-//     TensorNetwork tn;
-//     auto con_ord = gen::qft(ENV, tn, 5, 0);
+  SECTION("5-qubits") {
+    TensorNetwork tn;
+    auto con_ord = gen::qft(ENV, tn, 5, 0);
 
-//     auto id = tn.contractAll(con_ord);
-//     auto tfu = tn.extractTensor(id);
+    auto id = tn.contractAll(con_ord);
+    auto tp = tn.extract(id);
 
-//     auto idxs = utils::i_to_idxs(0, tfu->getLocDims());
-//     REQUIRE(utils::equal(tfu->getLocEl(idxs).value(), 1, 1E-2));
-//   }
-// }
+    auto idxs = utils::i_to_idxs(0, tp->totDims());
+    REQUIRE(utils::equal(tp->at(idxs), 1, 1E-4));
+  }
+}
