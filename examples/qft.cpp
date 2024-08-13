@@ -1,234 +1,150 @@
-#include <cmath>
-#include <complex>
 #include <iostream>
-#include <random>
 
 #include "qtnh.hpp"
-
-using namespace std::complex_literals;
 
 using namespace qtnh;
 using namespace qtnh::ops;
 
-const unsigned int NQUBITS = 8; 
-const unsigned int DQUBITS = 4;
+using namespace std::complex_literals;
 
-qtnh::uint Q0(const QTNHEnv& env, TensorNetwork& tn) {
-  qtnh::tidx_tup dims{ 2 };
-  std::vector<qtnh::tel> els{ 1.0, 0.0 };
-  return tn.createTensor<SDenseTensor>(env, dims, els);
+const unsigned int NQUBITS = 5; 
+const unsigned int DQUBITS = 2;
+
+uint Q0(const QTNHEnv& env, TensorNetwork& tn) {
+  std::vector<tel> els = { 1.0, 0.0 };
+  return tn.make<DenseTensor>(env, tidx_tup {}, tidx_tup { 2 }, std::move(els));
 }
 
 qtnh::uint Q1(const QTNHEnv& env, TensorNetwork& tn) {
-  qtnh::tidx_tup dims{ 2 };
-  std::vector<qtnh::tel> els{ 0.0, 1.0 };
-  return tn.createTensor<SDenseTensor>(env, dims, els);
+  std::vector<tel> els = { 0.0, 1.0 };
+  return tn.make<DenseTensor>(env, tidx_tup {}, tidx_tup { 2 }, std::move(els));
 }
 
 qtnh::uint Qp(const QTNHEnv& env, TensorNetwork& tn) {
-  qtnh::tidx_tup dims{ 2 };
-  std::vector<qtnh::tel> els{ std::pow(2, -.5), std::pow(2, -.5) };
-  return tn.createTensor<SDenseTensor>(env, dims, els);
+  std::vector<tel> els = { std::pow(2, -.5), std::pow(2, -.5) };
+  return tn.make<DenseTensor>(env, tidx_tup {}, tidx_tup { 2 }, std::move(els));
 }
 
-qtnh::uint DIST(const QTNHEnv& env, TensorNetwork& tn) {
-  return tn.createTensor<ConvertTensor>(env, qtnh::tidx_tup{ 2 });
-}
-
-qtnh::uint SWAP(const QTNHEnv& env, TensorNetwork& tn) {
-  return tn.createTensor<SwapTensor>(env, 2, 2);
+qtnh::uint DIST(const QTNHEnv& env, TensorNetwork& tn, bool in) {
+  return tn.make<IdenTensor>(env, tidx_tup { 2 }, tidx_tup { 2 }, in, 0);
 }
 
 qtnh::uint H(const QTNHEnv& env, TensorNetwork& tn) {
-  qtnh::tidx_tup dims{ 2, 2 };
-  std::vector<qtnh::tel> els({ 
+  std::vector<tel> els = { 
     std::pow(2, -.5),  std::pow(2, -.5), 
     std::pow(2, -.5), -std::pow(2, -.5) 
-  });
+  };
 
-  return tn.createTensor<SDenseTensor>(env, dims, els);
+  return tn.make<SymmTensor>(env, tidx_tup {}, tidx_tup { 2, 2 }, 0, std::move(els));
 }
 
-qtnh::uint CP(const QTNHEnv& env, TensorNetwork& tn, double p) {
+qtnh::uint CPH(const QTNHEnv& env, TensorNetwork& tn, double p) {
   qtnh::tidx_tup dims{ 2, 2, 2, 2 };
-  std::vector<qtnh::tel> els({ 
+  std::vector<qtnh::tel> els = { 
     1, 0, 0, 0, 
     0, 1, 0, 0, 
     0, 0, 1, 0, 
     0, 0, 0, std::exp(1i * p)
-  });
+  };
 
-  return tn.createTensor<SDenseTensor>(env, dims, els);
-}
-
-bool validateEqualState(const Tensor& t, unsigned int num_rolls) {
-  if (!t.isActive()) { 
-    return true;
-  }
-
-  auto loc_dims = t.getLocDims();
-  qtnh::tifl_tup ifls(loc_dims.size(), { TIdxT::open, 1 });
-
-  // Check across random dimension. 
-  std::random_device dev;
-  std::mt19937 rng(dev());
-  std::uniform_int_distribution<std::mt19937::result_type> uni(0, loc_dims.size() - 1);
-
-  for (unsigned int i = 0; i < num_rolls; ++i) {
-    ifls.at(uni(rng)) = { TIdxT::open, 0 };
-  }
-
-  TIndexing ti(loc_dims, ifls);
-  auto val = t.getLocEl(*ti.begin()).value();
-
-  for (auto idxs : ti) {
-    if (val != t.getLocEl(idxs).value()) { 
-      return false;
-    }
-  }
-
-  return true;
+  return tn.make<SymmTensor>(env, tidx_tup {}, tidx_tup { 2, 2, 2, 2 }, 0, std::move(els));
 }
 
 int main() {
+  using namespace qtnh;
+
   QTNHEnv env;
   TensorNetwork tn;
 
-  std::vector<qtnh::uint> con_ord(0);
-  std::vector<qtnh::uint> qid(NQUBITS);
-  std::vector<qtnh::tidx_tup_st> qidxi(NQUBITS);
+  std::vector<uint> con_ord(0);
+  std::vector<uint> qid(NQUBITS);
+  std::vector<tidx_tup_st> qidxi(NQUBITS);
 
-  for (unsigned int i = 0; i < NQUBITS; ++i) {
-    qid.at(i) = Q0(env, tn);
+  for (uint i = 0; i < NQUBITS; ++i) {
+    qid.at(i) = Qp(env, tn);
+    qidxi.at(i) = 0;
+
     if (i < DQUBITS) {
-      auto tid = DIST(env, tn);
-      auto bid = tn.createBond(qid.at(i), tid, {{ 0, 0 }}, true);
+      auto tid = DIST(env, tn, 0);
+      auto bid = tn.addBond(qid.at(i), tid, {{ 0, 1 }});
       con_ord.push_back(bid);
 
       qid.at(i) = tid;
-      qidxi.at(i) = 1;
-    } else {
       qidxi.at(i) = 0;
     }
 
     if (i > 0) {
-      auto bid = tn.createBond(qid.at(i - 1), qid.at(i), {});
+      auto bid = tn.addBond(qid.at(i - 1), qid.at(i), {});
       con_ord.push_back(bid);
     }
   }
 
-  for (int i = NQUBITS - 1; i >= 0; --i) {
-    if (i < (int)DQUBITS) {
-      int i1 = i, i2 = NQUBITS - 1;
+  for (uint i = 0; i < NQUBITS; ++i) {
+    uint hid = H(env, tn);
+    auto tid1 = hid, tid2 = hid;
+    uint idxi2 = 1;
 
-      auto tid1 = SWAP(env, tn);
-      auto tid2 = H(env, tn);
-      auto tid3 = SWAP(env, tn);
+    // Distribute the Hadamard gate if it acts on a distributed qubit. 
+    if (i < DQUBITS) {
+      tid1 = DIST(env, tn, 1);
+      auto bid1 = tn.addBond(tid1, hid, {{ 1, 0 }});
+      con_ord.push_back(bid1);
 
-      auto bid1 = tn.createBond(qid.at(i1), tid1, {{ qidxi.at(i1), 0 }}, true);
-      auto bid2 = tn.createBond(qid.at(i2), tid1, {{ qidxi.at(i2), 1 }}, true);
-      auto bid3 = tn.createBond(tid1, tid2, {{ 3, 0 }});
-      auto bid4 = tn.createBond(tid2, tid3, {{ 1, 1 }}, true);
-      auto bid5 = tn.createBond(tid1, tid3, {{ 2, 0 }}, true);
+      tid2 = DIST(env, tn, 0);
+      auto bid2 = tn.addBond(hid, tid2, {{ 1, 1 }});
+      con_ord.push_back(bid2);
+      idxi2 = 0;
+    }
 
+    auto bid = tn.addBond(qid.at(i), tid1, {{ qidxi.at(i), 0 }});
+    con_ord.push_back(bid);
+
+    qid.at(i) = tid2;
+    qidxi.at(i) = idxi2;
+
+    for (uint j = i + 1; j < NQUBITS; ++j) {
+      auto cpid = CPH(env, tn, M_PI / std::pow(2, j - i));
+      auto tid1 = cpid, tid2 = cpid, tid3 = cpid, tid4 = cpid;
+      auto idxi1 = 0, idxi2 = 1, idxi3 = 2, idxi4 = 3;
+      
+      if (i < DQUBITS) {
+        tid1 = DIST(env, tn, 1);
+        auto bid1 = tn.addBond(tid1, cpid, {{ 1, 0 }});
+        con_ord.push_back(bid1);
+        idxi1 = 0;
+
+        tid3 = DIST(env, tn, 0);
+        auto bid2 = tn.addBond(cpid, tid3, {{ 2, 1 }});
+        con_ord.push_back(bid2);
+        idxi3 = 0;
+      }
+
+      if (j < DQUBITS) {
+        tid2 = DIST(env, tn, 1);
+        auto bid1 = tn.addBond(tid2, cpid, {{ 1, 1 }});
+        con_ord.push_back(bid1);
+        idxi2 = 0;
+
+        tid4 = DIST(env, tn, 0);
+        auto bid2 = tn.addBond(cpid, tid4, {{ 3, 1 }});
+        con_ord.push_back(bid2);
+        idxi4 = 0;
+      }
+
+      auto bid1 = tn.addBond(qid.at(i), tid1, {{ qidxi.at(i), idxi1 }});
+      auto bid2 = tn.addBond(qid.at(j), tid2, {{ qidxi.at(j), idxi2 }});
       con_ord.push_back(bid1);
       con_ord.push_back(bid2);
-      con_ord.push_back(bid3);
-      con_ord.push_back(bid4);
-      con_ord.push_back(bid5);
 
-      qid.at(i1) = qid.at(i2) = tid3;
-      qidxi.at(i1) = 2; qidxi.at(i2) = 3;
-    } else {
-      auto tid = H(env, tn);
-      auto bid = tn.createBond(qid.at(i), tid, {{ qidxi.at(i), 0 }});
-      con_ord.push_back(bid);
-
-      qid.at(i) = tid;
-      qidxi.at(i) = 1;
-    }
-
-    for (int j = i - 1; j >= 0; --j) {
-      auto ii = i, jj = j;
-      if (i < (int)DQUBITS) {
-        int i0 = i, i1 = NQUBITS - 1;
-
-        auto tid = SWAP(env, tn);
-        auto bid0 = tn.createBond(qid.at(i0), tid, {{ qidxi.at(i0), 0 }}, true);
-        auto bid1 = tn.createBond(qid.at(i1), tid, {{ qidxi.at(i1), 1 }}, true);
-
-        con_ord.push_back(bid0); con_ord.push_back(bid1);
-        qid.at(i0) = qid.at(i1) = tid;
-        qidxi.at(i0) = 2; qidxi.at(i1) = 3;
-        ii = i1;
-      }
-      if (j < (int)DQUBITS) {
-        int j0 = j, j1 = NQUBITS - 2;
-        if (j1 == ii) j1 = NQUBITS - 1;
-
-        auto tid = SWAP(env, tn);
-        auto bid0 = tn.createBond(qid.at(j0), tid, {{ qidxi.at(j0), 0 }}, true);
-        auto bid1 = tn.createBond(qid.at(j1), tid, {{ qidxi.at(j1), 1 }}, true);
-
-        con_ord.push_back(bid0); con_ord.push_back(bid1);
-        qid.at(j0) = qid.at(j1) = tid;
-        qidxi.at(j0) = 2; qidxi.at(j1) = 3;
-        jj = j1;
-      }
-
-      auto tid = CP(env, tn, M_PI / std::pow(2, j - i));
-      auto bid0 = tn.createBond(qid.at(ii), tid, {{ qidxi.at(ii), 0 }});
-      auto bid1 = tn.createBond(qid.at(jj), tid, {{ qidxi.at(jj), 1 }});
-
-      con_ord.push_back(bid0); con_ord.push_back(bid1);
-      qid.at(ii) = qid.at(jj) = tid;
-      qidxi.at(ii) = 2; qidxi.at(jj) = 3;
-
-      if (i != ii) {
-        auto tid = SWAP(env, tn);
-        auto bid0 = tn.createBond(qid.at(i), tid, {{ qidxi.at(i), 0 }}, true);
-        auto bid1 = tn.createBond(qid.at(ii), tid, {{ qidxi.at(ii), 1 }}, true);
-
-        con_ord.push_back(bid0); con_ord.push_back(bid1);
-        qid.at(i) = qid.at(ii) = tid;
-        qidxi.at(i) = 2; qidxi.at(ii) = 3;
-      }
-      if (j != jj) {
-        auto tid = SWAP(env, tn);
-        auto bid0 = tn.createBond(qid.at(j), tid, {{ qidxi.at(j), 0 }}, true);
-        auto bid1 = tn.createBond(qid.at(jj), tid, {{ qidxi.at(jj), 1 }}, true);
-
-        con_ord.push_back(bid0); con_ord.push_back(bid1);
-        qid.at(j) = qid.at(jj) = tid;
-        qidxi.at(j) = 2; qidxi.at(jj) = 3;
-      }
+      qid.at(i) = tid3; qidxi.at(i) = idxi3;
+      qid.at(j) = tid4; qidxi.at(j) = idxi4;
     }
   }
 
-  for (unsigned int i = 0; i < NQUBITS / 2; ++i) {
-    auto i0 = i, i1 = NQUBITS - i - 1;
+  auto tid = tn.contractAll(con_ord);
+  auto tp = tn.extract(tid);
 
-    auto tid = SWAP(env, tn);
-    auto bid0 = tn.createBond(qid.at(i0), tid, {{ qidxi.at(i0), 0 }}, true);
-    auto bid1 = tn.createBond(qid.at(i1), tid, {{ qidxi.at(i1), 1 }}, true);
-
-    con_ord.push_back(bid0); con_ord.push_back(bid1);
-    qid.at(i0) = qid.at(i1) = tid;
-    qidxi.at(i0) = 2; qidxi.at(i1) = 3;
-  }
-
-  if (env.proc_id == 0) tn.print();
-
-  // Contract the network and extract result. 
-  auto id = tn.contractAll(con_ord);
-  auto tfu = tn.extractTensor(id);
-  // tn should be empty now. 
-
-  MPI_Barrier(MPI_COMM_WORLD);
-  std::cout << "P" << env.proc_id << "\t| " << *tfu << "\n";
-
-  MPI_Barrier(MPI_COMM_WORLD);
-  std::cout << "P" << env.proc_id << "\t| Valid: " << validateEqualState(*tfu, 4) << "\n";
+  std::cout << env.proc_id << " | Result = " << *tp << "\n";
 
   return 0;
 }
