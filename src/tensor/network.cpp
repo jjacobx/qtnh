@@ -115,8 +115,13 @@ namespace qtnh {
     auto t1_up = std::move(tensors_.at(t1_id));
     auto t2_up = std::move(tensors_.at(t2_id));
 
-    auto [t1_imaps, t2_imaps] = _get_timaps(*t1_up, *t2_up, b.wires, b.in_place);
-    auto t3_p = Tensor::contract(std::move(t1_up), std::move(t2_up), b.wires);
+    // auto [t1_imaps, t2_imaps] = _get_timaps(*t1_up, *t2_up, b.wires, b.in_place);
+
+    ConParams params(b.wires);
+    auto t3_p = Tensor::contract(std::move(t1_up), std::move(t2_up), params);
+
+    auto t1_imaps = params.dimRepls1;
+    auto t2_imaps = params.dimRepls2;
 
     bonds_.erase(id);
     tensors_.erase(t1_id);
@@ -124,29 +129,30 @@ namespace qtnh {
 
     auto t3_id = insert(std::move(t3_p));
 
-    #ifdef DEBUG
-      utils::barrier();
-      if (utils::is_root()) {
-        std::cout << "Remapping indices: \n";
+    // ! The following only works if dimension replacements are maps. 
+    // #ifdef DEBUG
+      // utils::barrier();
+      // if (utils::is_root()) {
+      //   std::cout << "Remapping indices: \n";
 
-        int _i = 0;
-        std::cout << "T1: ";
-        for (auto& [k, v]: t1_imaps) {
-          if (_i++) std::cout << ", ";
-          std::cout << k << "->" << v;
-        }
+      //   int _i = 0;
+      //   std::cout << "T1: ";
+      //   for (auto& [k, v]: t1_imaps) {
+      //     if (_i++) std::cout << ", ";
+      //     std::cout << k << "->" << v;
+      //   }
 
-        _i = 0;
-        std::cout << "\nT2: ";
-        for (auto& [k, v]: t2_imaps) {
-          if (_i++) std::cout << ", ";
-          std::cout << k << "->" << v;
-        }
+      //   _i = 0;
+      //   std::cout << "\nT2: ";
+      //   for (auto& [k, v]: t2_imaps) {
+      //     if (_i++) std::cout << ", ";
+      //     std::cout << k << "->" << v;
+      //   }
 
-        std::cout << "\n";
-      }
-      utils::barrier();
-    #endif
+      //   std::cout << "\n";
+      // }
+      // utils::barrier();
+    // #endif
 
     for (auto& [id, b] : bonds_) {
       if (b.tensor_ids.first == t1_id) {
