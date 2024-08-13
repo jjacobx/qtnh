@@ -86,13 +86,6 @@ namespace qtnh {
     std::vector<qtnh::tidx_tup_st> ptup_loc(ti3_loc.dims().size());
     std::iota(ptup_loc.begin(), ptup_loc.end(), 0);
 
-    using namespace ops;
-    if (utils::is_root()) std::cout << "ifls1 = " << ifls1 << "\n";
-    if (utils::is_root()) std::cout << "ifls2 = " << ifls2 << "\n";
-    if (utils::is_root()) std::cout << "wires = " << params.wires << "\n";
-    if (utils::is_root()) std::cout << "dim replacements 1 = " << dim_repls1_p << "\n";
-    if (utils::is_root()) std::cout << "dim replacements 2 = " << dim_repls2_p << "\n";
-
     for (std::size_t i = t1p->disDims().size(), j = i; i < t1p->totDims().size(); ++i) {
       if (ifls1.at(i).label != "closed") {
         ptup_loc.at(i - j) = dim_repls1_p.at(i) - ti3_dis.dims().size();
