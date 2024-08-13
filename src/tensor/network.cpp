@@ -5,55 +5,6 @@
 #include "tensor/network.hpp"
 
 namespace qtnh {
-  typedef std::unordered_map<qtnh::tidx_tup_st, qtnh::tidx_tup_st> tidx_tup_imap;
-  std::pair<tidx_tup_imap, tidx_tup_imap> _get_timaps(const Tensor& t1, const Tensor& t2, std::vector<qtnh::wire> ws, bool in_place) {
-    std::vector<bool> is_open1(t1.totDims().size(), true);
-    std::vector<bool> is_open2(t2.totDims().size(), true);
-
-    for (auto w : ws) {
-      is_open1.at(w.first) = false;
-      is_open2.at(w.second) = false;
-    }
-
-    qtnh::tidx_tup_st counter = 0;
-    auto t1_imaps = tidx_tup_imap();
-    auto t2_imaps = tidx_tup_imap();
-
-    auto i2 = 0; // index for in-place contractions
-
-    for (std::size_t i = 0; i < t1.disDims().size(); ++i) {
-      if (is_open1.at(i))  {
-        t1_imaps.insert({ i, counter++ });
-      } else if (in_place) {
-        // If in place, replace closed indices of t1 with open indices of t2. 
-        while (!is_open2.at(i2)) ++i2; // find next open index of t2
-        t2_imaps.insert({ i2++, counter++ });
-      }
-    }
-
-    // If not in-place, append distributed indices sequentially. 
-    for (std::size_t i = 0; !in_place && i < t2.disDims().size(); ++i) {
-      if (is_open2.at(i)) t2_imaps.insert({ i, counter++ });
-    }
-
-    for (auto i = t1.disDims().size(); i < t1.totDims().size(); ++i) {
-      if (is_open1.at(i)) { 
-        t1_imaps.insert({ i, counter++ });
-      } else if (in_place) {
-        // If in place, replace closed indices of t1 with open indices of t2. 
-        while (!is_open2.at(i2)) ++i2; // find next open index of t2
-        t2_imaps.insert({ i2++, counter++ });
-      }
-    }
-
-    // If not in-place, append local indices sequentially. 
-    for (auto i = t2.disDims().size(); !in_place && i < t2.totDims().size(); ++i) {
-      if (is_open2.at(i)) t2_imaps.insert({ i, counter++ });
-    }
-
-    return { t1_imaps, t2_imaps };
-  }
-
   TensorNetwork::TensorNetwork() : 
     tensors_(std::unordered_map<qtnh::uint, std::unique_ptr<Tensor>>()), 
     bonds_(std::unordered_map<qtnh::uint, Bond>()) {}
@@ -106,16 +57,12 @@ namespace qtnh {
     return bond_counter;
   }
 
-
-
   qtnh::uint TensorNetwork::contractBond(qtnh::uint bid) {
     auto& b = bonds_.at(bid);
     auto [tid1, tid2] = b.tensor_ids;
 
     auto tp1 = std::move(tensors_.at(tid1));
     auto tp2 = std::move(tensors_.at(tid2));
-
-    // auto [t1_imaps, t2_imaps] = _get_timaps(*t1_up, *t2_up, b.wires, b.in_place);
 
     ConParams params(b.wires);
     auto tp3 = Tensor::contract(std::move(tp1), std::move(tp2), params);
@@ -128,31 +75,6 @@ namespace qtnh {
     tensors_.erase(tid2);
 
     auto tid3 = insert(std::move(tp3));
-
-    // ! The following only works if dimension replacements are maps. 
-    // #ifdef DEBUG
-      // utils::barrier();
-      // if (utils::is_root()) {
-      //   std::cout << "Remapping indices: \n";
-
-      //   int _i = 0;
-      //   std::cout << "T1: ";
-      //   for (auto& [k, v]: t1_imaps) {
-      //     if (_i++) std::cout << ", ";
-      //     std::cout << k << "->" << v;
-      //   }
-
-      //   _i = 0;
-      //   std::cout << "\nT2: ";
-      //   for (auto& [k, v]: t2_imaps) {
-      //     if (_i++) std::cout << ", ";
-      //     std::cout << k << "->" << v;
-      //   }
-
-      //   std::cout << "\n";
-      // }
-      // utils::barrier();
-    // #endif
 
     for (auto& [id, b] : bonds_) {
       if (b.tensor_ids.first == tid1) {
