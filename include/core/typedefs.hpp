@@ -11,27 +11,12 @@
 int _r; MPI_Comm_rank(MPI_COMM_WORLD, &_r); \
 if (!_r) std::cout
 
-// By default broadcast shared tensors
-// Can be switched off for performance reasons
-#ifndef DEF_STENSOR_BCAST
-#define DEF_STENSOR_BCAST 1
-#endif
-
 namespace qtnh {
   typedef std::size_t tidx;                ///< Tensor index dimensions. 
   typedef unsigned short int tidx_tup_st;  ///< Tensor index tuple dimensions. 
   typedef unsigned int uint;               ///< Unsigned int for IDs. 
 
-  /// Tensor index type labels for contraction. 
-  enum class TIdxT { 
-    open,     ///< Open indices – increase independenly on contracted tensors. 
-    closed,   ///< Closed indices – increase in pairs on contracted tensors. 
-    oob = 99  ///< Out-of-bounds label – indicates that index went out of scope. 
-  };
-  typedef std::pair<TIdxT, qtnh::tidx_tup_st> tifl;  ///< Tensor index flag – consists of a type and a tag. 
-
   typedef std::vector<qtnh::tidx> tidx_tup;  ///< Tuple of tensor indices – used for accessing tensor elements. 
-  typedef std::vector<qtnh::tifl> tifl_tup;  ///< Tuple of tensor flags – stores labels of all indices under contracion. 
 
   typedef std::complex<double> tel;  ///< Tensor element type. 
 
