@@ -1,8 +1,8 @@
 # Quantum Tensor Network Hub
 
-This project aims to create a generalised distributed software for performing contractions of tensor networks, for the purpose of simulating quantum circuits. 
+This project aims to create a generalised distributed software for contracting tensor networks, mainly for the purpose of quantum circuit simulations. 
 
-To build and run the code, execute the following commands: 
+To build and run the program, execute the following commands: 
 
 ```bash
 mkdir build && cd build
@@ -16,15 +16,12 @@ Use `-DCMAKE_BUILD_TYPE=Debug` to print out more information at runtime.
 
 Use `-DFSANITIZE=1` to detect memory leaks at runtime. 
 
-Use `-DDEF_STENSOR_BCAST=0` to disable default shared tensor broadcasting. This can make the initialisation faster, but extra care needs to be taken when declaring shared objects. 
-
 
 ## Dependencies
 
  * [CMake](https://cmake.org/) – at least version 3.13.0
  * [Catch2](https://github.com/catchorg/Catch2) – at least version v3.10
- * MPI
- * OpenMP
+ * MPI - version 4.1
 
 
 ## Tests
@@ -35,6 +32,57 @@ To run distributed MPI tests, use `mpirun -n <N> tests/c2-mpi "[<N>rank]"`, wher
 
 
 ## Usage
+
+As the first step before running any code, the environment `QTNHEnv` needs to be created. This is done by invoking an empty constructor. 
+
+```c++
+using namespace qtnh;
+
+QTNHEnv env;
+```
+
+The environment initialises MPI, and can be used to access information such as the number of processes and current process ID. 
+
+### Tensors
+
+Currently, there are three main tensor classes with different properties: 
+
+ * Dense tensors (`class DenseTensor`) – all tensor values can be non-zero, and there is no restriction to dimensions. 
+ * Symmetric tensors (`class SymmTensor`) - all tensor values can be non-zero, but dimensions need to be split into equal input and output. This allows substituting contracted indices in-place. 
+ * Diagonal tensors (`class DiagTensor`) - symmetric tensors where the only non-zero values appear on the input/output diagonal (i.e. when both are equal). 
+
+All tensor classes are derived from a base class `Tensor`. There are also other special types of tensors, such as swap tensors or identity tensors. 
+
+Tensors have no public constructors. Instead they need to be created using the static `make()` function, which is implemented for any non-virtual tensor class. It returns a unique pointer to the tensor, `std::unique_ptr<Tensor>` or `tptr`, which is the fundamental type used in the library. The reason for this is to ensure that tensors are not accidentally copied around, as they are likely to use a lot of memory. If a tensor has to be copied for some reason, there is an explicit `copy()` function, which returns a unique pointer to another tensor with the same class members. 
+
+Tensor elements are of type `std::complex<double>` or `tel`, and their storage container is `std::vector`. The `make()` function accepts only rvalue references to elements, so if they are declared earlier, `std:move()` needs to be used (or a copy constructor). This is again to prevent wasting storage space. 
+
+There are two dimension tuples used by tensors – distributed dimensions, and local dimensions, both stored as `std::vector<std::size_t>` or `tidx_tup`. The concatenation of both, in the same order, gives the actual total tensor dimensions. The distributed part is used to split the tensor into multiple ranks, along first `d` indices. Meanwhile, the remainder is used to address the elements locally. For instance, a rank 4 tensor might have dimensions `(2, 2, 2, 2)`, where the first `(2, 2)` are distributed, and the last `(2, 2)` are local. Then, the element `(1, 0, 0, 1)` will be available on rank `(1, 0)`, i.e. rank 2, and will be indexed by `(0, 1)`, i.e. position 1 in the local vector. 
+
+With all that in mind, the code below shows how to construct a dense tensor. 
+
+```c++
+// Use this to type complex numbers. 
+using namespace std::complex_literals;
+
+std::vector<tel> els;
+if (env.proc_id == 0) els = { 0+0i, 1+0i, 2+0i, 3+0i };
+if (env.proc_id == 1) els = { 0+0i, 0+1i, 0+2i, 0+3i };
+
+// Rank 3 tensor with dimensions (2, 2, 2), where (2) is distributed and (2, 2) local. 
+tptr tp = DenseTensor::make(env, { 2 }, { 2, 2 }, std::move(els));
+```
+
+There are multiple ways to access tensor elements. The `fetch(tidx_tup)` method uses MPI to synchronise an element with all ranks – it involves a collective and needs to be called on all ranks. A less expensive way is to use the `at(tidx_tup)` method, which assumes the element is available locally, and otherwise throws an error. This should be used in conjunction with the boolean `has(tidx_tup)` to avoid runtime exceptions. Finally, the square bracket operator can be used on a tensor to directly address the vector with local elements. It is not recommended to use it outside of core implementations. 
+
+```c++
+std::cout << tp->fetch({ 0, 0, 1 }) << "\n"; // (1,0) on all ranks
+if (tp->has({ 1, 0, 1 })) 
+  std::cout << tp->at({ 1, 0, 1 }) << "\n"; // (0,1) on rank 1
+if (env.proc_id <= 1) 
+  std::cout << (*tp)[2] << "\n"; // (2,0) on rank 0 and (0,2) on rank 1
+```
+
 
 The library uses two main custom types – `qtnh::tidx` for tensor indices (grouped into `qtnh::tidx_tup`), and `qtnh::tel` for tensor elements (collected in a vector `std::vector<qtnh::tel>`). Currently, the former is a wrapper around `std::size_t`, while the latter representes `std::complex<double>`. In addition, there is a custom tensor index type enum `qtnh::TIdxT`, which usually takes one of the two values `qtnh::TIdxT::open` or `qtnh::TIdxT:closed` for open and closed indices respectively. Paired together with an integer tag, it forms a flag `qtnh::tifl`, which labels tensor indices for contraction. To describe multiple indices, a vector of flags `qtnh::tifl_tup` is used. 
 
