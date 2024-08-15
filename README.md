@@ -83,6 +83,22 @@ if (env.proc_id <= 1)
   std::cout << (*tp)[2] << "\n"; // (2,0) on rank 0 and (0,2) on rank 1
 ```
 
+For non-special types of tensors, the accessors can also be used to set elements. There is an additional function, `put(tidx_tup, tel)`, which is a collective method to update an individual element without checking ranks. The element passed needs to be the same on all ranks, otherwise its behaviour is undefined. 
+
+```c++
+tp->put({ 0, 0, 0 }, 1-1i); // Update global element using global value. 
+if (tp->has({ 1, 0, 0 })) 
+  tp->at({ 1, 0, 0 }) = 1+1i; // Update global element using local value. 
+if (env.proc_id <= 1)
+  (*tp)[0] = 0-1i; // Update local element using local value. 
+```
+
+The way tensors are distributed is controlled by two operations – scatter and broadcast. Scatter controls how many indices are distributed, i.e. identified by process rank, in contrast to local indices used to access local elements. Distributed dimensions can be assigned during tensor construction, or modified using static `Tensor::rescatter(tptr, int)` function. The offset specifies how many dimensions to convert to the other type: positive values convert last first local to last distributed indices, while negative values convert last distributed to first local indices. 
+
+```c++
+tp = Tensor::rescatter(std::move(tp), 1); // dis_dims = { 2, 2 }, loc_dims = { 2 }
+tp = Tensor::rescatter(std::move(tp), -1); // dis_dims = { 2 }, loc_dims = { 2, 2 }
+```
 
 The library uses two main custom types – `qtnh::tidx` for tensor indices (grouped into `qtnh::tidx_tup`), and `qtnh::tel` for tensor elements (collected in a vector `std::vector<qtnh::tel>`). Currently, the former is a wrapper around `std::size_t`, while the latter representes `std::complex<double>`. In addition, there is a custom tensor index type enum `qtnh::TIdxT`, which usually takes one of the two values `qtnh::TIdxT::open` or `qtnh::TIdxT:closed` for open and closed indices respectively. Paired together with an integer tag, it forms a flag `qtnh::tifl`, which labels tensor indices for contraction. To describe multiple indices, a vector of flags `qtnh::tifl_tup` is used. 
 
