@@ -51,6 +51,8 @@ namespace qtnh {
     in,   ///< Input indices are the first parts of distributed/local dimension arrays. 
     out   ///< Output indices are the second parts of distributed/local dimension arrays. 
   };
+
+  const qtnh::tidx_tup_st X = UINT16_MAX;
 }
 
 #endif
