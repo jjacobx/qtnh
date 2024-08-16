@@ -1,8 +1,10 @@
 target_sources(qtnh
   PRIVATE
-  base.cpp
+  contract.cpp
   dense.cpp
+  diag.cpp
   indexing.cpp
   network.cpp
-  special.cpp
+  symm.cpp
+  tensor.cpp
 )

@@ -1,87 +1,180 @@
 #include <iostream>
-
 #include "qtnh.hpp"
 
-using namespace std::complex_literals;
+using namespace qtnh;
 using namespace qtnh::ops;
+using namespace std::complex_literals;
+
 
 int main() {
-  qtnh::QTNHEnv my_env;
-  auto is_0 = my_env.proc_id == 0;
+  QTNHEnv env;
 
-  qtnh::tidx_tup t1_dims = { 2, 2, 2 };
-  qtnh::tidx_tup t2_dims = { 4, 2 };
+  tidx_tup t1_dis_dims = { 2 }, t1_loc_dims = { 2, 2, 2 };
+  std::vector<tel> t1_els;
+  if (env.proc_id == 0) {
+    t1_els = { 1.0 + 1.0i, 2.0 + 2.0i, 3.0 + 3.0i, 4.0 + 4.0i, 5.0 + 5.0i, 6.0 + 6.0i, 7.0 + 7.0i, 8.0 + 8.0i };
+  } else if (env.proc_id == 1) {
+    t1_els = { 5.0 - 5.0i, 6.0 - 6.0i, 7.0 - 7.0i, 8.0 - 8.0i, 1.0 - 1.0i, 2.0 - 2.0i, 3.0 - 3.0i, 4.0 - 4.0i };
+  }
 
-  std::vector<qtnh::tel> t1_els = { 1.0 + 1.0i, 2.0 + 2.0i, 3.0 + 3.0i, 4.0 + 4.0i, 5.0 + 5.0i, 6.0 + 6.0i, 7.0 + 7.0i, 8.0 + 8.0i };
-  std::vector<qtnh::tel> t2_els = { 5.0 + 5.0i, 6.0 + 6.0i, 7.0 + 7.0i, 8.0 + 8.0i, 1.0 + 1.0i, 2.0 + 2.0i, 3.0 + 3.0i, 4.0 + 4.0i };
+  tptr tp1 = DenseTensor::make(env, t1_dis_dims, t1_loc_dims, std::move(t1_els));
+  std::cout << env.proc_id << " | T1 = " << *tp1 << std::endl;
 
-  qtnh::SDenseTensor t1(my_env, t1_dims, t1_els);
-  qtnh::SDenseTensor t2(my_env, t2_dims, t2_els);
-  auto& t3 = *t1.distribute(1);
+  MPI_Barrier(MPI_COMM_WORLD);
+  tp1 = Tensor::rebcast(std::move(tp1), { 2, 2, 0 });
+  std::cout << env.proc_id << " | T1 (re-bcast 1) = " << *tp1 << std::endl;
 
-  std::vector<qtnh::wire> wires1(1, {1, 2});
-  qtnh::Bond b1({t2.getID(), t3.getID()}, wires1);
+  MPI_Barrier(MPI_COMM_WORLD);
+  tp1 = Tensor::rescatter(std::move(tp1), -1);
+  std::cout << env.proc_id << " | T1 (re-scatter 1) = " << *tp1 << std::endl;
 
-  qtnh::TensorNetwork tn;
-  tn.insertTensor(t2);
-  tn.insertTensor(t3);
-  tn.insertBond(b1);
+  MPI_Barrier(MPI_COMM_WORLD);
+  tp1 = Tensor::rebcast(std::move(tp1), { 1, 1, 0 });
+  std::cout << env.proc_id << " | T1 (re-bcast 2) = " << *tp1 << std::endl;
 
-  auto t4id = tn.contractBond(b1.getID());
-  auto& t_out = tn.getTensor(t4id);
+  MPI_Barrier(MPI_COMM_WORLD);
+  tp1 = Tensor::permute(std::move(tp1), { 0, 1, 2, 3 });
+  std::cout << env.proc_id << " | T1 (permute 1) = " << *tp1 << std::endl;
 
-  std::cout << my_env.proc_id << " | Tout[" << t_out.isActive() << "] = " << t_out << std::endl;
-  t_out.swap(0, 2);
-  std::cout << my_env.proc_id << " | Tout_s1 = " << t_out << std::endl;
+  MPI_Barrier(MPI_COMM_WORLD);
+  tp1 = Tensor::rescatter(std::move(tp1), 2);
+  std::cout << env.proc_id << " | T1 (re-scatter 2) = " << *tp1 << std::endl;
 
-  std::vector<qtnh::tel> t5_els = { 1, 2, 3, 1, 2, 3, 1, 2, 3 };
-  qtnh::SDenseTensor t5(my_env, { 3, 3 }, t5_els);
-  auto& t6 = *t5.distribute(1);
+  MPI_Barrier(MPI_COMM_WORLD);
+  tp1 = Tensor::permute(std::move(tp1), { 1, 0, 2, 3 });
+  std::cout << env.proc_id << " | T1 (permute 2) = " << *tp1 << std::endl;
 
-  std::cout << my_env.proc_id << " | T6 = " << t6 << std::endl;
+  // Only casts return something more specific than tptr. 
+  auto tp1_dt = Tensor::cast<DenseTensor>(tp1->copy());
+  tptr tp1_2 = Tensor::convert<DenseTensor>(tp1->copy());
+  tptr tp1_1 = tp1->copy();
 
-  t6.swap(0, 1);
-  std::cout << my_env.proc_id << " | T6_s1 = " << t6 << std::endl;
 
-  std::vector<qtnh::tel> t7_els = { 1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8 };
-  qtnh::SDenseTensor t7(my_env, { 2, 2, 2, 2 }, t7_els);
-  auto& t8 = *t7.distribute(2);
+  tidx_tup t2_dis_dims = {}, t2_loc_dims = { 2, 2 };
+  std::vector<tel> t2_els = { 1.0, 0.0, 0.0, -1.0 };
+  qtnh::tptr tp2 = DenseTensor::make(env, t2_dis_dims, t2_loc_dims, std::move(t2_els));
+  std::cout << env.proc_id << " | T2 = " << *tp2 << std::endl;
 
-  std::cout << my_env.proc_id << " | T8 = " << t8 << std::endl;
+  MPI_Barrier(MPI_COMM_WORLD);
+  tp1 = Tensor::contract(std::move(tp1), std::move(tp2), {{ 3, 0 }});
+  std::cout << env.proc_id << " | T1 (contract 1) = " << *tp1 << std::endl;
 
-  t8.swap(0, 1);
-  std::cout << my_env.proc_id << " | T8_s1 = " << t8 << std::endl;
+  MPI_Barrier(MPI_COMM_WORLD);
+  tp2 = tp1_1->copy();
+  tp1 = Tensor::contract(std::move(tp2), std::move(tp1), {{ 1, 1 }, { 2, 2 }});
+  std::cout << env.proc_id << " | T1 (contract 2) = " << *tp1 << std::endl;
 
-  t8.swap(1, 0);
-  t8.swap(2, 3);
-  std::cout << my_env.proc_id << " | T8_s2 = " << t8 << std::endl;
+  MPI_Barrier(MPI_COMM_WORLD);
+  tp1 = Tensor::rebcast(std::move(tp1), { 1, 1, 4 });
+  std::cout << env.proc_id << " | T1 (re-bcast 3) = " << *tp1 << std::endl;
 
-  t8.swap(3, 2);
-  std::cout << my_env.proc_id << " | T8 = " << t8 << std::endl;
+  tidx_tup t3_dis_dims = { 2 }, t3_loc_dims = { 2, 3 };
+  std::vector<tel> t3_els;
+  if (env.proc_id == 0) {
+    t3_els = { 0.0, 1.0, 2.0, 3.0, 4.0, 5.0 };
+  } else {
+    t3_els = { 6.0, 7.0, 8.0, 9.0, 10.0, 11.0 };
+  }
 
-  qtnh::SwapTensor st(my_env, 2, 2);
-  std::cout << my_env.proc_id << " | SWAP = " << st << std::endl;
+  MPI_Barrier(MPI_COMM_WORLD);
+  qtnh::tptr tp3 = DenseTensor::make(env, t3_dis_dims, t3_loc_dims, std::move(t3_els));
+  tp3 = Tensor::rebcast(std::move(tp3), { 1, 1, 1 });
+  std::cout << env.proc_id << " | T3 = " << *tp3 << std::endl;
 
-  auto& t9 = *qtnh::Tensor::contract(&t8, &st, {{ 2, 3 }});
+  tidx_tup t4_dis_dims = {}, t4_loc_dims = { 4, 2 };
+  tidx_tup t5_dis_dims = {}, t5_loc_dims = { 2, 2, 2 };
+  std::vector<tel> t4_els = { 5.0 + 5.0i, 6.0 + 6.0i, 7.0 + 7.0i, 8.0 + 8.0i, 1.0 + 1.0i, 2.0 + 2.0i, 3.0 + 3.0i, 4.0 + 4.0i };
+  std::vector<tel> t5_els = { 1.0 + 1.0i, 2.0 + 2.0i, 3.0 + 3.0i, 4.0 + 4.0i, 5.0 + 5.0i, 6.0 + 6.0i, 7.0 + 7.0i, 8.0 + 8.0i };
 
-  std::cout << my_env.proc_id << " | T9 = " << t9 << std::endl;
-  if (is_0) std::cout << "T9.dims = " << t9.getDims() << std::endl;
+  MPI_Barrier(MPI_COMM_WORLD);
+  tptr tp4 = DenseTensor::make(env, t4_dis_dims, t4_loc_dims, std::move(t4_els));
+  tptr tp5 = DenseTensor::make(env, t5_dis_dims, t5_loc_dims, std::move(t5_els));
+  tp4 = Tensor::rescatter(std::move(tp4), 1);
 
-  qtnh::IdentityTensor id(my_env, { 2, 2 });
-  std::cout << my_env.proc_id << " | ID = " << id << std::endl;
+  std::cout << env.proc_id << " | T4 = " << *tp4 << "\n";
+  std::cout << env.proc_id << " | T5 = " << *tp5 << "\n";
+
+  TensorNetwork tn;
+  auto tid4 = tn.insert(std::move(tp4));
+  auto tid5 = tn.insert(std::move(tp5));
+  auto bid1 = tn.addBond(tid4, tid5, {{ 1, 2 }});
+
+  MPI_Barrier(MPI_COMM_WORLD);
+  tid4 = tn.contractBond(bid1);
+  std::cout << env.proc_id << " | TN(4) = " << *tn.tensor(tid4) << "\n";
+
+  MPI_Barrier(MPI_COMM_WORLD);
+  tp4 = tn.extract(tid4);
+  tp4 = Tensor::permute(std::move(tp4), { 2, 1, 0 });
+  std::cout << env.proc_id << " | T4 (permute) = " << *tp4 << "\n";
+
+  MPI_Barrier(MPI_COMM_WORLD);
+  tp5 = DenseTensor::make(env, {}, { 3, 3 }, { 0 ,1, 2, 0, 1, 2, 0, 1, 2 });
+  tp5 = Tensor::rescatter(std::move(tp5), 1);
+  std::cout << env.proc_id << " | T5 (new) = " << *tp5 << "\n";
+
+  MPI_Barrier(MPI_COMM_WORLD);
+  tp5 = Tensor::permute(std::move(tp5), { 1, 0 });
+  std::cout << env.proc_id << " | T5 (permute) = " << *tp5 << "\n";
+
+  MPI_Barrier(MPI_COMM_WORLD);
+  tptr tp6 = DenseTensor::make(env, {}, { 2, 2, 2, 2 }, { 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7 });
+  tp6 = Tensor::rescatter(std::move(tp6), 2);
+  std::cout << env.proc_id << " | T6 = " << *tp6 << "\n";
+
+  MPI_Barrier(MPI_COMM_WORLD);
+  tp6 = Tensor::permute(std::move(tp6), { 1, 0, 2, 3 });
+  std::cout << env.proc_id << " | T6 (permute 1) = " << *tp6 << "\n";
+
+  MPI_Barrier(MPI_COMM_WORLD);
+  tp6 = Tensor::permute(std::move(tp6), { 1, 0, 3, 2 });
+  std::cout << env.proc_id << " | T6 (permute 2) = " << *tp6 << "\n";
+
+  MPI_Barrier(MPI_COMM_WORLD);
+  tp6 = Tensor::permute(std::move(tp6), { 0, 1, 3, 2 });
+  std::cout << env.proc_id << " | T6 (normal) = " << *tp6 << "\n";
+
+  MPI_Barrier(MPI_COMM_WORLD);
+  tptr tp7 = SwapTensor::make(env, 2, 0);
+  std::cout << env.proc_id << " | T7 = " << *tp7 << "\n";
+
+  MPI_Barrier(MPI_COMM_WORLD);
+  tptr tp8 = Tensor::contract(std::move(tp6), std::move(tp7), {{ 2, 0 }, { 3, 1 }});
+  std::cout << env.proc_id << " | T8 = " << *tp8 << "\n";
+
+  MPI_Barrier(MPI_COMM_WORLD);
+  tptr tpi = IdenTensor::make(env, {}, { 2, 2, 2, 2 }, 0, 0);
+  std::cout << env.proc_id << " | ID = " << *tpi << "\n";
   
-  auto& t10 = *qtnh::Tensor::contract(&t9, &id, {{ 3, 0 }, {2, 1}});
-  std::cout << my_env.proc_id << " | T10 = " << t10 << std::endl;
+  MPI_Barrier(MPI_COMM_WORLD);
+  tp8 = Tensor::contract(std::move(tp8), std::move(tpi), {{ 2, 1 }, { 3, 0 }});
+  std::cout << env.proc_id << " | T8 (id) = " << *tp8 << "\n";
 
-  qtnh::ConvertTensor cv(my_env, { 2, 2 });
-  std::cout << my_env.proc_id << " | CV = " << cv << std::endl;
+  MPI_Barrier(MPI_COMM_WORLD);
+  tpi = IdenTensor::make(env, { 2 }, { 2 }, 1, 0);
+  std::cout << env.proc_id << " | ID (distributed) = " << *tpi << "\n";
 
-  auto& t11 = *qtnh::Tensor::contract(&t10, &cv, {{1, 1}, {0, 0}});
-  std::cout << my_env.proc_id << " | T11 = " << t11 << std::endl;
+  MPI_Barrier(MPI_COMM_WORLD);
+  tp8 = Tensor::contract(std::move(tp8), std::move(tpi), {{ 1, 0 }});
+  std::cout << env.proc_id << " | T8 (convert 1) = " << *tp8 << "\n";
 
-  qtnh::ConvertTensor sh(my_env, {});
-  auto& t12 = *qtnh::Tensor::contract(&t11, &sh, {});
-  std::cout << my_env.proc_id << " | T12 = " << t12 << std::endl;
+  MPI_Barrier(MPI_COMM_WORLD);
+  tp8 = Tensor::rebcast(std::move(tp8), { 1, 1 ,0 });
+  std::cout << env.proc_id << " | T8 (re-bcast) = " << *tp8 << "\n";
+
+  tpi = IdenTensor::make(env, { 2 }, { 2 }, 0, 0);
+  tp8 = Tensor::contract(std::move(tp8), std::move(tpi), {{ 3, 1 }});
+  std::cout << env.proc_id << " | T8 (convert 2) = " << *tp8 << "\n";
+
+  tp1 = DenseTensor::make(env, {}, { 2 }, { 1, 1 });
+  tp2 = IdenTensor::make(env, { 2 }, { 2 }, 0, 0);
+  tp1 = Tensor::contract(std::move(tp1), std::move(tp2), {{ 0, 1 }});
+  std::cout << env.proc_id << " | T1 (fully distributed) = " << *tp1 << "\n";
+
+  tp2 = IdenTensor::make(env, { 2 }, { 2 }, 1, 0);
+  tp1 = Tensor::contract(std::move(tp1), std::move(tp2), {{ 0, 0 }});
+  tp1 = Tensor::rebcast(std::move(tp1), { 1, 1, 0 });
+  std::cout << env.proc_id << " | T1 (fully local) = " << *tp1 << "\n";
 
   return 0;
 }

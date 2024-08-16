@@ -23,7 +23,7 @@ option(BUILD_SHARED_LIBS "Build shared library" ON)
 find_library(MATH_LIBRARY m REQUIRED)
 
 # OpenMP
-find_package(OpenMP)
+# find_package(OpenMP)
 
 # MPI
 find_package(MPI COMPONENTS CXX REQUIRED)
