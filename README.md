@@ -73,6 +73,8 @@ if (env.proc_id == 1) els = { 0+0i, 0+1i, 0+2i, 0+3i };
 tptr tp = DenseTensor::make(env, { 2 }, { 2, 2 }, std::move(els));
 ```
 
+#### Accessors
+
 There are multiple ways to access tensor elements. The `fetch(tidx_tup)` method uses MPI to synchronise an element with all ranks – it involves a collective and needs to be called on all ranks. A less expensive way is to use the `at(tidx_tup)` method, which assumes the element is available locally, and otherwise throws an error. This should be used in conjunction with the boolean `has(tidx_tup)` to avoid runtime exceptions. Finally, the square bracket operator can be used on a tensor to directly address the vector with local elements. It is not recommended to use it outside of core implementations. 
 
 ```c++
@@ -93,137 +95,140 @@ if (env.proc_id <= 1)
   (*tp)[0] = 0-1i; // Update local element using local value. 
 ```
 
-The way tensors are distributed is controlled by two operations – scatter and broadcast. Scatter controls how many indices are distributed, i.e. identified by process rank, in contrast to local indices used to access local elements. Distributed dimensions can be assigned during tensor construction, or modified using static `Tensor::rescatter(tptr, int)` function. The offset specifies how many dimensions to convert to the other type: positive values convert last first local to last distributed indices, while negative values convert last distributed to first local indices. 
+#### Scatter and broadcast
+
+The way tensors are distributed is controlled by two operations – **scatter** and **broadcast**. Scatter controls how many indices are distributed, i.e. identified by process rank, in contrast to local indices used to access local elements. Distributed dimensions can be assigned during tensor construction, or modified using the static `Tensor::rescatter(tptr, int)` function. The offset specifies how many dimensions to convert to the other type: positive values convert last first local to last distributed indices, while negative values convert last distributed to first local indices. 
 
 ```c++
 tp = Tensor::rescatter(std::move(tp), 1); // dis_dims = { 2, 2 }, loc_dims = { 2 }
 tp = Tensor::rescatter(std::move(tp), -1); // dis_dims = { 2 }, loc_dims = { 2, 2 }
 ```
 
-The library uses two main custom types – `qtnh::tidx` for tensor indices (grouped into `qtnh::tidx_tup`), and `qtnh::tel` for tensor elements (collected in a vector `std::vector<qtnh::tel>`). Currently, the former is a wrapper around `std::size_t`, while the latter representes `std::complex<double>`. In addition, there is a custom tensor index type enum `qtnh::TIdxT`, which usually takes one of the two values `qtnh::TIdxT::open` or `qtnh::TIdxT:closed` for open and closed indices respectively. Paired together with an integer tag, it forms a flag `qtnh::tifl`, which labels tensor indices for contraction. To describe multiple indices, a vector of flags `qtnh::tifl_tup` is used. 
+Broadcast defines how tensors are *copied* throughout processes. It is handled by a helper `Tensor::Broadcaster` class, an instance of which is stored by each tensor. There are three parameters that control broadcasting: 
+
+ * *stretch* – how many times each local tensor chunk is repeated on consecutive processes. E.g. `0123` stretched by 2 becomes `00112233`. 
+ * *cycles* – how many times the global tensor structure is repeated on consecutive groups of processes. E.g. `0123` cycled by 2 becomes `01230123`. 
+ * *offset* – identifies the first process on which the tensor is stored. Can be used to make multiple tensor operations independent of each other. 
+
+In addition, the broadcaster is responsible for storing the QTNH environment in the tensor, identifying whether current process is in use with an `active` flag, and handling communication between a single tensor instance (so that collectives can only see one copy of the tensor at a time). The broadcast parameters can be passed as the last argument of any `make` constructor via `BcParams` struct, or modified in an existing tensor using the static `Tensor::rebcast(tptr, BcParams)` function. 
+
+```c++
+// Same tensor as before, but with distributed indices of '0011' on ranks from 1 to 4. 
+tptr tp = DenseTensor::make(env, { 2 }, { 2, 2 }, std::move(els), { 2, 1, 1 });
+
+// Rescatter back to default broadcast parameters. 
+// Distributed indices of `01` on ranks 0 and 1. 
+tp = Tensor::rescatter(std::move(tp), { 1, 1, 0 });
+
+// Distributed indices of `01010101` on ranks 0 and 7. 
+tp = Tensor::rescatter(std::move(tp), { 1, 4, 0 });
+```
+
+#### Contraction
+
+Two tensors can be contracted using the static `Tensor::contract(tptr, tptr, vector<wire>)` function. A `wire` represents a pair of index locations to contract with each other. The main restriction is that contracted indices need to be of the same type, i.e. both distributed or both local. An empty vector of wires makes the contraction equivalent to a *tensor product*. By default, when contracting two dense tensors, open indices from the second tensor will be appended at the end of open indices from the first one (after the right index type). 
+
+```c++
+tptr tp0 = DenseTensor::make(env, {}, { 2 }, { 1, 0 }); // |0> single-qubit state 
+
+// Tensor product between |0> states. Copy prevents |0> from being deleted. 
+tptr phi = Tensor::contract(tp0->copy(), tp0->copy(), {}); // Phi = |00> state
+phi = Tensor::contract(std::move(phi), tp0->copy(), {}); // Phi = |000> state
+
+// Distribute first qubit. 
+tps = Tensor::rescatter(std::move(phi), 1);
+
+auto a = std::pow(2, -.5); // Hadamard gate element
+tptr had = DenseTensor::make(env, {}, { 2, 2 }, { a, a, a, -a }); // H gate
+
+phi = Tensor::contract(std::move(phi), had->copy(), {{ 2, 0 }}); // |00+> state
+
+// Scatter H gate to contract with distributed index. 
+had = Tensor::rescatter(std::move(had), 2);
+phi = Tensor::contract(std::move(phi), had->copy(), {{ 0, 0 }}); // |+0+> state
+```
+
+In the examples above, only last distributed or local indices of the state are contracted. This is because if the first local index is contracted, it will be moved to the last position because of index replacement. This can be remedied by using `ConParams` in place of the vector of wires, which is a struct to store more advanced parameters for contraction. It accept wires and dimension replacement tuples, which indicate where the indices should end up in the result. Closed indices are ignored. 
+
+```c++
+// Create contraction parameters with a (1, 0) wire. 
+ConParams params({ 1, 0 });
+
+// X is a wildcard, defined to be UINT16_MAX. 
+params.dimRepls1 = { 0, X, 2 };
+params.dimRepls2 = { X, 1 };
+
+// Gather H gate to contract with local index. 
+had = Tensor::rescatter(std::move(had), -2);
+phi = Tensor::contract(std::move(phi), had->copy(), params); // |+0+> state
+```
+
+Some tensor contractions have different default dimension replacement policies. For instance, symmetric tensors try to replace contracted indices. The `ConParams` struct is passed to contraction by reference, which means it can be used to determine the replacement policy used, if a custom one was not defined. 
+
+Self-contractions (i.e. within a single tensor) are not yet supported. 
+
 
 ### Indexing
 
-Indexing defines a coordinate system that can be used to iterate through tensor elements, and is implemented in a class `qtnh::TIndexing`. It consists of `qtnh::tidx_tup dims` to specify limits in each dimension, and `qtnh::tifl_tup ifls` to label each dimension of the tensor for contraction. The labels are pairs of index types (e.g. open or closed) and tags (useful when muliple indices are contracted). `qtnh::TIndexing` can be used to increment a `qtnh::tidx_tup` to address the next tensor element, while keeping either open or closed dimensions fixed: 
+Indexing defines a coordinate system that can be used to iterate through tensor elements, and is implemented in a class `TIndexing`. It consists of dimensions (`tidx_tup`) and index flags (vector of `TIFlag`, each of which contains a string label and integer tag). Index flags are useful when iterating only certain dimensions (while keeping the others constant) and for specifying iteration order (from largest to smallest tag). 
 
 ```c++
-qtnh::tidx_tup dims = { 2, 3 };
-qtnh::tifl_tup ifls = { { TIdxT::closed, 0 }, { TIdxT::open, 0 } };
+tidx_tup dims = { 2, 3 };
+std::vector<TIFlag> ifls = { { "default", 0 }, { "other", 0 } };
 TIndexing ti(dims, ifls);
 
-qtnh::tidx_tup idx = { 0, 0 };      // idx = { 0, 0 }
-idx = ti.next(idx, TIdxT::open);    // idx = { 0, 1 }
-idx = ti.next(idx, TIdxT::closed);  // idx = { 1, 1 }
-idx = ti.next(idx, TIdxT::closed);  // error, idx[0] > (dims[0] - 1)
+qtnh::tidx_tup idx = { 0, 0 };  // idx = { 0, 0 }
+idx = ti.next(idx);             // idx = { 0, 1 }
+idx = ti.next(idx, "other");    // idx = { 1, 1 }
+idx = ti.next(idx, "other");    // error, idx[0] > (dims[0] - 1)
 ```
 
-The value of the incremented `qtnh::tidx_tup idx` must be such that `idx[i] < dims[i]` for a given `qtnh::TIndexing`, otherwise an error is thrown. 
+The value of the incremented `tidx_tup idx` must be such that `idx[i] < dims[i]` for a given `TIndexing`, otherwise an error is thrown. 
 
-`qtnh::TIndexing` also has a default iterator, which iterates through all the combinations of of open indices, while keeping the closed one fixed: 
+`TIndexing` also allows creating two iterators, one for tuples, and another for corresponding numeric indices. The latter is mostly useful for directly accessing local elements in implementations. 
 
 ```c++
-qtnh::tidx_tup dims = { 2, 3, 2 };
-qtnh::tifl_tup ifls = { { TIdxT::open, 0 }, { TIdxT::closed, 0 }, { TIdxT::open, 0 } };
+tidx_tup dims = { 2, 3, 2 };
+std::vector<TIFlag> ifls = { { "default", 1 }, { "other", 0 }, { "default", 0 } };
 TIndexing ti(dims, ifls);
 
-// { 0, 0, 0 } { 0, 0, 1 } { 1, 0, 0 } { 1, 0, 1 }
-for (auto idx : ti) {
-    std::cout << idx << " ";
-}
-```
+// { 0, 0, 0 } { 1, 0, 0 } { 0, 0, 1 } { 1, 0, 1 }
+for (auto idx : ti.tup()) 
+  std::cout << idx << " ";
+std::cout << idx << "\n";
 
-### Tensor
+// 0 6 1 7
+for (auto i : ti.num()) 
+  std::cout << i << " ";
+std::cout << idx << "\n";
 
-Tensors are multi-dimensional arrays of numbers defined in a base class `qtnh::Tensor`. Their dimensions are specified in `qtnh::tidx_tup dims`. A derived abstract class `qtnh::DenseTensor` generalises data storage to a vector of dense complex elements `std::vector<qtnh::tels> data`, and allows to rewrite all elements. Further distinction is made in classes `qtnh::SDenseTensor` and `qtnh::DDenseTensor`, where the former shares the same elements across all MPI ranks, while the latter distributes the first few dimensions to a necessary number of processes starting from rank 0 (ranks beyond maximum required contain empty data). To enable MPI, tensors need to be assigned a `qtnh::QTNHEnv`, which contains communication-related information. Finally, all tensors can be addressed using a `qtnh::tidx_tup idx` which corresponds to the index of the target element, while dense tensors can also be modified that way: 
-
-```c++
-QTNHEnv env;
-
-qtnh::tidx_tup dims = { 2, 2 };
-std::vector<qtnh::tel> data = { 0.0, 1.0, 1.0, 0.0 };
-SDenseTensor X(env, dims, data); // X quantum gate
-
-X.setLocEl({ 0, 0 }, X.getLocEl({ 0, 1 }).value()); // { 1.0, 1.0, 1.0, 0.0 };
-
-// Print all tensor elements
-TIndexing ti(dims); // by default all dimensions are open
-for (auto idxs : ti) {
-    std::cout << X.getLocEl(idxs).value() << " ";
-}
-```
-
-There are three types of accessors with different behaviour when running on multiple processes: 
-- global getters (`getDims()`, `getSize()`, `getEl(...)`) – read the tensor in its entirety
-- local getters (`getLocDims()`, `getLocSize()`, `getLocEl(...)`) – read only local portion of the tensor
-- distributed getters (`getDistDims()`, `getDistSize()`) – relate to how different local portions are distributed
-
-The element accessors `getEl(...)` and `getLocEl(...)` are safe to use on all ranks, as their return type is optional. On the other hand, there is also an unsafe square bracket accessor `operator[...]`, which returns an error if the element is not available locally. The situation is similar for dense tensor setters – `setEL(...)` and `setLocEl(...)`, while the square bracket operator can be used to return reference to the local element.  
-
-Tensors can be contracted with each other by using a static `qtnh::Tensor::contract(...)` method. It takes two unique tensor pointers, and a vector of *wires*, which are pairs of tensor indices to be contracted with each other. It is recommended to always use unique pointers when working with tensors, as the contraction arguments are deleted, which causes any related pointers to be invalidated. 
-
-```c++
-qtnh::QTNHEnv env;
-
-qtnh::tidx_tup t1_dims = { 2, 2, 2 };
-qtnh::tidx_tup t2_dims = { 4, 2 };
-
-std::vector<qtnh::tel> t1_els = { 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0 };
-std::vector<qtnh::tel> t2_els = { 7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0, 0.0 };
-
-auto t1u = std::make_unique<SDenseTensor>(env, t1_dims, t1_els);
-auto t2u = std::make_unique<SDenseTensor>(env, t2_dims, t2_els);
-
-std::vector<qtnh::wire> ws = {{ 0, 1 }}; // connect index 0 of t1 and 1 of t2
-auto t3u = Tensor::contract(std::move(t1u), std::move(t2u), ws); // a (2, 2, 4) tensor
-```
-
-To distribute a shared tensor, use the `distribute(...)` function (unsafe option, as it returns a raw pointer), or contract its first indices with a `qtnh::ConvertTensor` (safe option). First `n` indices will be converted from local to distributed. It should be noted that distributed indices cannot be contracted, and instead need to be swapped with a shared one using a `swap(...)` function, or by using `qtnh::SwapTensor`. 
-
-```c++
-QTNHEnv env;
-
-qtnh::tidx_tup t1_dims = { 2, 2, 2 };
-std::vector<qtnh::tel> t1_els = { 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0 };
-auto t1u = std::make_unique<SDenseTensor>(env, t1_dims, t1_els);
-
-// Distribute first index of t1. 
-// Wrap result into unique pointer for safety. 
-auto t2u = std::unique_ptr<DDenseTensor>(t1u->distribute(1));
-
-// Or the safe option: 
-
-// Create single-input convert tensor. 
-auto cvu = std::make_unique<ConvertTensor>(env, qtnh::tidx_tup{ 2 });
-// Connect it to first dimension of t1 and contract. 
-auto t3u = Tensor::contract(std::move(t1u), std::move(cvu), {{ 0, 0 }});
-// t1u is now invalid
+// { 0, 0, 0 } { 0, 1, 0 }
+for (auto idx : ti.tup("other")) 
+  std::cout << idx << " ";
+std::cout << idx << "\n";
 ```
 
 ### Tensor Network
 
-Class `qtnh::TensorNetwork` acts as a storage for tensors, and bonds between them. Internal struct `qtnh::TensorNetwork::Bond` implements the bonds as a vector of wires and a pair of IDs of tensors to contract, assigned when tensors are added to the network. Tensors and bonds can be accessed using their IDs. It is also possible to contract two tensors with given IDs, or to contract the entire network into a single tensor. When contracting multiple tensors, a *contraction order* of bond IDs can be specified. 
+Class `TensorNetwork` acts as a storage for tensors, and bonds between them. Internal struct `TensorNetwork::Bond` implements the bonds as a vector of wires and a pair of IDs of tensors to contract, assigned when tensors are added to the network. Tensors and bonds can be accessed using their IDs. It is also possible to contract two tensors with given IDs, or to contract the entire network into a single tensor. When contracting multiple tensors, a *contraction order* of bond IDs can be specified. 
 
-Tensors can be created directly inside of the tensor network, which helps avoid the hastle with unique pointers. Reference to the tensor can be acquired by using `getTensor()` method. 
+Tensors can be created directly inside of the tensor network, which helps avoid the hustle with unique pointers. A pointer to the tensor can be acquired by using `tensor()` method. 
 
 ```c++
 QTNHEnv env;
 TensorNetwork tn;
 
-qtnh::tidx_tup t1_dims = { 2, 2, 2 };
-qtnh::tidx_tup t2_dims = { 4, 2 };
+std::vector<tel> els1 = { 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0 };
+std::vector<tel> els2 = { 7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0, 0.0 };
 
-std::vector<qtnh::tel> t1_els = { 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0 };
-std::vector<qtnh::tel> t2_els = { 7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0, 0.0 };
-
-auto t1_id = tn.createTensor<SDenseTensor>(env, t1_dims, t1_els);
-auto t2_id = tn.createTensor<SDenseTensor>(env, t2_dims, t2_els);
-auto b1_id = tn.createBond(t1_id, t2_id, {{ 0, 1 }});
+auto tid1 = tn.make<DenseTensor>(env, tidx_tup {}, tidx_tup { 2, 2, 2 }, std::move(els1));
+auto tid2 = tn.make<DenseTensor>(env, tidx_tup {}, tidx_tup { 4, 2 }, std::move(els2));
+auto bid1 = tn.addBond(t1_id, t2_id, {{ 0, 1 }});
 
 //  ...
 
-auto new_id = tn.contract(b1_id); // contract single bond
-auto final_id = tn.contractAll(); // contract all bonds
+auto tid_new = tn.contract(bid1); // contract single bond
+auto tid_res = tn.contractAll(); // contract all bonds
 
-auto& tf = tn.getTensor(final_id); // get reference to final tensor
+auto* tf = tn.tensor(tid_res); // get pointer to final tensor
 ```
-
