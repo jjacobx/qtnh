@@ -11,7 +11,7 @@ namespace qtnh {
     public:
       unsigned int proc_id;        ///< ID of calling process. 
       unsigned int num_processes;  ///< Number of MPI processes. 
-      unsigned int num_threads;    ///< Number of OpenMP threads. 
+      // unsigned int num_threads;    ///< Number of OpenMP threads. 
 
       /// Default constructor. 
       /// Initialises MPI and populates struct members accordingly. 

@@ -1,12 +1,23 @@
 #include <functional>
 #include <numeric>
+#include <mpi.h>
 
 #include "core/utils.hpp"
 
 namespace qtnh {
   namespace utils {
     void throw_unimplemented() { 
-      throw std::runtime_error("Unimplemented funciton!"); 
+      throw std::runtime_error("Unimplemented function!"); 
+    }
+
+    bool is_root() {
+      int proc_id;
+      MPI_Comm_rank(MPI_COMM_WORLD, &proc_id);
+      return (proc_id == 0);
+    }
+
+    void barrier() {
+      MPI_Barrier(MPI_COMM_WORLD);
     }
 
     std::size_t dims_to_size(qtnh::tidx_tup dims) { 

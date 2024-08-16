@@ -1,6 +1,9 @@
 #ifndef _CORE__UTILS_HPP
 #define _CORE__UTILS_HPP
 
+#include <memory>
+
+#include "tensor/indexing.hpp"
 #include "typedefs.hpp"
 
 namespace qtnh {
@@ -8,6 +11,13 @@ namespace qtnh {
     /// Indicate a method is unimplemented. 
     /// Throws error if invoked. 
     void throw_unimplemented();
+
+    /// @brief Check if calling process is the root process. 
+    /// @return True if root, false otherwise. 
+    bool is_root();
+
+    /// @brief Call MPI Barrier. 
+    void barrier();
 
     /// @brief Convert tensor index dimensions tuple to tensor size. 
     /// @param dims Tensor index dimensions. 
@@ -37,10 +47,12 @@ namespace qtnh {
     /// @param n Position of index dimension before which to insert the split. 
     /// @return A pair of tensor index dimensions tuples. 
     std::pair<qtnh::tidx_tup, qtnh::tidx_tup> split_dims(qtnh::tidx_tup dims, qtnh::tidx_tup_st n);
+
     
-    /// @brief Invert the direction of tensor cotraction wires. 
-    /// @param ws A vector of cotraction wires to invert. 
-    /// @return A vector of cotraction wires, where each wire has a reversed direction. 
+    
+    /// @brief Invert the direction of tensor contraction wires. 
+    /// @param ws A vector of contraction wires to invert. 
+    /// @return A vector of contraction wires, where each wire has a reversed direction. 
     std::vector<qtnh::wire> invert_wires(std::vector<qtnh::wire> ws);
 
     /// @brief Compare two complex elements within given tolerance. 
@@ -49,6 +61,57 @@ namespace qtnh {
     /// @param tol Maximum allowed magnitude of the difference between the elements (default 1E-5). 
     /// @return True if elements are approximately equal and false otherwise. 
     bool equal(qtnh::tel a, qtnh::tel b, double tol = 1E-5);
+
+    template<typename T>
+    std::unique_ptr<T> one_unique(std::unique_ptr<T> u, T* t) {
+      if (u.get() == t) return u;
+      else return std::unique_ptr<T>(t);
+    }
+
+    template<typename T, typename U>
+    std::unique_ptr<T> one_unique(std::unique_ptr<U> u, T* t) {
+      auto p = u.release();
+      if (dynamic_cast<T*>(p) != t) delete p;
+      return std::unique_ptr<T>(t);
+    }
+
+    template <typename T>
+    std::pair<std::vector<T>, std::vector<T>> split_vec(std::vector<T> vec, std::size_t n) {
+      return { std::vector<T>(vec.begin(), vec.begin() + n), std::vector<T>(vec.begin() + n, vec.end()) };
+    }
+
+    template <typename T>
+    std::vector<T> permute_vec(std::vector<T> vec, std::vector<qtnh::tidx_tup_st> ptup) {
+      auto vec_perm = vec;
+      for (std::size_t i = 0; i < vec.size(); ++i) {
+        vec_perm.at(ptup.at(i)) = vec.at(i);
+      }
+
+      return vec_perm;
+    }
+
+    namespace wirecomp {
+      constexpr bool first(qtnh::wire w1, qtnh::wire w2) { return (w1.first < w2.first); }
+      constexpr bool second(qtnh::wire w1, qtnh::wire w2) { return (w1.second < w2.second); }
+    }
+  }
+
+  namespace ops {
+    template<typename T, typename U>
+    std::ostream& operator<<(std::ostream& out, const std::pair<T, U>& p) {
+      out << "(" << p.first << ", " << p.second << ")";
+      return out;
+    }
+
+    template<typename T>
+    std::ostream& operator<<(std::ostream& out, const std::vector<T>& v) {
+      for (std::size_t i = 0; i < v.size(); ++i) {
+        out << v.at(i);
+        if (i + 1 < v.size()) out << ", ";
+      }
+
+      return out;
+    }
   }
 }
 
