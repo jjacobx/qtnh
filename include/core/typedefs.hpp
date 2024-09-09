@@ -2,6 +2,7 @@
 #define _CORE__TYPEDEFS_HPP
 
 #include <complex>
+#include <cstdint>
 #include <functional>
 #include <numeric>
 #include <vector>
