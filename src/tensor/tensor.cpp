@@ -1,5 +1,6 @@
 #include <iomanip>
 #include <mpi.h>
+#include <numeric>
 
 #include "tensor/tensor.hpp"
 #include "tensor/indexing.hpp"
@@ -46,19 +47,27 @@ namespace qtnh {
     : env(env), base(base), str(params.str), cyc(params.cyc), off(params.off) {
       int rel_id = env.proc_id - off; // ! relative ID may be negative
       active = (rel_id >= 0) && (rel_id < (int)(str * cyc * base));
-      
-      // Group active ranks into a single communicator
-      MPI_Comm active_comm;
-      MPI_Comm_split(MPI_COMM_WORLD, active, rel_id, &active_comm);
 
-      // Group communicator will be uninitialised on inactive ranks
+      MPI_Group world_group;
+      MPI_Comm_group(MPI_COMM_WORLD, &world_group);
+
+      // Create a group with active ranks. 
+      std::vector<int> active_ids(str * cyc * base);
+      std::iota(active_ids.begin(), active_ids.end(), off);
+      MPI_Group active_group;
+      MPI_Group_incl(world_group, active_ids.size(), active_ids.data(), &active_group);
+
+      // Group communicator can be set up only on active ranks. 
       if (active) {
+        MPI_Comm active_comm;
+        MPI_Comm_create_group(MPI_COMM_WORLD, active_group, 0, &active_comm);
+
         int colour = (rel_id / (base * str)) * str + rel_id % str;
         MPI_Comm_split(active_comm, colour, rel_id, &group_comm);
         MPI_Comm_rank(group_comm, &group_id);
-      }
 
-      MPI_Comm_free(&active_comm);
+        MPI_Comm_free(&active_comm);
+      }
     }
 
   Tensor::Broadcaster& Tensor::Broadcaster::operator=(Broadcaster&& b) noexcept {
