@@ -38,9 +38,18 @@ namespace qtnh {
   }
 
   qtnh::tel Tensor::fetch(qtnh::tidx_tup tot_idxs) const {
-    // TODO: MPI_Send of nearest element
     auto [dis_idxs, loc_idxs] = utils::split_dims(tot_idxs, dis_dims_.size());
-    return (*this)[loc_idxs]; // Temporary – return local element
+
+    auto i = utils::idxs_to_i(dis_idxs, dis_dims_);
+    auto r = i * bc_.str + bc_.off;
+
+    qtnh::tel el;
+    if (bc_.env.proc_id == r)
+      el = (*this)[loc_idxs];
+    
+    MPI_Bcast(&el, 1, MPI_C_DOUBLE_COMPLEX, r, MPI_COMM_WORLD);
+
+    return el;
   }
 
   Tensor::Broadcaster::Broadcaster(const QTNHEnv &env, qtnh::uint base, BcParams params) 
