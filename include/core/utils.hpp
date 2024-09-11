@@ -94,7 +94,7 @@ namespace qtnh {
     }
 
     template <typename T>
-    std::vector<T> extract_vec(std::vector<T> vec, std::size_t i1, std::size_t i2) {
+    std::vector<T> extract_vec(std::vector<T>& vec, std::size_t i1, std::size_t i2) {
       std::vector<T> ext(vec.begin() + i1, vec.begin() + i2);
       vec.erase(vec.begin() + i1, vec.begin() + i2);
 
