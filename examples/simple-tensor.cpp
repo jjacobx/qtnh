@@ -176,5 +176,20 @@ int main() {
   tp1 = Tensor::rebcast(std::move(tp1), { 1, 1, 0 });
   std::cout << env.proc_id << " | T1 (fully local) = " << *tp1 << "\n";
 
+  tp1 = SymmTensor::make(env, {}, { 2, 2, 2, 2 }, { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 });
+  std::cout << env.proc_id << " | T1 (symmetric) = " << *tp1 << "\n";
+
+  tp1 = SymmTensorBase::rescatterIO(std::move(tp1), 1);
+  std::cout << env.proc_id << " | T1 (symmetric scattered) = " << *tp1 << "\n";
+
+  tp1 = SymmTensorBase::rescatterIO(std::move(tp1), -1);
+  std::cout << env.proc_id << " | T1 (symmetric gathered) = " << *tp1 << "\n";
+
+  tp1 = SymmTensorBase::permuteIO(std::move(tp1), { 1, 0 });
+  std::cout << env.proc_id << " | T1 (symmetric permuted) = " << *tp1 << "\n";
+
+  tp1 = SymmTensorBase::swapIO(std::move(tp1), 0, 1);
+  std::cout << env.proc_id << " | T1 (symmetric normal) = " << *tp1 << "\n";
+
   return 0;
 }
