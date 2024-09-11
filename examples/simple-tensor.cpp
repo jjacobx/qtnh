@@ -143,7 +143,7 @@ int main() {
   std::cout << env.proc_id << " | T8 = " << *tp8 << "\n";
 
   MPI_Barrier(MPI_COMM_WORLD);
-  tptr tpi = IdenTensor::make(env, {}, { 2, 2, 2, 2 }, 0, 0);
+  tptr tpi = IdenTensor::make(env, {}, { 2, 2, 2, 2 }, 0);
   std::cout << env.proc_id << " | ID = " << *tpi << "\n";
   
   MPI_Barrier(MPI_COMM_WORLD);
@@ -151,27 +151,27 @@ int main() {
   std::cout << env.proc_id << " | T8 (id) = " << *tp8 << "\n";
 
   MPI_Barrier(MPI_COMM_WORLD);
-  tpi = IdenTensor::make(env, { 2 }, { 2 }, 1, 0);
-  std::cout << env.proc_id << " | ID (distributed) = " << *tpi << "\n";
+  tptr tpr = RescTensor::make(env, 2);
+  std::cout << env.proc_id << " | RESC = " << *tpr << "\n";
 
   MPI_Barrier(MPI_COMM_WORLD);
-  tp8 = Tensor::contract(std::move(tp8), std::move(tpi), {{ 1, 0 }});
+  tp8 = Tensor::contract(std::move(tp8), std::move(tpr), {{ 1, 0 }});
   std::cout << env.proc_id << " | T8 (convert 1) = " << *tp8 << "\n";
 
   MPI_Barrier(MPI_COMM_WORLD);
   tp8 = Tensor::rebcast(std::move(tp8), { 1, 1 ,0 });
   std::cout << env.proc_id << " | T8 (re-bcast) = " << *tp8 << "\n";
 
-  tpi = IdenTensor::make(env, { 2 }, { 2 }, 0, 0);
-  tp8 = Tensor::contract(std::move(tp8), std::move(tpi), {{ 3, 1 }});
+  tpr = RescTensor::make(env, 2);
+  tp8 = Tensor::contract(std::move(tp8), std::move(tpr), {{ 3, 1 }});
   std::cout << env.proc_id << " | T8 (convert 2) = " << *tp8 << "\n";
 
   tp1 = DenseTensor::make(env, {}, { 2 }, { 1, 1 });
-  tp2 = IdenTensor::make(env, { 2 }, { 2 }, 0, 0);
+  tp2 = RescTensor::make(env, 2);
   tp1 = Tensor::contract(std::move(tp1), std::move(tp2), {{ 0, 1 }});
   std::cout << env.proc_id << " | T1 (fully distributed) = " << *tp1 << "\n";
 
-  tp2 = IdenTensor::make(env, { 2 }, { 2 }, 1, 0);
+  tp2 = RescTensor::make(env, 2);
   tp1 = Tensor::contract(std::move(tp1), std::move(tp2), {{ 0, 0 }});
   tp1 = Tensor::rebcast(std::move(tp1), { 1, 1, 0 });
   std::cout << env.proc_id << " | T1 (fully local) = " << *tp1 << "\n";
