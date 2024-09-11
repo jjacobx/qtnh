@@ -2,11 +2,11 @@
 #include "tensor/indexing.hpp"
 
 namespace qtnh {
-  DiagTensorBase::DiagTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated)
-    : SymmTensorBase(env, dis_dims, loc_dims, n_dis_in_dims), truncated_(truncated) {}
+  DiagTensorBase::DiagTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, bool truncated)
+    : SymmTensorBase(env, dis_dims, loc_dims), truncated_(truncated) {}
   
-  DiagTensorBase::DiagTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated, BcParams params)
-    : SymmTensorBase(env, dis_dims, loc_dims, n_dis_in_dims, params), truncated_(truncated) {}
+  DiagTensorBase::DiagTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, bool truncated, BcParams params)
+    : SymmTensorBase(env, dis_dims, loc_dims, params), truncated_(truncated) {}
 
   // Specialised convert template from tensor header requires full class definition. 
   template<> 
@@ -16,15 +16,15 @@ namespace qtnh {
 
   DiagTensor* DiagTensorBase::toDiag() noexcept {
     std::vector<qtnh::tel> els;
-    els.reserve(utils::dims_to_size(locOutDims()));
+    els.reserve(utils::dims_to_size(utils::halve_dims(locDims())));
 
     std::vector<TIFlag> ifls(totDims().size());
     for (std::size_t i = 0; i < totDims().size(); ++i) {
-      if (i < disInDims().size()) {
+      if (i < disDims().size() / 2) {
         ifls.at(i) = { "distributed-in", 0 };
       } else if (i < disDims().size()) {
         ifls.at(i) = { "distributed-out", 0 };
-      } else if (i < disDims().size() + locInDims().size()) {
+      } else if (i < disDims().size() + locDims().size() / 2) {
         ifls.at(i) = { "local-in", 0 };
       } else {
         ifls.at(i) = { "local-out", 0 };
@@ -34,33 +34,33 @@ namespace qtnh {
     auto curr_dis_idxs = utils::i_to_idxs(bc_.group_id, dis_dims_);
 
     // ! This is broken for now, as diagonal tensors are not yet implemented. 
-    TIndexing ti(locOutDims());
+    TIndexing ti(utils::halve_dims(locDims()));
     for (auto idxs : ti.tup("local-in")) {
       idxs = ti.next(idxs, "local-out");
       els.push_back(this->at(idxs));
     }
 
-    return new DiagTensor(bc_.env, dis_dims_, loc_dims_, n_dis_in_dims_, truncated_, std::move(els), { bc_.str, bc_.cyc, bc_.off });
+    return new DiagTensor(bc_.env, dis_dims_, loc_dims_, truncated_, std::move(els), { bc_.str, bc_.cyc, bc_.off });
   }
 
 
-  Tensor* DiagTensorBase::swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2, TIdxIO io) {
-    return toDiag()->swap(idx1, idx2, io);
+  Tensor* DiagTensorBase::swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) {
+    return toDiag()->swap(idx1, idx2);
   }
 
   Tensor* DiagTensorBase::rebcast(BcParams params) {
     return toDiag()->rebcast(params);
   }
 
-  Tensor* DiagTensorBase::rescatter(int offset, TIdxIO io) {
-    return toDiag()->rescatter(offset, io);
+  Tensor* DiagTensorBase::rescatter(int offset) {
+    return toDiag()->rescatter(offset);
   }
 
-  DiagTensor::DiagTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated, std::vector<qtnh::tel>&& diag_els)
-    : DiagTensorBase(env, dis_dims, loc_dims, n_dis_in_dims, truncated), loc_diag_els_(std::move(diag_els)) {}
+  DiagTensor::DiagTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, bool truncated, std::vector<qtnh::tel>&& diag_els)
+    : DiagTensorBase(env, dis_dims, loc_dims, truncated), loc_diag_els_(std::move(diag_els)) {}
   
-  DiagTensor::DiagTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated, std::vector<qtnh::tel>&& diag_els, BcParams params)
-    : DiagTensorBase(env, dis_dims, loc_dims, n_dis_in_dims, truncated, params), loc_diag_els_(std::move(diag_els)) {}
+  DiagTensor::DiagTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, bool truncated, std::vector<qtnh::tel>&& diag_els, BcParams params)
+    : DiagTensorBase(env, dis_dims, loc_dims, truncated, params), loc_diag_els_(std::move(diag_els)) {}
 
   std::unique_ptr<Tensor> DiagTensor::copy() const noexcept {
     // ! Unimplemented. 
@@ -98,7 +98,7 @@ namespace qtnh {
     return;
   }
 
-  DiagTensor* DiagTensor::swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2, TIdxIO io) {
+  DiagTensor* DiagTensor::swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) {
     // ! Unimplemented. 
     utils::throw_unimplemented();
     return this;
@@ -110,20 +110,20 @@ namespace qtnh {
     return this;
   }
 
-  DiagTensor* DiagTensor::rescatter(int offset, TIdxIO io) {
+  DiagTensor* DiagTensor::rescatter(int offset) {
     // ! Unimplemented. 
     utils::throw_unimplemented();
     return this;
   }
 
-  IdenTensor::IdenTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated)
-    : DiagTensorBase(env, dis_dims, loc_dims, n_dis_in_dims, truncated) {}
+  IdenTensor::IdenTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, bool truncated)
+    : DiagTensorBase(env, dis_dims, loc_dims, truncated) {}
 
-  IdenTensor::IdenTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims, bool truncated, BcParams params)
-    : DiagTensorBase(env, dis_dims, loc_dims, n_dis_in_dims, truncated, params) {}
+  IdenTensor::IdenTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, bool truncated, BcParams params)
+    : DiagTensorBase(env, dis_dims, loc_dims, truncated, params) {}
 
   std::unique_ptr<Tensor> IdenTensor::copy() const noexcept {
-    auto tp = new IdenTensor(bc_.env, dis_dims_, loc_dims_, n_dis_in_dims_, truncated_, { bc_.str, bc_.cyc, bc_.off });
+    auto tp = new IdenTensor(bc_.env, dis_dims_, loc_dims_, truncated_, { bc_.str, bc_.cyc, bc_.off });
     return std::unique_ptr<IdenTensor>(tp);
   }
 
