@@ -58,7 +58,7 @@ namespace qtnh {
   DenseTensor::DenseTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, std::vector<qtnh::tel>&& els, BcParams params)
     : DenseTensorBase(env, dis_dims, loc_dims, params), TIDense(std::move(els)) {}
 
-  std::unique_ptr<Tensor> DenseTensor::copy() const noexcept {
+  qtnh::tptr DenseTensor::copy() const noexcept {
     auto els = loc_els_;
     auto tp = new DenseTensor(bc_.env, dis_dims_, loc_dims_, std::move(els), { bc_.str, bc_.cyc, bc_.off });
     return std::unique_ptr<DenseTensor>(tp);
@@ -500,5 +500,41 @@ namespace qtnh {
     }
 
     // Not updating dimensions as asymmetric swaps are not supported. 
+  }
+
+  RescTensor::RescTensor(const QTNHEnv& env, std::size_t n) : 
+    DenseTensorBase(env, { n }, { n }) {}
+
+  RescTensor::RescTensor(const QTNHEnv& env, std::size_t n, BcParams params) : 
+    DenseTensorBase(env, { n }, { n }, params) {}
+  
+  qtnh::tptr RescTensor::copy() const noexcept {
+    auto tp = new RescTensor(bc_.env, dis_dims_.at(0), { bc_.str, bc_.cyc, bc_.off });
+    return std::unique_ptr<RescTensor>(tp);
+  }
+
+  qtnh::tel RescTensor::operator[](qtnh::tidx_tup loc_idxs) const {
+    return (bc_.group_id == (int)loc_idxs.at(0));
+  }
+
+  qtnh::tel RescTensor::operator[](std::size_t i) const {
+    return (bc_.group_id == (int)i);
+  }
+
+  qtnh::tel RescTensor::at(qtnh::tidx_tup tot_idxs) const {
+    auto [dis_idxs, loc_idxs] = utils::split_dims(tot_idxs, dis_dims_.size());
+    if (bc_.group_id != (int)utils::idxs_to_i(dis_idxs, dis_dims_)) {
+      throw std::invalid_argument("Element at given indices is not present on calling rank. ");
+    }
+
+    return (tot_idxs.at(0) == tot_idxs.at(1));
+  }
+
+
+  RescTensor* RescTensor::rebcast(BcParams params) {
+    Broadcaster new_bc(bc_.env, bc_.base, params);
+    bc_ = std::move(new_bc);
+
+    return this;
   }
 }

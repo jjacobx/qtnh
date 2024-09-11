@@ -6,6 +6,7 @@
 namespace qtnh {
   class DenseTensorBase;
   class DenseTensor;
+  class RescTensor;
 
   class TIDense {
     public: 
@@ -200,6 +201,84 @@ namespace qtnh {
       /// @param ptup Permutation tuple of the same size as total dimensions, and each entry unique. 
       /// @return Pointer to permuted tensor, which might be of a different derived type. 
       virtual DenseTensor* permute(std::vector<qtnh::tidx_tup_st> ptup) override;
+  };
+
+  /// Rank-2 rescatter tensor, which can be used to scatter/gather specific indices. 
+  class RescTensor : public DenseTensorBase {
+    public:
+      RescTensor() = delete;
+      RescTensor(const RescTensor&) = delete;
+      ~RescTensor() = default;
+
+      /// @brief Construct rescatter tensor with default distribution parameters and transfer its ownership. 
+      /// @param env Environment to use for construction. 
+      /// @param n Dimension of each of two indices. 
+      /// @param truncated Flag for whether the front has been truncated to 0. 
+      /// @return Ownership of unique pointer to created tensor.
+      static std::unique_ptr<RescTensor> make(const QTNHEnv& env, std::size_t n) {
+        return std::unique_ptr<RescTensor>(new RescTensor(env, n));
+      }
+      /// @brief Construct rescatter tensor and transfer its ownership. 
+      /// @param env Environment to use for construction. 
+      /// @param n Dimension of each of two indices. 
+      /// @param truncated Flag for whether the front has been truncated to 0. 
+      /// @param params Distribution parameters (str, cyc, off). 
+      /// @return Ownership of unique pointer to created tensor. 
+      static std::unique_ptr<RescTensor> make(const QTNHEnv& env, std::size_t n, BcParams params) {
+        return std::unique_ptr<RescTensor>(new RescTensor(env, n, params));
+      }
+
+      /// @brief Create a copy of the tensor. 
+      /// @return Tptr to duplicated tensor. 
+      /// 
+      /// Overuse may cause memory shortage. 
+      virtual qtnh::tptr copy() const noexcept override;
+
+      virtual TT type() const noexcept override { return TT::rescTensor; }
+
+      /// @brief Rank-unsafe method to get element and given local indices. 
+      /// @param idxs Tensor index tuple indicating local position of the element. 
+      /// @return Value of the element at given indices. Throws error if value is not present. 
+      /// @deprecated Will be superseded by direct addressing of array elements with numeric indices. 
+      ///
+      /// This method requires ensuring the element is present (i.e. the tensor is active)
+      /// on current rank. On all active ranks, it must return an element, but different ranks  
+      /// might have different values. 
+      virtual qtnh::tel operator[](qtnh::tidx_tup loc_idxs) const override;
+
+      /// @brief Directly access local array the tensor. 
+      /// @param i Local array index to access. 
+      /// @return The element at given index. Throws an error if not present (or out of bounds). 
+      ///
+      /// Returned element depends on the storage method used. It may differ for two identical 
+      /// tensors that use different underlying classes. It may also produce unexpected results 
+      /// when virtual elements are stored, i.e. elements useful for calculations, but not actually 
+      /// present in the tensor. 
+      virtual qtnh::tel operator[](std::size_t i) const override;
+      /// @brief Access element at total indices if present. 
+      /// @param tot_idxs Indices with total position of the element. 
+      /// @return Value of the element at given indices. Throws error if not present. 
+      ///
+      /// It is advised to ensure the element is present at current rank with Tensor::has method. 
+      virtual qtnh::tel at(qtnh::tidx_tup tot_idxs) const override;
+
+    protected:
+      /// @brief Construct rescatter tensor with default distribution parameters. 
+      /// @param env Environment to use for construction. 
+      /// @param n Dimension of each of two indices. 
+      /// @param truncated Flag for whether the front has been truncated to 0. 
+      RescTensor(const QTNHEnv& env, std::size_t n);
+      /// @brief Construct rescatter tensor. 
+      /// @param env Environment to use for construction. 
+      /// @param n Dimension of each of two indices. 
+      /// @param truncated Flag for whether the front has been truncated to 0. 
+      /// @param params Distribution parameters (str, cyc, off). 
+      RescTensor(const QTNHEnv& env, std::size_t n, BcParams params);
+
+      /// @brief Re-broadcast current tensor. 
+      /// @param params Broadcast parameters of the tensor (str, cyc, off)
+      /// @return Pointer to re-broadcasted tensor, which might be of a different derived type. 
+      virtual RescTensor* rebcast(BcParams params) override;
   };
 }
 
