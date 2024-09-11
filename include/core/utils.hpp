@@ -48,6 +48,11 @@ namespace qtnh {
     /// @return A pair of tensor index dimensions tuples. 
     std::pair<qtnh::tidx_tup, qtnh::tidx_tup> split_dims(qtnh::tidx_tup dims, qtnh::tidx_tup_st n);
 
+    /// @brief Split tensor index dimensions into two equal parts, and return the first half. 
+    /// @param dims Tensor index dimensions to split. 
+    /// @return First half of dims. 
+    qtnh::tidx_tup halve_dims(qtnh::tidx_tup dims);
+    
     /// @brief Invert the direction of tensor contraction wires. 
     /// @param ws A vector of contraction wires to invert. 
     /// @return A vector of contraction wires, where each wire has a reversed direction. 
