@@ -48,8 +48,6 @@ namespace qtnh {
     /// @return A pair of tensor index dimensions tuples. 
     std::pair<qtnh::tidx_tup, qtnh::tidx_tup> split_dims(qtnh::tidx_tup dims, qtnh::tidx_tup_st n);
 
-    
-    
     /// @brief Invert the direction of tensor contraction wires. 
     /// @param ws A vector of contraction wires to invert. 
     /// @return A vector of contraction wires, where each wire has a reversed direction. 
@@ -88,6 +86,14 @@ namespace qtnh {
       }
 
       return vec_perm;
+    }
+
+    template <typename T>
+    std::vector<T> extract_vec(std::vector<T> vec, std::size_t i1, std::size_t i2) {
+      std::vector<T> ext(vec.begin() + i1, vec.begin() + i2);
+      vec.erase(vec.begin() + i1, vec.begin() + i2);
+
+      return ext;
     }
 
     namespace wirecomp {
