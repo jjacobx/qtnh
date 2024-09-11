@@ -142,7 +142,6 @@ namespace qtnh {
     return this;
   }
 
-  // TODO: Implement using permute
   SymmTensor* SymmTensor::rescatterIO(int offset) {
     auto dis_size = disDims().size() / 2;
     auto loc_size = locDims().size() / 2;
@@ -151,19 +150,8 @@ namespace qtnh {
     if (offset < 0) {
       std::iota(ptup.begin(), ptup.end(), 0);
       std::rotate(ptup.begin() + dis_size + offset, ptup.begin() + dis_size, ptup.begin() + 2 * dis_size + offset);
-
       _permute_internal(this, ptup);
       _rescatter_internal(this, 2 * offset);
-
-      std::iota(ptup.begin(), ptup.end(), 0);
-      std::rotate(ptup.begin() + 2 * dis_size + offset, ptup.begin() + 2 * dis_size, ptup.end() - loc_size);
-
-      _permute_internal(this, ptup);
-
-      // auto loc_dims_in = qtnh::tidx_tup(dis_dims_.begin() + dis_size + offset, dis_dims_.begin() + dis_size);
-      // dis_dims_.erase(dis_dims_.begin() + dis_size + offset, dis_dims_.begin() + dis_size);
-      // auto loc_dims_out = qtnh::tidx_tup(dis_dims_.end() + offset, dis_dims_.end());
-      // dis_dims_.erase(dis_dims_.end() + offset, dis_dims_.end());
 
       auto loc_dims_out = utils::extract_vec(dis_dims_, 2 * dis_size + offset, 2 * dis_size);
       auto loc_dims_in = utils::extract_vec(dis_dims_, dis_size + offset, dis_size);
@@ -171,23 +159,21 @@ namespace qtnh {
       loc_dims_.insert(loc_dims_.begin(), loc_dims_in.begin(), loc_dims_in.end());
 
       qtnh::uint shift = utils::dims_to_size(loc_dims_in) * utils::dims_to_size(loc_dims_out);
-      Broadcaster new_bc(bc_.env, locSize(), { bc_.str * shift, bc_.cyc, bc_.off });
+      BcParams params(bc_.str * shift, bc_.cyc, bc_.off);
+
+      Broadcaster new_bc(bc_.env, disSize(), params);
       bc_ = std::move(new_bc);
+
+      // ! This works for now, but might be necessary to update broadcaster once again in some cases. 
+      std::iota(ptup.begin(), ptup.end(), 0);
+      std::rotate(ptup.begin() + 2 * dis_size + offset, ptup.begin() + 2 * dis_size, ptup.end() - loc_size);
+      _permute_internal(this, ptup);
     } 
     else if (offset > 0) {
       std::iota(ptup.begin(), ptup.end(), 0);
       std::rotate(ptup.rbegin() + loc_size - offset, ptup.rbegin() + loc_size, ptup.rbegin() + 2 * loc_size - offset);
-
       _permute_internal(this, ptup);
       _rescatter_internal(this, 2 * offset);
-
-      std::iota(ptup.begin(), ptup.end(), 0);
-      std::rotate(ptup.rbegin() + 2 * loc_size - offset, ptup.rbegin() + 2 * loc_size, ptup.rend() - dis_size);
-
-      // auto dis_dims_in = qtnh::tidx_tup(loc_dims_.begin(), loc_dims_.begin() + offset);
-      // dis_dims_.erase(loc_dims_.begin(), loc_dims_.begin() + offset);
-      // auto dis_dims_out = qtnh::tidx_tup(loc_dims_.end() - loc_size, loc_dims_.end() - loc_size + offset);
-      // dis_dims_.erase(loc_dims_.end() - loc_size, loc_dims_.end() - loc_size + offset);
 
       auto dis_dims_out = utils::extract_vec(loc_dims_, loc_size, loc_size + offset);
       auto dis_dims_in = utils::extract_vec(loc_dims_, 0, offset);
@@ -196,8 +182,13 @@ namespace qtnh {
 
       qtnh::uint shift = utils::dims_to_size(dis_dims_in) * utils::dims_to_size(dis_dims_out);
       BcParams params(std::max(1U, bc_.str / shift), bc_.cyc, bc_.off);
-      Broadcaster new_bc(bc_.env, locSize(), params);
+      Broadcaster new_bc(bc_.env, disSize(), params);
       bc_ = std::move(new_bc);
+
+      // ! This works for now, but might be necessary to update broadcaster once again in some cases. 
+      std::iota(ptup.begin(), ptup.end(), 0);
+      std::rotate(ptup.rbegin() + 2 * loc_size - offset, ptup.rbegin() + 2 * loc_size, ptup.rend() - dis_size);
+      _permute_internal(this, ptup);
     }
 
     return this;
@@ -227,8 +218,8 @@ namespace qtnh {
 
     _permute_internal(this, ptup_full);
 
-    qtnh::tidx_tup new_dims(totSize());
-    for (std::size_t i = 0; i < totSize(); ++i) {
+    qtnh::tidx_tup new_dims(totDims().size());
+    for (std::size_t i = 0; i < totDims().size(); ++i) {
       new_dims.at(ptup_full.at(i)) = totDims().at(i);
     }
 
