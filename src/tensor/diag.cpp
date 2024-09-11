@@ -44,7 +44,7 @@ namespace qtnh {
   }
 
 
-  Tensor* DiagTensorBase::swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) {
+  Tensor* DiagTensorBase::swapIO(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) {
     return toDiag()->swap(idx1, idx2);
   }
 
@@ -52,7 +52,7 @@ namespace qtnh {
     return toDiag()->rebcast(params);
   }
 
-  Tensor* DiagTensorBase::rescatter(int offset) {
+  Tensor* DiagTensorBase::rescatterIO(int offset) {
     return toDiag()->rescatter(offset);
   }
 
@@ -98,7 +98,7 @@ namespace qtnh {
     return;
   }
 
-  DiagTensor* DiagTensor::swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) {
+  DiagTensor* DiagTensor::swapIO(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) {
     // ! Unimplemented. 
     utils::throw_unimplemented();
     return this;
@@ -110,7 +110,7 @@ namespace qtnh {
     return this;
   }
 
-  DiagTensor* DiagTensor::rescatter(int offset) {
+  DiagTensor* DiagTensor::rescatterIO(int offset) {
     // ! Unimplemented. 
     utils::throw_unimplemented();
     return this;

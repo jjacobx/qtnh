@@ -18,32 +18,6 @@ namespace qtnh {
 
       virtual TT type() const noexcept override { return TT::symmTensorBase; }
 
-      // /// Get distributed input dimensions. 
-      // qtnh::tidx_tup disInDims() const {
-      //   return utils::halve_dims(dis_dims_);
-      // }
-      // /// Get local input dimensions. 
-      // qtnh::tidx_tup locInDims() const {
-      //   return utils::halve_dims(loc_dims_);
-      // }
-      // /// Get input dimensions, which must be equal to output dimensions. 
-      // qtnh::tidx_tup totInDims() const {
-      //   return utils::concat_dims(disInDims(), locInDims());
-      // }
-
-      // /// Get distributed output dimensions. 
-      // qtnh::tidx_tup disOutDims() const {
-      //   return utils::halve_dims(dis_dims_);
-      // }
-      // /// Get local output dimensions. 
-      // qtnh::tidx_tup locOutDims() const {
-      //   return utils::halve_dims(loc_dims_);
-      // }
-      // /// Get output dimensions, which must be equal to input dimensions. 
-      // qtnh::tidx_tup totOutDims() const {
-      //   return utils::concat_dims(disOutDims(), locOutDims());
-      // }
-
     protected:
       /// @brief Construct empty tensor with given local and distributed dimensions within environment with default distribution parameters. 
       /// @param env Environment to use for construction. 
@@ -67,7 +41,7 @@ namespace qtnh {
       /// @param idx1 First index to swap. 
       /// @param idx2 Second index to swap. 
       /// @return Pointer to swapped tensor, which might be of a different derived type. 
-      virtual Tensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) override;
+      virtual Tensor* swapIO(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2);
       /// @brief Re-broadcast current tensor. 
       /// @param params Broadcast parameters of the tensor (str, cyc, off)
       /// @return Pointer to re-broadcasted tensor, which might be of a different derived type. 
@@ -75,13 +49,11 @@ namespace qtnh {
       /// @brief Shift the border between input/output shared and distributed dimensions by a given offset. 
       /// @param offset New offset between distributed and local dimensions – negative gathers, while positive scatters. 
       /// @return Pointer to re-scattered tensor, which might be of a different derived type. 
-      virtual Tensor* rescatter(int offset) override;
+      virtual Tensor* rescatterIO(int offset);
       /// @brief Permute tensor input/output indices according to mappings in the permutation tuple. 
       /// @param ptup Permutation tuple of the same size as total dimensions, and each entry unique. 
       /// @return Pointer to permuted tensor, which might be of a different derived type. 
-      virtual Tensor* permute(std::vector<qtnh::tidx_tup_st> ptup) override;
-
-      // qtnh::tidx_tup_st n_dis_in_dims_;  ///< Number of distributed input dimensions. 
+      virtual Tensor* permuteIO(std::vector<qtnh::tidx_tup_st> ptup);
   };
 
   /// Writable general symmetric tensor class, which allows direct access to all elements. Restrictions for symmetric tensors apply. 
@@ -204,7 +176,7 @@ namespace qtnh {
       /// @param idx2 Second index to swap. 
       /// @param io Tensor index input/output label to indicate which indices to swap. 
       /// @return Pointer to swapped tensor, which might be of a different derived type. 
-      virtual SymmTensor* swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) override;
+      virtual SymmTensor* swapIO(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) override;
       /// @brief Re-broadcast current tensor. 
       /// @param params Broadcast parameters of the tensor (str, cyc, off)
       /// @return Pointer to re-broadcasted tensor, which might be of a different derived type. 
@@ -213,12 +185,12 @@ namespace qtnh {
       /// @param offset New offset between distributed and local dimensions – negative gathers, while positive scatters. 
       /// @param io Tensor index input/output label to indicate which indices to scatter. 
       /// @return Pointer to re-scattered tensor, which might be of a different derived type. 
-      virtual SymmTensor* rescatter(int offset) override;
+      virtual SymmTensor* rescatterIO(int offset) override;
       /// @brief Permute tensor input/output indices according to mappings in the permutation tuple. 
       /// @param ptup Permutation tuple of the same size as total dimensions, and each entry unique. 
       /// @param io Tensor index input/output label to indicate which indices to scatter. 
       /// @return Pointer to permuted tensor, which might be of a different derived type. 
-      virtual SymmTensor* permute(std::vector<qtnh::tidx_tup_st> ptup) override;
+      virtual SymmTensor* permuteIO(std::vector<qtnh::tidx_tup_st> ptup) override;
   };
 
   /// Rank 4 symmetric swap tensor for swapping two indices with dimension n. The swap tensor must have dimensions (n, n, n, n). 
