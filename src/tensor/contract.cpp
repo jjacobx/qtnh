@@ -252,14 +252,14 @@ namespace qtnh {
 
       std::size_t input_count = 0;
       for (auto w : params.wires) {
-        if (w.second < tp2_symm->disInDims().size() || ((w.second >= tp2_symm->disDims().size()) && (w.second < (tp2_symm->disDims().size() + tp2_symm->locInDims().size())))) {
+        if (w.second < (tp2_symm->disDims().size() / 2) || ((w.second >= tp2_symm->disDims().size()) && (w.second < (tp2_symm->disDims().size() + tp2_symm->locDims().size() / 2)))) {
           ++input_count;
         }
       }
 
-      auto dis_imbal = (int)tp2_symm->disInDims().size() - (int)tp2_symm->disOutDims().size();
+      auto dis_imbal = 0;
 
-      if ((dis_imbal == 0) && (input_count == tp2_symm->disInDims().size() + tp2_symm->locInDims().size())) {
+      if ((dis_imbal == 0) && (input_count == tp2_symm->disDims().size() / 2 + tp2_symm->locDims().size() / 2)) {
         params.dimRepls1 = std::vector<qtnh::tidx_tup_st>(tp1->totDims().size(), UINT16_MAX);
         std::sort(params.wires.begin(), params.wires.end(), utils::wirecomp::first);
 
