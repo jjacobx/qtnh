@@ -1,12 +1,15 @@
+#include <algorithm>
+#include <iostream>
+
 #include "tensor/symm.hpp"
 #include "tensor/indexing.hpp"
 
 namespace qtnh {
-  SymmTensorBase::SymmTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims) 
-    : DenseTensorBase(env, dis_dims, loc_dims), n_dis_in_dims_(n_dis_in_dims) {}
+  SymmTensorBase::SymmTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims) 
+    : DenseTensorBase(env, dis_dims, loc_dims) {}
 
-  SymmTensorBase::SymmTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims, BcParams params) 
-    : DenseTensorBase(env, dis_dims, loc_dims, params), n_dis_in_dims_(n_dis_in_dims) {}
+  SymmTensorBase::SymmTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, BcParams params) 
+    : DenseTensorBase(env, dis_dims, loc_dims, params) {}
 
   // Specialised convert template from tensor header requires full class definition. 
   template<> 
@@ -30,35 +33,35 @@ namespace qtnh {
       els.push_back(this->at(idxs));
     }
 
-    return new SymmTensor(bc_.env, dis_dims_, loc_dims_, n_dis_in_dims_, std::move(els), BcParams { bc_.str, bc_.cyc, bc_.off });
+    return new SymmTensor(bc_.env, dis_dims_, loc_dims_, std::move(els), BcParams { bc_.str, bc_.cyc, bc_.off });
   }
 
 
-  Tensor* SymmTensorBase::swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2, TIdxIO io) {
-    return toSymm()->swap(idx1, idx2, io);
+  Tensor* SymmTensorBase::swapIO(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) {
+    return toSymm()->swap(idx1, idx2);
   }
 
   Tensor* SymmTensorBase::rebcast(BcParams params) {
     return toSymm()->rebcast(params);
   }
 
-  Tensor* SymmTensorBase::rescatter(int offset, TIdxIO io) {
-    return toSymm()->rescatter(offset, io);
+  Tensor* SymmTensorBase::rescatterIO(int offset) {
+    return toSymm()->rescatter(offset);
   }
 
-  Tensor* SymmTensorBase::permute(std::vector<qtnh::tidx_tup_st> ptup, TIdxIO io) {
-    return this->toSymm()->permute(ptup, io);
+  Tensor* SymmTensorBase::permuteIO(std::vector<qtnh::tidx_tup_st> ptup) {
+    return this->toSymm()->permute(ptup);
   }
 
-  SymmTensor::SymmTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims, std::vector<qtnh::tel>&& els) 
-    : SymmTensorBase(env, dis_dims, loc_dims, n_dis_in_dims), TIDense(std::move(els)) {}
+  SymmTensor::SymmTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, std::vector<qtnh::tel>&& els) 
+    : SymmTensorBase(env, dis_dims, loc_dims), TIDense(std::move(els)) {}
 
-  SymmTensor::SymmTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, qtnh::tidx_tup_st n_dis_in_dims, std::vector<qtnh::tel>&& els, BcParams params) 
-    : SymmTensorBase(env, dis_dims, loc_dims, n_dis_in_dims, params), TIDense(std::move(els)) {}
+  SymmTensor::SymmTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, std::vector<qtnh::tel>&& els, BcParams params) 
+    : SymmTensorBase(env, dis_dims, loc_dims, params), TIDense(std::move(els)) {}
 
   std::unique_ptr<Tensor> SymmTensor::copy() const noexcept {
     auto els = loc_els_;
-    auto tp = new SymmTensor(bc_.env, dis_dims_, loc_dims_, n_dis_in_dims_, std::move(els), { bc_.str, bc_.cyc, bc_.off });
+    auto tp = new SymmTensor(bc_.env, dis_dims_, loc_dims_, std::move(els), { bc_.str, bc_.cyc, bc_.off });
     return std::unique_ptr<SymmTensor>(tp);
   }
 
@@ -103,27 +106,29 @@ namespace qtnh {
     }
   }
 
-  SymmTensor* SymmTensor::swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2, TIdxIO io) {
+  SymmTensor* SymmTensor::swapIO(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) {
     // Convert to general swap indices
-    if (io == TIdxIO::in) {
-      if (idx1 >= disInDims().size()) { 
-        idx1 += disOutDims().size();
-      }
-      if (idx2 >= disInDims().size()) { 
-        idx2 += disOutDims().size();
-      }
-    } else {
-      if (idx1 >= disOutDims().size()) { 
-        idx1 += locInDims().size();
-      }
-      if (idx2 >= disInDims().size()) { 
-        idx2 += locInDims().size();
-      }
-      idx1 += disInDims().size();
-      idx2 += disInDims().size();
-    }
+    if (idx1 >= disDims().size() / 2)
+      idx1 += disDims().size() / 2;
+    if (idx2 >= disDims().size() / 2)
+      idx2 += disDims().size() / 2;
 
     _swap_internal(this, idx1, idx2);
+
+    if (idx1 < disDims().size() / 2) {
+      idx1 += disDims().size() / 2;
+    } else {
+      idx1 += locDims().size() / 2;
+    }
+
+    if (idx2 < disDims().size() / 2) {
+      idx2 += disDims().size() / 2;
+    } else {
+      idx2 += locDims().size() / 2;
+    }
+
+     _swap_internal(this, idx1, idx2);
+
     return this;
   }
 
@@ -137,87 +142,84 @@ namespace qtnh {
     return this;
   }
 
-  // TODO: Implement using permute
-  SymmTensor* SymmTensor::rescatter(int offset, TIdxIO io) {
+  SymmTensor* SymmTensor::rescatterIO(int offset) {
+    auto dis_size = disDims().size() / 2;
+    auto loc_size = locDims().size() / 2;
+    std::vector<qtnh::tidx_tup_st> ptup(totDims().size());
+
     if (offset < 0) {
-      if (io == TIdxIO::in) {
-        _shift_internal(this, disInDims().size() + offset, disDims().size(), offset);
-        n_dis_in_dims_ += offset;
-      }
+      std::iota(ptup.begin(), ptup.end(), 0);
+      std::rotate(ptup.begin() + dis_size + offset, ptup.begin() + dis_size, ptup.begin() + 2 * dis_size + offset);
+      _permute_internal(this, ptup);
+      _rescatter_internal(this, 2 * offset);
 
-      _rescatter_internal(this, offset);
+      auto loc_dims_out = utils::extract_vec(dis_dims_, 2 * dis_size + offset, 2 * dis_size);
+      auto loc_dims_in = utils::extract_vec(dis_dims_, dis_size + offset, dis_size);
+      loc_dims_.insert(loc_dims_.end() - loc_size, loc_dims_out.begin(), loc_dims_out.end());
+      loc_dims_.insert(loc_dims_.begin(), loc_dims_in.begin(), loc_dims_in.end());
 
-      auto loc_dims2 = qtnh::tidx_tup(dis_dims_.end() + offset, dis_dims_.end());
-      auto shift = (qtnh::uint)utils::dims_to_size(loc_dims2);
+      qtnh::uint shift = utils::dims_to_size(loc_dims_in) * utils::dims_to_size(loc_dims_out);
+      BcParams params(bc_.str * shift, bc_.cyc, bc_.off);
 
-      loc_dims_.insert(loc_dims_.begin(), loc_dims2.begin(), loc_dims2.end());
-      dis_dims_.erase(dis_dims_.end() - offset, dis_dims_.end());
-
-      Broadcaster new_bc(bc_.env, locSize(), { bc_.str * shift, bc_.cyc, bc_.off });
+      Broadcaster new_bc(bc_.env, disSize(), params);
       bc_ = std::move(new_bc);
 
-      if (io == TIdxIO::out) {
-        _shift_internal(this, disDims().size(), disDims().size() + locInDims().size() + offset, offset);
-      }
-    }
+      // ! This works for now, but might be necessary to update broadcaster once again in some cases. 
+      std::iota(ptup.begin(), ptup.end(), 0);
+      std::rotate(ptup.begin() + 2 * dis_size + offset, ptup.begin() + 2 * dis_size, ptup.end() - loc_size);
+      _permute_internal(this, ptup);
+    } 
     else if (offset > 0) {
-      if (io == TIdxIO::out) {
-        _shift_internal(this, disDims().size(), disDims().size() + locInDims().size() + offset, offset);
-      }
+      std::iota(ptup.begin(), ptup.end(), 0);
+      std::rotate(ptup.rbegin() + loc_size - offset, ptup.rbegin() + loc_size, ptup.rbegin() + 2 * loc_size - offset);
+      _permute_internal(this, ptup);
+      _rescatter_internal(this, 2 * offset);
 
-      _rescatter_internal(this, offset);
+      auto dis_dims_out = utils::extract_vec(loc_dims_, loc_size, loc_size + offset);
+      auto dis_dims_in = utils::extract_vec(loc_dims_, 0, offset);
+      dis_dims_.insert(dis_dims_.end(), dis_dims_out.begin(), dis_dims_out.end());
+      dis_dims_.insert(dis_dims_.begin() + dis_size, dis_dims_in.begin(), dis_dims_in.end());
 
-      auto dis_dims2 = qtnh::tidx_tup(loc_dims_.begin(), loc_dims_.begin() + offset);
-      auto shift = utils::dims_to_size(dis_dims2);
-
-      BcParams params(std::max(1UL, bc_.str / shift), bc_.cyc, bc_.off);
-
-      loc_dims_.erase(loc_dims_.begin(), loc_dims_.begin() + offset);
-      dis_dims_.insert(dis_dims_.end(), dis_dims2.begin(), dis_dims2.end());
-
-      Broadcaster new_bc(bc_.env, locSize(), params);
+      qtnh::uint shift = utils::dims_to_size(dis_dims_in) * utils::dims_to_size(dis_dims_out);
+      BcParams params(std::max(1U, bc_.str / shift), bc_.cyc, bc_.off);
+      Broadcaster new_bc(bc_.env, disSize(), params);
       bc_ = std::move(new_bc);
 
-      if (io == TIdxIO::in) {
-        _shift_internal(this, disInDims().size(), disDims().size(), offset);
-        n_dis_in_dims_ += offset;
-      }
+      // ! This works for now, but might be necessary to update broadcaster once again in some cases. 
+      std::iota(ptup.begin(), ptup.end(), 0);
+      std::rotate(ptup.rbegin() + 2 * loc_size - offset, ptup.rbegin() + 2 * loc_size, ptup.rend() - dis_size);
+      _permute_internal(this, ptup);
     }
 
     return this;
   }
 
-  SymmTensor* SymmTensor::permute(std::vector<qtnh::tidx_tup_st> ptup, TIdxIO io) {
+  SymmTensor* SymmTensor::permuteIO(std::vector<qtnh::tidx_tup_st> ptup) {
+    auto dis_size = disDims().size() / 2;
+    auto loc_size = locDims().size() / 2;
     std::vector<qtnh::tidx_tup_st> ptup_full(totDims().size());
-    for (std::size_t i = 0; i < ptup_full.size(); ++i) {
-      ptup_full.at(i) = i;
-    }
-    
-    std::size_t cutoff, offset1, offset2;
-    if (io == TIdxIO::in) {
-      cutoff = disInDims().size();
-      offset1 = 0;
-      offset2 = disOutDims().size();
-    } else {
-      cutoff = disDims().size();
-      offset1 = disInDims().size();
-      offset2 = locInDims().size();
-    }
 
     for (std::size_t i = 0; i < ptup.size(); ++i) {
-      auto val = ptup.at(i) + offset1;
-      val += (val < cutoff) ? 0 : offset2;
-      
-      auto idx = i + offset1;
-      idx += (idx < cutoff) ? 0 : offset2;
+      auto p_in = ptup.at(i);
+      auto p_out = ptup.at(i) + dis_size;
+      if (ptup.at(i) >= dis_size) {
+        p_in += dis_size;
+        p_out += loc_size;
+      }
 
-      ptup_full.at(idx) = val;
+      if (i < dis_size) {
+        ptup_full.at(i) = p_in;
+        ptup_full.at(i + dis_size) = p_out;
+      } else {
+        ptup_full.at(i + dis_size) = p_in;
+        ptup_full.at(i + dis_size + loc_size) = p_out;
+      }
     }
 
     _permute_internal(this, ptup_full);
 
-    qtnh::tidx_tup new_dims(totSize());
-    for (std::size_t i = 0; i < totSize(); ++i) {
+    qtnh::tidx_tup new_dims(totDims().size());
+    for (std::size_t i = 0; i < totDims().size(); ++i) {
       new_dims.at(ptup_full.at(i)) = totDims().at(i);
     }
 
@@ -232,14 +234,14 @@ namespace qtnh {
   }
 
   SwapTensor::SwapTensor(const QTNHEnv& env, std::size_t n, std::size_t d)
-    : SymmTensorBase(env, qtnh::tidx_tup(2 * d, n), qtnh::tidx_tup(4 - 2 * d, n), d) {}
+    : SymmTensorBase(env, qtnh::tidx_tup(2 * d, n), qtnh::tidx_tup(4 - 2 * d, n)) {}
 
   SwapTensor::SwapTensor(const QTNHEnv& env, std::size_t n, std::size_t d, BcParams params)
-    : SymmTensorBase(env, qtnh::tidx_tup(2 * d, n), qtnh::tidx_tup(4 - 2 * d, n), d, params) {}
+    : SymmTensorBase(env, qtnh::tidx_tup(2 * d, n), qtnh::tidx_tup(4 - 2 * d, n), params) {}
 
   std::unique_ptr<Tensor> SwapTensor::copy() const noexcept {
     auto n = dis_dims_.size() > 0 ? dis_dims_.at(0) : loc_dims_.at(0);
-    auto tp = new SwapTensor(bc_.env, n, n_dis_in_dims_, { bc_.str, bc_.cyc, bc_.off });
+    auto tp = new SwapTensor(bc_.env, n, dis_dims_.size() / 2, { bc_.str, bc_.cyc, bc_.off });
     return std::unique_ptr<SwapTensor>(tp);
   }
 
