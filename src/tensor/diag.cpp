@@ -56,40 +56,64 @@ namespace qtnh {
     return toDiag()->rescatter(offset);
   }
 
-  DiagTensor::DiagTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, bool truncated, std::vector<qtnh::tel>&& diag_els)
+  DiagTensor::DiagTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, bool truncated, std::vector<qtnh::tel>&& diag_els)
     : DiagTensorBase(env, dis_dims, loc_dims, truncated), loc_diag_els_(std::move(diag_els)) {}
   
-  DiagTensor::DiagTensor(const QTNHEnv& env, qtnh::tidx_tup loc_dims, qtnh::tidx_tup dis_dims, bool truncated, std::vector<qtnh::tel>&& diag_els, BcParams params)
+  DiagTensor::DiagTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, bool truncated, std::vector<qtnh::tel>&& diag_els, BcParams params)
     : DiagTensorBase(env, dis_dims, loc_dims, truncated, params), loc_diag_els_(std::move(diag_els)) {}
 
   std::unique_ptr<Tensor> DiagTensor::copy() const noexcept {
-    // ! Unimplemented. 
-    utils::throw_unimplemented();
-    return std::unique_ptr<DiagTensor>(nullptr);
+    auto els = loc_diag_els_;
+    auto tp = new DiagTensor(bc_.env, dis_dims_, loc_dims_, truncated_, std::move(els));
+    return std::unique_ptr<DiagTensor>(tp);
   }
 
   qtnh::tel DiagTensor::operator[](qtnh::tidx_tup loc_idxs) const {
-    // ! Unimplemented. 
-    utils::throw_unimplemented();
-    return loc_diag_els_.at(0);
+    auto dis_idxs = utils::i_to_idxs(bc_.group_id, dis_dims_);
+    auto [dis_idxs_in, dis_idxs_out] = utils::split_dims(dis_idxs, dis_idxs.size() / 2);
+    auto [loc_idxs_in, loc_idxs_out] = utils::split_dims(loc_idxs, loc_idxs.size() / 2);
+
+    if ((dis_idxs_in != dis_idxs_out) || (loc_idxs_in != loc_idxs_out)) {
+      return 0;
+    } else {
+      return loc_diag_els_.at(utils::idxs_to_i(loc_idxs_out, loc_dims_));
+    }
   }
 
   qtnh::tel& DiagTensor::operator[](qtnh::tidx_tup loc_idxs) {
-    // ! Unimplemented. 
-    utils::throw_unimplemented();
-    return loc_diag_els_.at(0);
+    auto dis_idxs = utils::i_to_idxs(bc_.group_id, dis_dims_);
+    auto [dis_idxs_in, dis_idxs_out] = utils::split_dims(dis_idxs, dis_idxs.size() / 2);
+    auto [loc_idxs_in, loc_idxs_out] = utils::split_dims(loc_idxs, loc_idxs.size() / 2);
+
+    if ((dis_idxs_in != dis_idxs_out) || (loc_idxs_in != loc_idxs_out)) {
+      throw std::runtime_error("Tried to reference off-diagonal element.");
+    } else {
+      return loc_diag_els_.at(utils::idxs_to_i(loc_idxs_out, loc_dims_));
+    }
   }
 
   qtnh::tel DiagTensor::at(qtnh::tidx_tup tot_idxs) const {
-    // ! Unimplemented. 
-    utils::throw_unimplemented();
-    return loc_diag_els_.at(0);
+    auto [dis_idxs, loc_idxs] = utils::split_dims(tot_idxs, dis_dims_.size());
+    auto [dis_idxs_in, dis_idxs_out] = utils::split_dims(dis_idxs, dis_idxs.size() / 2);
+    auto [loc_idxs_in, loc_idxs_out] = utils::split_dims(loc_idxs, loc_idxs.size() / 2);
+
+    if ((dis_idxs_in != dis_idxs_out) || (loc_idxs_in != loc_idxs_out)) {
+      return 0;
+    } else {
+      return loc_diag_els_.at(utils::idxs_to_i(loc_idxs_out, loc_dims_));
+    }
   }
 
   qtnh::tel& DiagTensor::at(qtnh::tidx_tup tot_idxs) {
-    // ! Unimplemented. 
-    utils::throw_unimplemented();
-    return loc_diag_els_.at(0);
+    auto [dis_idxs, loc_idxs] = utils::split_dims(tot_idxs, dis_dims_.size());
+    auto [dis_idxs_in, dis_idxs_out] = utils::split_dims(dis_idxs, dis_idxs.size() / 2);
+    auto [loc_idxs_in, loc_idxs_out] = utils::split_dims(loc_idxs, loc_idxs.size() / 2);
+
+    if ((dis_idxs_in != dis_idxs_out) || (loc_idxs_in != loc_idxs_out)) {
+      throw std::runtime_error("Tried to reference off-diagonal element.");
+    } else {
+      return loc_diag_els_.at(utils::idxs_to_i(loc_idxs_out, loc_dims_));
+    }
   }
 
   void DiagTensor::put(qtnh::tidx_tup tot_idxs, qtnh::tel el) {
