@@ -112,16 +112,63 @@ namespace qtnh {
 
   DiagTensor* DiagTensor::swapIO(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) {
     diagonal_._swap_internal(&diagonal_, idx1, idx2);
+
+    dis_dims_ = utils::concat_dims(diagonal_.disDims(), diagonal_.disDims());
+    loc_dims_ = utils::concat_dims(diagonal_.locDims(), diagonal_.locDims());
+
     return this;
   }
 
   DiagTensor* DiagTensor::rebcast(BcParams params) {
-    diagonal_._rebcast_internal(&diagonal_, params);
+    auto diag_params = params;
+    if (!truncated_) diag_params.cyc *= diagonal_.disSize();
+    diagonal_._rebcast_internal(&diagonal_, diag_params);
+
+    // Update broadcasters
+    Broadcaster new_diag_bc(bc_.env, bc_.base, diag_params);
+    Broadcaster new_bc(bc_.env, bc_.base, params);
+    diagonal_.bc_ = std::move(new_diag_bc);
+    bc_ = std::move(new_bc);
+
     return this;
   }
 
   DiagTensor* DiagTensor::rescatterIO(int offset) {
     diagonal_._rescatter_internal(&diagonal_, offset);
+
+    // Update dimensions and broadcaster
+    if (offset < 0) {
+      auto loc_dims2 = qtnh::tidx_tup(dis_dims_.end() + offset, dis_dims_.end());
+      auto shift = (qtnh::uint)utils::dims_to_size(loc_dims2);
+
+      diagonal_.loc_dims_.insert(diagonal_.loc_dims_.begin(), loc_dims2.begin(), loc_dims2.end());
+      diagonal_.dis_dims_.erase(diagonal_.dis_dims_.end() + offset, diagonal_.dis_dims_.end());
+
+      Broadcaster new_diag_bc(diagonal_.bc_.env, diagonal_.disSize(), { diagonal_.bc_.str * shift, diagonal_.bc_.cyc, diagonal_.bc_.off });
+      diagonal_.bc_ = std::move(new_diag_bc);
+    } else if (offset > 0) {
+      auto dis_dims2 = qtnh::tidx_tup(diagonal_.loc_dims_.begin(), diagonal_.loc_dims_.begin() + offset);
+      auto shift = utils::dims_to_size(dis_dims2);
+
+      BcParams params(std::max(1UL, diagonal_.bc_.str / shift), diagonal_.bc_.cyc, diagonal_.bc_.off);
+
+      diagonal_.loc_dims_.erase(diagonal_.loc_dims_.begin(), diagonal_.loc_dims_.begin() + offset);
+      diagonal_.dis_dims_.insert(diagonal_.dis_dims_.end(), dis_dims2.begin(), dis_dims2.end());
+
+      Broadcaster new_diag_bc(diagonal_.bc_.env, diagonal_.disSize(), params);
+      diagonal_.bc_ = std::move(new_diag_bc);
+    }
+
+    dis_dims_ = utils::concat_dims(diagonal_.disDims(), diagonal_.disDims());
+    loc_dims_ = utils::concat_dims(diagonal_.locDims(), diagonal_.locDims());
+
+    BcParams params(diagonal_.bc_.str, diagonal_.bc_.cyc, diagonal_.bc_.off);
+    if (!truncated_) params.cyc /= diagonal_.disSize();
+
+    Broadcaster new_bc(bc_.env, diagonal_.disSize(), params);
+    bc_ = std::move(new_bc);
+    
+
     return this;
   }
 
