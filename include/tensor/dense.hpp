@@ -76,6 +76,7 @@ namespace qtnh {
   class DenseTensor : public DenseTensorBase, private TIDense {
     public:
       friend class DenseTensorBase;
+      friend class DiagTensor;
       friend qtnh::tptr _contract_dense(qtnh::tptr t1p, qtnh::tptr t2p, ConParams& params);
 
       DenseTensor() = delete;
