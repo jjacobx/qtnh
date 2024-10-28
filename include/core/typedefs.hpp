@@ -2,7 +2,7 @@
 #define _CORE__TYPEDEFS_HPP
 
 #include <complex>
-#include <cstdint>
+#include <limits>
 #include <functional>
 #include <numeric>
 #include <vector>
@@ -13,25 +13,21 @@ int _r; MPI_Comm_rank(MPI_COMM_WORLD, &_r); \
 if (!_r) std::cout
 
 namespace qtnh {
-  typedef std::size_t tidx;                ///< Tensor index dimensions. 
-  typedef unsigned short int tidx_tup_st;  ///< Tensor index tuple dimensions. 
-  typedef unsigned int uint;               ///< Unsigned int for IDs. 
+  using tidx = std::size_t;          ///< Tensor index dimensions. 
+  using tidx_tup_st = unsigned int;  ///< Tensor index tuple dimensions. 
+  using uint = unsigned int;         ///< Unsigned int for IDs. 
 
-  typedef std::vector<qtnh::tidx> tidx_tup;  ///< Tuple of tensor indices – used for accessing tensor elements. 
+  using tidx_tup = std::vector<qtnh::tidx>;  ///< Tuple of tensor indices – used for accessing tensor elements. 
 
-  typedef std::complex<double> tel;  ///< Tensor element type. 
+  using tel = std::complex<double>;  ///< Tensor element type. 
 
-  typedef std::pair<qtnh::tidx_tup_st, qtnh::tidx_tup_st> wire; ///< A pair of contracted indices. 
+  using wire = std::pair<qtnh::tidx_tup_st, qtnh::tidx_tup_st>; ///< A pair of contracted indices. 
 
   /// Broadcaster parameters container for sharing tensors across processes. 
   struct BcParams {
     qtnh::uint str;  ///< Number of times each local tensor chunk is repeated across contiguous processes. 
     qtnh::uint cyc;  ///< Number of times the entire tensor structure is repeated. 
     qtnh::uint off;  ///< Number of empty processes before the tensor begins. 
-
-    /// Simple constructor of all tensor parameters. 
-    BcParams(qtnh::uint str, qtnh::uint cyc, qtnh::uint off) 
-      : str(str), cyc(cyc), off(off) {}
   };
 
   /// Tensor type labels for determining contraction function to use. 
@@ -54,7 +50,7 @@ namespace qtnh {
     out   ///< Output indices are the second parts of distributed/local dimension arrays. 
   };
 
-  const qtnh::tidx_tup_st X = UINT16_MAX;
+  constexpr qtnh::tidx_tup_st X = std::numeric_limits<tidx_tup_st>::max();
 }
 
 #endif
