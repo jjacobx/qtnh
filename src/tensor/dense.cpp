@@ -137,7 +137,7 @@ namespace qtnh {
       auto dis_dims2 = qtnh::tidx_tup(loc_dims_.begin(), loc_dims_.begin() + offset);
       auto shift = utils::dims_to_size(dis_dims2);
 
-      BcParams params(std::max(1UL, bc_.str / shift), bc_.cyc, bc_.off);
+      BcParams params { (qtnh::uint)std::max(1UL, bc_.str / shift), bc_.cyc, bc_.off };
 
       loc_dims_.erase(loc_dims_.begin(), loc_dims_.begin() + offset);
       dis_dims_.insert(dis_dims_.end(), dis_dims2.begin(), dis_dims2.end());
@@ -339,7 +339,7 @@ namespace qtnh {
       auto shift = utils::dims_to_size(dis_dims2);
 
       // Align with multiples of shift
-      BcParams params(std::max(shift, (bc.str / shift) * shift), bc.cyc, bc.off);
+      BcParams params { (qtnh::uint)std::max(shift, (bc.str / shift) * shift), bc.cyc, bc.off };
       _rebcast_internal(target, params);
 
       Tensor::Broadcaster bc2(bc.env, bc.base, params);

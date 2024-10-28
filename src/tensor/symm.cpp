@@ -159,7 +159,7 @@ namespace qtnh {
       loc_dims_.insert(loc_dims_.begin(), loc_dims_in.begin(), loc_dims_in.end());
 
       qtnh::uint shift = utils::dims_to_size(loc_dims_in) * utils::dims_to_size(loc_dims_out);
-      BcParams params(bc_.str * shift, bc_.cyc, bc_.off);
+      BcParams params { bc_.str * shift, bc_.cyc, bc_.off };
 
       Broadcaster new_bc(bc_.env, disSize(), params);
       bc_ = std::move(new_bc);
@@ -181,7 +181,7 @@ namespace qtnh {
       dis_dims_.insert(dis_dims_.begin() + dis_size, dis_dims_in.begin(), dis_dims_in.end());
 
       qtnh::uint shift = utils::dims_to_size(dis_dims_in) * utils::dims_to_size(dis_dims_out);
-      BcParams params(std::max(1U, bc_.str / shift), bc_.cyc, bc_.off);
+      BcParams params { std::max(1U, bc_.str / shift), bc_.cyc, bc_.off };
       Broadcaster new_bc(bc_.env, disSize(), params);
       bc_ = std::move(new_bc);
 
