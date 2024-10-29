@@ -61,12 +61,15 @@ namespace qtnh {
 
         Broadcaster& operator=(Broadcaster&& b) noexcept;
 
+        /// @brief Helper to return all params at once. 
+        /// @return Broadcaster parameters struct. 
+        constexpr BcParams params() { return { str, cyc, off }; }
         /// @brief Helper to calculate span of the entire tensor across contiguous ranks. 
         /// @return Number of contiguous ranks that store the tensor. 
-        qtnh::uint span() const noexcept { return str * base * cyc; }
+        constexpr qtnh::uint span() { return str * base * cyc; }
         /// @brief Helper to calculate between which ranks the tensor is contained. 
         /// @return A tuple containing first and last rank that store the tensor. 
-        std::pair<qtnh::uint, qtnh::uint> range() const noexcept { return { off, off + span() }; }
+        constexpr std::pair<qtnh::uint, qtnh::uint> range() { return { off, off + span() }; }
       };
 
       // This can be made constexpr in C++ 20
