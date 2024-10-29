@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include "tensor/diag.hpp"
 #include "tensor/indexing.hpp"
 
@@ -125,10 +127,8 @@ namespace qtnh {
     diagonal_._rebcast_internal(&diagonal_, diag_params);
 
     // Update broadcasters
-    Broadcaster new_diag_bc(bc_.env, bc_.base, diag_params);
-    Broadcaster new_bc(bc_.env, bc_.base, params);
-    diagonal_.bc_ = std::move(new_diag_bc);
-    bc_ = std::move(new_bc);
+    diagonal_.bc_ = { diagonal_.bc_.env, diagonal_.bc_.base, diag_params };
+    bc_ = { bc_.env, bc_.base, params };
 
     return this;
   }
@@ -144,31 +144,36 @@ namespace qtnh {
       diagonal_.loc_dims_.insert(diagonal_.loc_dims_.begin(), loc_dims2.begin(), loc_dims2.end());
       diagonal_.dis_dims_.erase(diagonal_.dis_dims_.end() + offset, diagonal_.dis_dims_.end());
 
-      Broadcaster new_diag_bc(diagonal_.bc_.env, diagonal_.disSize(), { diagonal_.bc_.str * shift, diagonal_.bc_.cyc, diagonal_.bc_.off });
-      diagonal_.bc_ = std::move(new_diag_bc);
+      BcParams out_params { diagonal_.bc_.str * shift, diagonal_.bc_.cyc, diagonal_.bc_.off };
+      diagonal_.bc_ = { diagonal_.bc_.env, (qtnh::uint)diagonal_.disSize(), out_params };
     } else if (offset > 0) {
       auto dis_dims2 = qtnh::tidx_tup(diagonal_.loc_dims_.begin(), diagonal_.loc_dims_.begin() + offset);
       auto shift = utils::dims_to_size(dis_dims2);
 
-      BcParams params(std::max(1UL, diagonal_.bc_.str / shift), diagonal_.bc_.cyc, diagonal_.bc_.off);
-
       diagonal_.loc_dims_.erase(diagonal_.loc_dims_.begin(), diagonal_.loc_dims_.begin() + offset);
       diagonal_.dis_dims_.insert(diagonal_.dis_dims_.end(), dis_dims2.begin(), dis_dims2.end());
 
-      Broadcaster new_diag_bc(diagonal_.bc_.env, diagonal_.disSize(), params);
-      diagonal_.bc_ = std::move(new_diag_bc);
+      // Resize base of broadcaster first. Have to re-create the communicator. 
+      diagonal_.bc_ = { diagonal_.bc_.env, (qtnh::uint)diagonal_.disSize(), diagonal_.bc_.params() };
+
+      BcParams out_params { (qtnh::uint)std::max(1UL, diagonal_.bc_.str / shift), diagonal_.bc_.cyc * (qtnh::uint)shift, diagonal_.bc_.off };
+      diagonal_._rebcast_internal(&diagonal_, out_params);
+      diagonal_.bc_ = { diagonal_.bc_.env, (qtnh::uint)diagonal_.disSize(), out_params };
     }
 
     dis_dims_ = utils::concat_dims(diagonal_.disDims(), diagonal_.disDims());
     loc_dims_ = utils::concat_dims(diagonal_.locDims(), diagonal_.locDims());
 
-    BcParams params(diagonal_.bc_.str, diagonal_.bc_.cyc, diagonal_.bc_.off);
-    if (!truncated_) params.cyc /= diagonal_.disSize();
+    auto dis_size = diagonal_.disSize();
+    auto params = diagonal_.bc_.params();
 
-    Broadcaster new_bc(bc_.env, diagonal_.disSize(), params);
-    bc_ = std::move(new_bc);
+    if (!truncated_) { 
+      params.cyc /= dis_size;
+      dis_size *= dis_size;
+    }
+
+    bc_ = { bc_.env, (qtnh::uint)dis_size, params };
     
-
     return this;
   }
 

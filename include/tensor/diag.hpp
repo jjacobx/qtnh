@@ -236,7 +236,7 @@ namespace qtnh {
       /// tensors that use different underlying classes. It may also produce unexpected results 
       /// when virtual elements are stored, i.e. elements useful for calculations, but not actually 
       /// present in the tensor. 
-      virtual qtnh::tel operator[](std::size_t i) const override { return 1; }
+      virtual qtnh::tel operator[](std::size_t) const override { return 1; }
       /// @brief Access element at total indices if present. 
       /// @param tot_idxs Indices with total position of the element. 
       /// @return Value of the element at given indices. Throws error if not present. 
