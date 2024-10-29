@@ -9,6 +9,7 @@ using namespace std::complex_literals;
 int main() {
   QTNHEnv env;
 
+  // Explain below
   tidx_tup t1_dis_dims = { 2 }, t1_loc_dims = { 2, 2, 2 };
   std::vector<tel> t1_els;
   if (env.proc_id == 0) {
@@ -190,6 +191,27 @@ int main() {
 
   tp1 = SymmTensorBase::swapIO(std::move(tp1), 0, 1);
   std::cout << env.proc_id << " | T1 (symmetric normal) = " << *tp1 << "\n";
+
+  utils::barrier();
+  tp1 = DiagTensor::make(env, {}, { 2, 2, 2, 2 }, 0, { 1, 2, 3, 4 });
+  std::cout << env.proc_id << " | T1 (diagonal) = " << *tp1 << "\n";
+
+  utils::barrier();
+  tp1 = SymmTensorBase::rescatterIO(std::move(tp1), 2);
+  std::cout << env.proc_id << " | T1 (diagonal scattered) = " << *tp1 << "\n";
+
+  // utils::barrier();
+  // if (tp1->bc().active) {
+  //   std::cout << env.proc_id << " | T1 (diagonal virtual) = " << (*tp1)[0] << ", " << (*tp1)[1] << "\n";
+  // }
+
+  utils::barrier();
+  tp1 = SymmTensorBase::rescatterIO(std::move(tp1), -1);
+  std::cout << env.proc_id << " | T1 (diagonal gathered) = " << *tp1 << "\n";
+
+  utils::barrier();
+  tp1 = Tensor::rebcast(std::move(tp1), { 1, 1, 1 });
+  std::cout << env.proc_id << " | T1 (diagonal rebcast) = " << *tp1 << "\n";
 
   return 0;
 }
