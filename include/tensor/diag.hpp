@@ -20,6 +20,20 @@ namespace qtnh {
 
       virtual TT type() const noexcept override { return TT::diagTensorBase; }
 
+      // TODO: More sophisticated availability checking. 
+      // TODO: - available through base pointer
+      // TODO: - element present in tensor vs in memory
+      bool truncated() const noexcept { return truncated_; }
+      bool available(qtnh::tidx_tup tot_dims) const noexcept;
+
+      static qtnh::tptr truncate(qtnh::tptr tp) {
+        return utils::one_unique(std::move(tp), tp->cast<DiagTensorBase>()->truncate());
+      }
+
+      static qtnh::tptr expand(qtnh::tptr tp) {
+        return utils::one_unique(std::move(tp), tp->cast<DiagTensorBase>()->expand());
+      }
+
     protected:
       /// @brief Construct empty tensor with given local and distributed dimensions within environment with default distribution parameters. 
       /// @param env Environment to use for construction. 
@@ -54,6 +68,9 @@ namespace qtnh {
       /// @param offset New offset between distributed and local dimensions – negative gathers, while positive scatters. 
       /// @return Pointer to re-scattered tensor, which might be of a different derived type. 
       virtual Tensor* rescatterIO(int offset) override;
+
+      virtual Tensor* truncate();
+      virtual Tensor* expand();
 
       bool truncated_;  ///< Flag for whether distributed input dimensions are truncated to 0. 
   };
@@ -176,6 +193,10 @@ namespace qtnh {
       /// @param offset New offset between distributed and local dimensions – negative gathers, while positive scatters. 
       /// @return Pointer to re-scattered tensor, which might be of a different derived type. 
       virtual DiagTensor* rescatterIO(int offset) override;
+
+      // Truncation should happen implicitly. 
+      virtual DiagTensor* truncate() override;
+      virtual DiagTensor* expand() override;
 
     private: 
       // std::vector<qtnh::tel> loc_diag_els_;  ///< Local diagonal elements. 

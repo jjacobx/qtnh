@@ -16,6 +16,20 @@ namespace qtnh {
     return utils::one_unique(std::move(tp), tp->toDiag()); 
   }
 
+  bool DiagTensorBase::available(qtnh::tidx_tup tot_idxs) const noexcept {
+    if (!has(tot_idxs)) {
+      return false;
+    } else if (!truncated_) {
+      return true;
+    }
+
+    auto dis_idxs = utils::i_to_idxs(bc_.group_id, dis_dims_);
+    auto [dis_idxs_in, dis_idxs_out] = utils::split_dims(dis_idxs, dis_idxs.size() / 2);
+    auto dis_dims_in = utils::split_dims(dis_dims_, dis_dims_.size() / 2).first;
+
+    return utils::idxs_to_i(dis_idxs_in, dis_dims_in) == 0;
+  }
+
   DiagTensor* DiagTensorBase::toDiag() noexcept {
     std::vector<qtnh::tel> els;
     els.reserve(utils::dims_to_size(utils::halve_dims(locDims())));
@@ -56,6 +70,14 @@ namespace qtnh {
 
   Tensor* DiagTensorBase::rescatterIO(int offset) {
     return toDiag()->rescatter(offset);
+  }
+
+  Tensor* DiagTensorBase::truncate() {
+    return toDiag()->truncate();
+  }
+
+  Tensor* DiagTensorBase::expand() {
+    return toDiag()->expand();
   }
 
   DiagTensor::DiagTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, bool truncated, std::vector<qtnh::tel>&& diag_els)
@@ -174,6 +196,32 @@ namespace qtnh {
 
     bc_ = { bc_.env, (qtnh::uint)dis_size, params };
     
+    return this;
+  }
+
+  DiagTensor* DiagTensor::truncate() {
+    if (truncated_) return this;
+
+    auto diag_params = diagonal_.bc_.params();
+    diag_params.cyc /= diagonal_.disSize();
+
+    diagonal_._rebcast_internal(&diagonal_, diag_params);
+    diagonal_.bc_ = { diagonal_.bc_.env, diagonal_.bc_.base, diag_params };
+
+    truncated_ = true;
+    return this;
+  }
+
+  DiagTensor* DiagTensor::expand() {
+    if (!truncated_) return this;
+
+    auto diag_params = diagonal_.bc_.params();
+    diag_params.cyc *= diagonal_.disSize();
+
+    diagonal_._rebcast_internal(&diagonal_, diag_params);
+    diagonal_.bc_ = { diagonal_.bc_.env, diagonal_.bc_.base, diag_params };
+
+    truncated_ = false;
     return this;
   }
 
