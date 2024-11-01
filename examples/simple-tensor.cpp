@@ -200,11 +200,6 @@ int main() {
   tp1 = SymmTensorBase::rescatterIO(std::move(tp1), 2);
   std::cout << env.proc_id << " | T1 (diagonal scattered) = " << *tp1 << "\n";
 
-  // utils::barrier();
-  // if (tp1->bc().active) {
-  //   std::cout << env.proc_id << " | T1 (diagonal virtual) = " << (*tp1)[0] << ", " << (*tp1)[1] << "\n";
-  // }
-
   utils::barrier();
   tp1 = SymmTensorBase::rescatterIO(std::move(tp1), -1);
   std::cout << env.proc_id << " | T1 (diagonal gathered) = " << *tp1 << "\n";
@@ -212,6 +207,23 @@ int main() {
   utils::barrier();
   tp1 = Tensor::rebcast(std::move(tp1), { 1, 1, 1 });
   std::cout << env.proc_id << " | T1 (diagonal rebcast) = " << *tp1 << "\n";
+
+  utils::barrier();
+  tp1 = DiagTensorBase::truncate(std::move(tp1));
+  if (env.proc_id == 4) {
+    std::cout << env.proc_id << " | T1 has { 1, 1, 1, 1 }: " << tp1->cast<DiagTensor>()->has({ 1, 1, 1, 1 }) << "\n";
+    std::cout << env.proc_id << " | T1 available { 1, 1, 1, 1 }: " << tp1->cast<DiagTensor>()->available({ 1, 1, 1, 1 }) << "\n";
+  }
+  
+  utils::barrier();
+  tp1 = DiagTensorBase::expand(std::move(tp1));
+  if (env.proc_id == 4) {
+    std::cout << env.proc_id << " | T1 has { 1, 1, 1, 1 }: " << tp1->cast<DiagTensor>()->has({ 1, 1, 1, 1 }) << "\n";
+    std::cout << env.proc_id << " | T1 available { 1, 1, 1, 1 }: " << tp1->cast<DiagTensor>()->available({ 1, 1, 1, 1 }) << "\n";
+  }
+  if (env.proc_id >= 1 && env.proc_id <= 4) {
+    std::cout << env.proc_id << " | T1 (diagonal truncated) = " << (*tp1)[0] << ", " << (*tp1)[1] << "\n";
+  }
 
   return 0;
 }
