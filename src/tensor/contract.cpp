@@ -25,17 +25,17 @@ namespace qtnh {
 
     std::sort(ws.begin(), ws.end(), utils::wirecomp::second);
 
-    std::size_t ndis_cons = 0;
+    auto ndis_cons = 0u;
     for (auto w : ws) {
       if (w.first < ndis1) {
         if (w.first < ndis1) ptup1.at(w.first) = ndis1 - ndis_cons - 1;
-        for (qtnh::tidx_tup_st i = w.first + 1; i < ndis1; ++i) {
+        for (auto i = w.first + 1; i < ndis1; ++i) {
           if (ptup1.at(i) < ndis1 - ndis_cons) --ptup1.at(i);
         }
 
         // Wires are sorted by second, so this is guaranteed to update all previous values. 
         if (w.second < ndis2) ptup2.at(w.second) = 0;
-        for (qtnh::tidx_tup_st i = w.second; i > 0; --i) {
+        for (auto i = w.second; i > 0; --i) {
           ++ptup2.at(i - 1);
         }
 
@@ -68,13 +68,13 @@ namespace qtnh {
     ifls1.insert(ifls1.end(), nloc1, { "local", 0 });
     ifls2.insert(ifls2.end(), nloc2, { "local", 0 });
 
-    for (std::size_t i = 0; i < ws.size(); ++i) {
+    for (auto i = 0u; i < ws.size(); ++i) {
       if (ws.at(i).first < ndis1) {
-        ifls1.at(ws.at(i).first) = { "reduced", (int)i };
-        ifls2.at(ws.at(i).second) = { "reduced", (int)i };
+        ifls1.at(ws.at(i).first) = { "reduced", static_cast<int>(i) };
+        ifls2.at(ws.at(i).second) = { "reduced", static_cast<int>(i) };
       } else {
-        ifls1.at(ws.at(i).first) = { "closed", (int)i };
-        ifls2.at(ws.at(i).second) = { "closed", (int)i };
+        ifls1.at(ws.at(i).first) = { "closed", static_cast<int>(i) };
+        ifls2.at(ws.at(i).second) = { "closed", static_cast<int>(i) };
       }
     }
 
@@ -86,7 +86,7 @@ namespace qtnh {
     std::vector<qtnh::tidx_tup_st> ptup_loc(ti3_loc.dims().size());
     std::iota(ptup_loc.begin(), ptup_loc.end(), 0);
 
-    for (std::size_t i = tp1->disDims().size(), j = i; i < tp1->totDims().size(); ++i) {
+    for (auto i = tp1->disDims().size(), j = i; i < tp1->totDims().size(); ++i) {
       if (ifls1.at(i).label != "closed") {
         ptup_loc.at(i - j) = dim_repls1_p.at(i) - ti3_dis.dims().size();
       } else {
@@ -95,7 +95,7 @@ namespace qtnh {
     }
 
     auto split = ti1.keep("local").dims().size();
-    for (std::size_t i = tp2->disDims().size(), j = i; i < tp2->totDims().size(); ++i) {
+    for (auto i = tp2->disDims().size(), j = i; i < tp2->totDims().size(); ++i) {
       if (ifls2.at(i).label != "closed") {
         ptup_loc.at(split + i - j) = dim_repls2_p.at(i) - ti3_dis.dims().size();
       } else {
@@ -105,9 +105,9 @@ namespace qtnh {
 
     qtnh::tidx_tup dims_ti3_loc(ti3_loc.dims().size());
     std::vector<TIFlag> ifls_ti3_loc(ti3_loc.ifls().size());
-    for (std::size_t i = 0; i < ti3_loc.dims().size(); ++i) {
+    for (auto i = 0u; i < ti3_loc.dims().size(); ++i) {
       dims_ti3_loc.at(ptup_loc.at(i)) = ti3_loc.dims().at(i);
-      ifls_ti3_loc.at(ptup_loc.at(i)) = { "local", (int)i };
+      ifls_ti3_loc.at(ptup_loc.at(i)) = { "local",  static_cast<int>(i) };
     }
 
     auto ti3 = TIndexing::app(
@@ -123,7 +123,13 @@ namespace qtnh {
     }
 
     auto els = std::vector<qtnh::tel>(loc_size);
-    DenseTensor t3(tp1->bc().env, ti3.cut("local").dims(), ti3.keep("local").dims(), std::move(els), { 1, 1, align_off });
+    DenseTensor t3 { 
+      tp1->bc().env, 
+      ti3.cut("local").dims(), 
+      ti3.keep("local").dims(), 
+      std::move(els), 
+      { 1, 1, align_off } 
+    };
 
     ti1 = ti1.cut("distributed").cut("reduced");
     ti2 = ti2.cut("distributed").cut("reduced");
@@ -163,7 +169,7 @@ namespace qtnh {
 
       // STEP 4: All-reduce distributed wires. 
       auto dis_idxs = utils::i_to_idxs(t3.bc().group_id, t3.disDims());
-      for (std::size_t i = 0; i < dis_idxs.size(); ++i) {
+      for (auto i = 0u; i < dis_idxs.size(); ++i) {
         if (ti3.ifls().at(i).label == "reduced") dis_idxs.at(i) = 0;
       }
       
@@ -181,13 +187,13 @@ namespace qtnh {
     std::vector<qtnh::tidx_tup_st> ptup3(t3.totDims().size());
     std::iota(ptup3.begin(), ptup3.end(), 0);
     
-    for (std::size_t i = 0; i < ndis1 - ndis_cons; ++i) {
+    for (auto i = 0u; i < ndis1 - ndis_cons; ++i) {
       ptup3.at(i) = dim_repls1_p.at(i);
     } 
-    for (std::size_t i = 1; i <= ndis_cons; ++i) {
+    for (auto i = 1u; i <= ndis_cons; ++i) {
       ptup3.at(ndis1 - i) = t3.disDims().size() - i;
     }
-    for (std::size_t i = 0; i < ndis2 - ndis_cons; ++i) {
+    for (auto i = 0u; i < ndis2 - ndis_cons; ++i) {
       ptup3.at(ndis1 + i) = dim_repls2_p.at(ndis_cons + i);
     }
 
@@ -195,7 +201,7 @@ namespace qtnh {
 
     // Last n distributed indices are virtual. 
     auto [new_dis_dims, virtual_dims] = utils::split_dims(t3.disDims(), t3.disDims().size() - ndis_cons);
-    BcParams new_params { (qtnh::uint)utils::dims_to_size(virtual_dims), 1, align_off };
+    BcParams new_params { static_cast<qtnh::uint>(utils::dims_to_size(virtual_dims)), 1, align_off };
 
     return DenseTensor::make(t3.bc().env, new_dis_dims, t3.locDims(), std::move(t3.loc_els_), new_params);
   }
@@ -221,7 +227,7 @@ namespace qtnh {
       params.dimRepls1 = std::vector<qtnh::tidx_tup_st>(tp1->totDims().size(), UINT16_MAX);
       std::sort(params.wires.begin(), params.wires.end(), utils::wirecomp::first);
 
-      for  (std::size_t i = 0, j = 0; i < tp1->totDims().size(); ++i) {
+      for  (auto i = 0u, j = 0u; i < tp1->totDims().size(); ++i) {
         if ((j < params.wires.size()) && (i == params.wires.at(j).first)) {
           ++j;
         } else {
@@ -235,7 +241,7 @@ namespace qtnh {
       params.dimRepls2 = std::vector<qtnh::tidx_tup_st>(tp2->totDims().size(), UINT16_MAX);
       std::sort(params.wires.begin(), params.wires.end(), utils::wirecomp::second);
 
-      for  (std::size_t i = 0, j = 0; i < tp2->totDims().size(); ++i) {
+      for  (auto i = 0u, j = 0u; i < tp2->totDims().size(); ++i) {
         if ((j < params.wires.size()) && (i == params.wires.at(j).second)) {
           ++j;
         } else {
@@ -263,7 +269,7 @@ namespace qtnh {
         params.dimRepls1 = std::vector<qtnh::tidx_tup_st>(tp1->totDims().size(), UINT16_MAX);
         std::sort(params.wires.begin(), params.wires.end(), utils::wirecomp::first);
 
-        for  (std::size_t i = 0, j = 0; i < tp1->totDims().size(); ++i) {
+        for  (auto i = 0u, j = 0u; i < tp1->totDims().size(); ++i) {
           if ((j < params.wires.size()) && (i == params.wires.at(j).first)) {
             ++j;
           } else {
@@ -275,11 +281,11 @@ namespace qtnh {
         std::sort(params.wires.begin(), params.wires.end(), utils::wirecomp::second);
 
         std::vector<qtnh::tidx_tup_st> from_dims(params.wires.size());
-        for (std::size_t i = 0; i < params.wires.size(); ++i) {
+        for (auto i = 0u; i < params.wires.size(); ++i) {
           from_dims.at(i) = params.wires.at(i).first;
         }
 
-        for (std::size_t i = 0, j = 0, k = 0; i < tp2_symm->totDims().size(); ++i) {
+        for (auto i = 0u, j = 0u, k = 0u; i < tp2_symm->totDims().size(); ++i) {
           if ((j < params.wires.size()) && (i == params.wires.at(j).second)) {
             ++j;
           } else if (k < params.wires.size()) {
