@@ -225,5 +225,14 @@ int main() {
     std::cout << env.proc_id << " | T1 (diagonal truncated) = " << (*tp1)[0] << ", " << (*tp1)[1] << "\n";
   }
 
+  MPI_Barrier(MPI_COMM_WORLD);
+  tp1 = DenseTensor::make(env, {}, { 2, 2, 2, 2 }, { 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7 });
+  tp2 = DenseTensor::make(env, {}, { 2, 2, 2, 2 }, { 0, 1, 2, 3, 4, 5, 6, 7, 7, 6, 5, 4, 3, 2, 1, 0 });
+
+  Contractor<Tensor, Tensor> con(std::move(tp1), std::move(tp2), ConParams(std::vector<wire> {}));
+  tp1 = con.contract();
+
+  std::cout << env.proc_id << " | T1 (after contractor) = " << *tp1 << "\n";
+
   return 0;
 }
