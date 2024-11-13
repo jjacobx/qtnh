@@ -11,11 +11,11 @@
 #include "contract/general-temp.hpp"
 
 namespace qtnh {
-  template<> qtnh::tptr Contractor<DenseTensor, DenseTensor>::contract() {
+  template<> qtnh::tptr PairContractor<DenseTensor, DenseTensor>::contract() {
     return Tensor::cast<Tensor>(std::move(tp1_));
   }
 
-  template<> qtnh::tptr Contractor<DenseTensor>::contract() {
-    return Tensor::cast<Tensor>(std::move(tp_));
+  template<> qtnh::tptr SelfContractor<DenseTensor>::contract() {
+    return Tensor::cast<Tensor>(std::move(tp1_));
   }
 }
