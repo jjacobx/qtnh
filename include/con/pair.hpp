@@ -4,7 +4,10 @@
 #include "con/base.hpp"
 
 namespace qtnh {
-  template<typename T1, typename T2>
+  template<typename T>
+  using rm_if_iden = std::enable_if_t<!std::is_same_v<IdenTensor, T>>;
+
+  template<typename T1, typename T2, typename Enable = void>
   class PairContractor : private ContractorBase<T1, T2> {
     public:
       using ContractorBase<T1, T2>::ContractorBase;
@@ -37,7 +40,7 @@ namespace qtnh {
   };
 
   template<typename T2>
-  class PairContractor<IdenTensor, T2> : private ContractorBase<IdenTensor, T2> {
+  class PairContractor<IdenTensor, T2, rm_if_iden<T2>> : private ContractorBase<IdenTensor, T2> {
     public:
       using ContractorBase<IdenTensor, T2>::ContractorBase;
       ~PairContractor() = default;
