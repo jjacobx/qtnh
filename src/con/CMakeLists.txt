@@ -1,4 +1,5 @@
 target_sources(qtnh
   PRIVATE
-  general.cpp
+  pair-defs.cpp
+  self-defs.cpp
 )

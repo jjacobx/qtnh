@@ -10,7 +10,11 @@ namespace qtnh {
   namespace utils {}
 }
 
-#include "contract/general-temp.hpp"
+#include "con/base.hpp"
+#include "con/pair.hpp"
+#include "con/pair-defs.hpp"
+#include "con/self.hpp"
+#include "con/self-defs.hpp"
 
 #include "core/env.hpp"
 #include "core/typedefs.hpp"
