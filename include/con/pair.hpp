@@ -4,11 +4,30 @@
 #include "con/base.hpp"
 
 namespace qtnh {
+  template<typename T1, typename T2>
+  using keep_if_base = std::enable_if_t<std::is_abstract_v<T1> || std::is_abstract_v<T2>>;
+
   template<typename T>
   using rm_if_iden = std::enable_if_t<!std::is_same_v<IdenTensor, T>>;
 
-  template<typename T1, typename T2, typename Enable = void>
+  template<typename T1, typename T2, typename Enable>
   class PairContractor : private ContractorBase<T1, T2> {
+    public:
+      using ContractorBase<T1, T2>::ContractorBase;
+      ~PairContractor() = default;
+
+      PairContractor(const PairContractor&) = delete;
+      PairContractor(PairContractor&&) = default;
+      PairContractor& operator=(const PairContractor&) = delete;
+      PairContractor& operator=(PairContractor&&) = default;
+
+      const ConParams& params() const noexcept { return this->params_; }
+
+      qtnh::tptr contract();
+  };
+
+  template<typename T1, typename T2>
+  class PairContractor<T1, T2, keep_if_base<T1, T2>> : private ContractorBase<T1, T2> {
     public:
       using ContractorBase<T1, T2>::ContractorBase;
       ~PairContractor() = default;
