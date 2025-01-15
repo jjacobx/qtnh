@@ -42,10 +42,43 @@ namespace qtnh {
       }
     }
 
+    // * Temporary – establish default index replacements. 
+    // * This might have to be moved somewhere else. 
+    if (params_.useDefRepls) {
+      params_.dimRepls1 = std::vector<qtnh::tidx_tup_st>(tp1_->totDims().size(), UINT16_MAX);
+      std::sort(params_.wires.begin(), params_.wires.end(), utils::wirecomp::first);
+
+      for  (auto i = 0u, j = 0u; i < tp1_->totDims().size(); ++i) {
+        if ((j < params_.wires.size()) && (i == params_.wires.at(j).first)) {
+          ++j;
+        } else {
+          params_.dimRepls1.at(i) = i - j;
+          if (i >= tp1_->disDims().size()) {
+            params_.dimRepls1.at(i) += (tp2_->disDims().size() - ndis_cons);
+          }
+        }
+      }
+
+      params_.dimRepls2 = std::vector<qtnh::tidx_tup_st>(tp2_->totDims().size(), UINT16_MAX);
+      std::sort(params_.wires.begin(), params_.wires.end(), utils::wirecomp::second);
+
+      for  (auto i = 0u, j = 0u; i < tp2_->totDims().size(); ++i) {
+        if ((j < params_.wires.size()) && (i == params_.wires.at(j).second)) {
+          ++j;
+        } else {
+          params_.dimRepls2.at(i) = tp1_->disDims().size() - ndis_cons + i - j;
+          if (i >= tp2_->disDims().size()) {
+            params_.dimRepls2.at(i) = tp1_->totDims().size() - params_.wires.size() + i - j;
+          }
+        }
+      }
+    }
+
     tp1_ = Tensor::cast<DenseTensor>(Tensor::permute(std::move(tp1_), ptup1));
     tp2_ = Tensor::cast<DenseTensor>(Tensor::permute(std::move(tp2_), ptup2));
 
     // Update dimension replacements after permutations. 
+    // ! params_.dimRepls1 are unavailable. 
     auto dim_repls1_p = utils::permute_vec(params_.dimRepls1, ptup1);
     auto dim_repls2_p = utils::permute_vec(params_.dimRepls2, ptup2);
 
