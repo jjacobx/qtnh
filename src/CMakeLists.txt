@@ -13,11 +13,13 @@ target_compile_options(qtnh
   PRIVATE
   -Wall
   -Wextra
-  #-Wshadow
+  #-Wshadow - unfixable warnings
   -Wpedantic
   -Wdelete-non-virtual-dtor
   -Woverloaded-virtual
   -Wsuggest-override
+  #-Wsign-conversion – fixme
+  #-Wint-conversion – fixme
 )
 
 # Turn off Wsign-compare in Release builds
