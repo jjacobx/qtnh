@@ -4,6 +4,8 @@
 #include "con/pair.hpp"
 
 namespace qtnh {
+  using pcon = PairContractor<Tensor, Tensor>;
+
   template<typename T1, typename T2, typename Enable>
   qtnh::tptr PairContractor<T1, T2, Enable>::contract() {
     PairContractor<DenseTensor, DenseTensor> dcon (
@@ -68,12 +70,38 @@ namespace qtnh {
 
   template<typename T1>
   qtnh::tptr PairContractor<T1, IdenTensor>::contract() {
-    return nullptr;
+    // * For now convert to symmetric tensor. 
+    PairContractor<T1, SymmTensor> dcon(
+      std::move(this->tp1_), 
+      Tensor::convert<SymmTensor>(std::move(this->tp2_)), 
+      this->params_
+    );
+
+    auto tp_res = dcon.contract();
+    this->params_ = dcon.params();
+
+    return tp_res;
+
+    // TODO: Optimise if all wires match
+    // return std::move(this->tp1_);
   }
 
   template<typename T2>
   qtnh::tptr PairContractor<IdenTensor, T2, rm_if_iden<T2>>::contract() {
-    return nullptr;
+    // * For now convert to symmetric tensor. 
+    PairContractor<SymmTensor, T2> dcon(
+      Tensor::convert<SymmTensor>(std::move(this->tp1_)), 
+      std::move(this->tp2_), 
+      this->params_
+    );
+
+    auto tp_res = dcon.contract();
+    this->params_ = dcon.params();
+
+    return tp_res;
+
+    // TODO: Optimise if all wires match
+    // return std::move(this->tp2_);
   }
 
   // template<> qtnh::tptr PairContractor<Tensor, Tensor>::contract();
