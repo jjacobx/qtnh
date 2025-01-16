@@ -229,10 +229,18 @@ int main() {
   tp1 = DenseTensor::make(env, {}, { 2, 2, 2, 2 }, { 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7 });
   tp2 = DenseTensor::make(env, {}, { 2, 2, 2, 2 }, { 0, 1, 2, 3, 4, 5, 6, 7, 7, 6, 5, 4, 3, 2, 1, 0 });
 
-  PairContractor<Tensor, Tensor> con(std::move(tp1), std::move(tp2), ConParams(std::vector<wire> {{0, 0}, {1, 2}}));
-  tp1 = con.contract();
+  PairContractor<Tensor, Tensor> con1(std::move(tp1), std::move(tp2), ConParams(std::vector<wire> {{0, 0}, {1, 2}}));
+  tp1 = con1.contract();
 
   std::cout << env.proc_id << " | T1 (after contractor) = " << *tp1 << "\n";
+
+  tp1 = DenseTensor::make(env, {}, { 2, 2, 2, 2 }, { 0, 1, 2, 3, 4, 5, 6, 7, 7, 6, 5, 4, 3, 2, 1, 0 });
+  tp2 = SymmTensor::make(env, {}, { 2, 2, 2, 2 }, { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 });
+  
+  PairContractor<Tensor, Tensor> con2(std::move(tp1), std::move(tp2), ConParams(std::vector<wire> {{0, 0}, {1, 1}}));
+  tp1 = con2.contract();
+
+  std::cout << env.proc_id << " | T1 (after symm contractor) = " << *tp1 << "\n";
 
   return 0;
 }

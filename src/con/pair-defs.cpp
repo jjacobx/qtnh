@@ -237,4 +237,56 @@ namespace qtnh {
 
     return DenseTensor::make(t3.bc().env, new_dis_dims, t3.locDims(), std::move(t3.loc_els_), new_params);
   }
+
+  template<> qtnh::tptr PairContractor<DenseTensor, SymmTensor>::contract() {
+    std::size_t input_count = 0;
+    for (auto w : params_.wires) {
+      if (w.second < (tp2_->disDims().size() / 2) || ((w.second >= tp2_->disDims().size()) && (w.second < (tp2_->disDims().size() + tp2_->locDims().size() / 2)))) {
+        ++input_count;
+      }
+    }
+
+    auto dis_imbal = 0;
+
+    if ((dis_imbal == 0) && (input_count == tp2_->disDims().size() / 2 + tp2_->locDims().size() / 2)) {
+      params_.dimRepls1 = std::vector<qtnh::tidx_tup_st>(tp1_->totDims().size(), UINT16_MAX);
+      std::sort(params_.wires.begin(), params_.wires.end(), utils::wirecomp::first);
+
+      for  (auto i = 0u, j = 0u; i < tp1_->totDims().size(); ++i) {
+        if ((j < params_.wires.size()) && (i == params_.wires.at(j).first)) {
+          ++j;
+        } else {
+          params_.dimRepls1.at(i) = i;
+        }
+      }
+
+      params_.dimRepls2 = std::vector<qtnh::tidx_tup_st>(tp2_->totDims().size(), UINT16_MAX);
+      std::sort(params_.wires.begin(), params_.wires.end(), utils::wirecomp::second);
+
+      std::vector<qtnh::tidx_tup_st> from_dims(params_.wires.size());
+      for (auto i = 0u; i < params_.wires.size(); ++i) {
+        from_dims.at(i) = params_.wires.at(i).first;
+      }
+
+      for (auto i = 0u, j = 0u, k = 0u; i < tp2_->totDims().size(); ++i) {
+        if ((j < params_.wires.size()) && (i == params_.wires.at(j).second)) {
+          ++j;
+        } else if (k < params_.wires.size()) {
+          params_.dimRepls2.at(i) = from_dims.at(k++);
+        }
+      }
+    }
+
+    // * Potentially expensive conversion. 
+    PairContractor<DenseTensor, DenseTensor> dcon(
+      std::move(tp1_), 
+      Tensor::convert<DenseTensor>(std::move(tp2_)), 
+      params_
+    );
+
+    auto tp_res = dcon.contract();
+    params_ = dcon.params();
+
+    return tp_res;
+  }
 }

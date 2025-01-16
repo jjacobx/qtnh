@@ -79,16 +79,16 @@ namespace qtnh {
   // template<> qtnh::tptr PairContractor<Tensor, Tensor>::contract();
 
   template<> qtnh::tptr PairContractor<DenseTensor, DenseTensor>::contract();
-  // template<> qtnh::tptr Contractor<DenseTensor, SymmTensor>::contract();
-  // template<> qtnh::tptr Contractor<DenseTensor, DiagTensor>::contract();
+  template<> qtnh::tptr PairContractor<DenseTensor, SymmTensor>::contract();
+  // template<> qtnh::tptr PairContractor<DenseTensor, DiagTensor>::contract();
 
-  // template<> qtnh::tptr Contractor<SymmTensor, DenseTensor>::contract();
-  // template<> qtnh::tptr Contractor<SymmTensor, SymmTensor>::contract();
-  // template<> qtnh::tptr Contractor<SymmTensor, DiagTensor>::contract();
+  // template<> qtnh::tptr PairContractor<SymmTensor, DenseTensor>::contract();
+  // template<> qtnh::tptr PairContractor<SymmTensor, SymmTensor>::contract();
+  // template<> qtnh::tptr PairContractor<SymmTensor, DiagTensor>::contract();
 
-  // template<> qtnh::tptr Contractor<DiagTensor, DenseTensor>::contract();
-  // template<> qtnh::tptr Contractor<DiagTensor, SymmTensor>::contract();
-  // template<> qtnh::tptr Contractor<DiagTensor, DiagTensor>::contract();
+  // template<> qtnh::tptr PairContractor<DiagTensor, DenseTensor>::contract();
+  // template<> qtnh::tptr PairContractor<DiagTensor, SymmTensor>::contract();
+  // template<> qtnh::tptr PairContractor<DiagTensor, DiagTensor>::contract();
 }
 
 #endif
