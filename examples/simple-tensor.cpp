@@ -57,12 +57,14 @@ int main() {
   std::cout << env.proc_id << " | T2 = " << *tp2 << std::endl;
 
   MPI_Barrier(MPI_COMM_WORLD);
-  tp1 = Tensor::contract(std::move(tp1), std::move(tp2), {{ 3, 0 }});
+  auto params = ConParams({{ 3, 0 }});
+  tp1 = pcon(std::move(tp1), std::move(tp2), params).contract();
   std::cout << env.proc_id << " | T1 (contract 1) = " << *tp1 << std::endl;
 
   MPI_Barrier(MPI_COMM_WORLD);
   tp2 = tp1_1->copy();
-  tp1 = Tensor::contract(std::move(tp2), std::move(tp1), {{ 1, 1 }, { 2, 2 }});
+  params = ConParams({{ 1, 1 }, { 2, 2 }});
+  tp1 = pcon(std::move(tp1), std::move(tp2), params).contract();
   std::cout << env.proc_id << " | T1 (contract 2) = " << *tp1 << std::endl;
 
   MPI_Barrier(MPI_COMM_WORLD);
@@ -140,7 +142,8 @@ int main() {
   std::cout << env.proc_id << " | T7 = " << *tp7 << "\n";
 
   MPI_Barrier(MPI_COMM_WORLD);
-  tptr tp8 = Tensor::contract(std::move(tp6), std::move(tp7), {{ 2, 0 }, { 3, 1 }});
+  params = ConParams({{ 2, 0 }, { 3, 1 }});
+  tptr tp8 = pcon(std::move(tp6), std::move(tp7), params).contract();
   std::cout << env.proc_id << " | T8 = " << *tp8 << "\n";
 
   MPI_Barrier(MPI_COMM_WORLD);
@@ -148,7 +151,8 @@ int main() {
   std::cout << env.proc_id << " | ID = " << *tpi << "\n";
   
   MPI_Barrier(MPI_COMM_WORLD);
-  tp8 = Tensor::contract(std::move(tp8), std::move(tpi), {{ 2, 1 }, { 3, 0 }});
+  params = ConParams({{ 2, 1 }, { 3, 0 }});
+  tp8 = pcon(std::move(tp8), std::move(tpi), params).contract();
   std::cout << env.proc_id << " | T8 (id) = " << *tp8 << "\n";
 
   MPI_Barrier(MPI_COMM_WORLD);
@@ -156,7 +160,8 @@ int main() {
   std::cout << env.proc_id << " | RESC = " << *tpr << "\n";
 
   MPI_Barrier(MPI_COMM_WORLD);
-  tp8 = Tensor::contract(std::move(tp8), std::move(tpr), {{ 1, 0 }});
+  params = ConParams({{ 1, 0 }});
+  tp8 = pcon(std::move(tp8), std::move(tpr), params).contract();
   std::cout << env.proc_id << " | T8 (convert 1) = " << *tp8 << "\n";
 
   MPI_Barrier(MPI_COMM_WORLD);
@@ -164,16 +169,19 @@ int main() {
   std::cout << env.proc_id << " | T8 (re-bcast) = " << *tp8 << "\n";
 
   tpr = RescTensor::make(env, 2);
-  tp8 = Tensor::contract(std::move(tp8), std::move(tpr), {{ 3, 1 }});
+  params = ConParams({{ 3, 1 }});
+  tp8 = pcon(std::move(tp8), std::move(tpr), params).contract();
   std::cout << env.proc_id << " | T8 (convert 2) = " << *tp8 << "\n";
 
   tp1 = DenseTensor::make(env, {}, { 2 }, { 1, 1 });
   tp2 = RescTensor::make(env, 2);
-  tp1 = Tensor::contract(std::move(tp1), std::move(tp2), {{ 0, 1 }});
+  params = ConParams({{ 0, 1 }});
+  tp1 = pcon(std::move(tp1), std::move(tp2), params).contract();
   std::cout << env.proc_id << " | T1 (fully distributed) = " << *tp1 << "\n";
 
   tp2 = RescTensor::make(env, 2);
-  tp1 = Tensor::contract(std::move(tp1), std::move(tp2), {{ 0, 0 }});
+  params = ConParams({{ 0, 0 }});
+  tp1 = pcon(std::move(tp1), std::move(tp2), params).contract();
   tp1 = Tensor::rebcast(std::move(tp1), { 1, 1, 0 });
   std::cout << env.proc_id << " | T1 (fully local) = " << *tp1 << "\n";
 
@@ -228,18 +236,15 @@ int main() {
   MPI_Barrier(MPI_COMM_WORLD);
   tp1 = DenseTensor::make(env, {}, { 2, 2, 2, 2 }, { 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7 });
   tp2 = DenseTensor::make(env, {}, { 2, 2, 2, 2 }, { 0, 1, 2, 3, 4, 5, 6, 7, 7, 6, 5, 4, 3, 2, 1, 0 });
+  params = ConParams( {{0, 0}, {1, 2}});
+  tp1 = pcon(std::move(tp1), std::move(tp2), params).contract();
+  std::cout << env.proc_id << " | T1 (after dense contractor) = " << *tp1 << "\n";
 
-  PairContractor<Tensor, Tensor> con1(std::move(tp1), std::move(tp2), ConParams(std::vector<wire> {{0, 0}, {1, 2}}));
-  tp1 = con1.contract();
-
-  std::cout << env.proc_id << " | T1 (after contractor) = " << *tp1 << "\n";
-
+  MPI_Barrier(MPI_COMM_WORLD);
   tp1 = DenseTensor::make(env, {}, { 2, 2, 2, 2 }, { 0, 1, 2, 3, 4, 5, 6, 7, 7, 6, 5, 4, 3, 2, 1, 0 });
   tp2 = SymmTensor::make(env, {}, { 2, 2, 2, 2 }, { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 });
-  
-  PairContractor<Tensor, Tensor> con2(std::move(tp1), std::move(tp2), ConParams(std::vector<wire> {{0, 0}, {1, 1}}));
-  tp1 = con2.contract();
-
+  params = ConParams( {{0, 0}, {1, 1}});
+  tp1 = pcon(std::move(tp1), std::move(tp2), params).contract();
   std::cout << env.proc_id << " | T1 (after symm contractor) = " << *tp1 << "\n";
 
   return 0;
