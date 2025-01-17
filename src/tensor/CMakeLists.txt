@@ -1,6 +1,5 @@
 target_sources(qtnh
   PRIVATE
-  contract.cpp
   dense.cpp
   diag.cpp
   indexing.cpp
