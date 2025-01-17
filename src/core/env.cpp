@@ -14,8 +14,8 @@ namespace qtnh {
     MPI_Comm_rank(MPI_COMM_WORLD, &_proc_id);
     MPI_Comm_size(MPI_COMM_WORLD, &_num_processes);
 
-    proc_id = _proc_id;
-    num_processes = _num_processes;
+    proc_id = static_cast<unsigned int>(_proc_id);
+    num_processes = static_cast<unsigned int>(_num_processes);
   }
 
   QTNHEnv::~QTNHEnv() {
