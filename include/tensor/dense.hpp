@@ -2,8 +2,6 @@
 #define _TENSOR_DENSE_HPP
 
 #include "tensor/tensor.hpp"
-//#include "con/pair.hpp"
-//#include "con/pair-defs.hpp"
 
 namespace qtnh {
   class DenseTensorBase;
@@ -83,7 +81,6 @@ namespace qtnh {
       friend class DenseTensorBase;
       friend class DiagTensor;
       friend class PairContractor<DenseTensor, DenseTensor>;
-      friend qtnh::tptr _contract_dense(qtnh::tptr t1p, qtnh::tptr t2p, ConParams& params);
 
       DenseTensor() = delete;
       DenseTensor(const DenseTensor&) = delete;
