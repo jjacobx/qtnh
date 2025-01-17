@@ -3,6 +3,8 @@
 
 #include "tensor/indexing.hpp"
 #include "tensor/network.hpp"
+#include "con/pair-defs.hpp"
+#include "con/self-defs.hpp"
 
 namespace qtnh {
   TensorNetwork::TensorNetwork() : 
@@ -65,10 +67,11 @@ namespace qtnh {
     auto tp2 = std::move(tensors_.at(tid2));
 
     ConParams params(b.wires);
-    auto tp3 = Tensor::contract(std::move(tp1), std::move(tp2), params);
+    auto con = qtnh::pcon(std::move(tp1), std::move(tp2), params);
+    auto tp3 = con.contract();
 
-    auto dim_repls1 = params.dimRepls1;
-    auto dim_repls2 = params.dimRepls2;
+    auto dim_repls1 = con.params().dimRepls1;
+    auto dim_repls2 = con.params().dimRepls2;
 
     bonds_.erase(bid);
     tensors_.erase(tid1);
