@@ -33,11 +33,10 @@ TEST_CASE("tensor-construction") {
     REQUIRE_NOTHROW(SwapTensor::make(ENV, 2, 0, { 1, 1, 0 }));
   }
 
-  // TODO: Implement diagonal tensors. 
-  // SECTION("diagonal-tensor") {
-  //   REQUIRE_NOTHROW(DiagTensor::make(ENV, {}, { 2, 2 }, 0, { 1.0i, 2.0i, 3.0i, 4.0i }, 0));
-  //   REQUIRE_NOTHROW(DiagTensor::make(ENV, {}, { 2, 2 }, 0, { 1.0i, 2.0i, 3.0i, 4.0i }, 0, { 1, 1, 0 }));
-  // }
+  SECTION("diagonal-tensor") {
+    REQUIRE_NOTHROW(DiagTensor::make(ENV, {}, { 2, 2, 2, 2 }, 0, { 1.0i, 2.0i, 3.0i, 4.0i }));
+    REQUIRE_NOTHROW(DiagTensor::make(ENV, {}, { 2, 2, 2, 2 }, 0, { 1.0i, 2.0i, 3.0i, 4.0i }, { 1, 1, 0 }));
+  }
 
   SECTION("identity-tensor") {
     REQUIRE_NOTHROW(IdenTensor::make(ENV, {}, { 2, 2 }, 0));
@@ -222,4 +221,7 @@ TEST_CASE("tensor-contraction") {
       }
     }
   }
+
+  // TODO: Implement diagonal tensor contraction. 
+  // SECTION("dense-diag") {}
 }
