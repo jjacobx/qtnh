@@ -79,6 +79,14 @@ namespace qtnh {
       }
     }
 
+    #ifdef DEBUG
+      using namespace ops;
+      if (utils::is_root()) {
+        std::cout << "T1 dimension replacements: " << params_.dimRepls1 << "\n";
+        std::cout << "T2 dimension replacements: " << params_.dimRepls2 << "\n";
+      }
+    #endif
+
     tp1_ = Tensor::cast<DenseTensor>(Tensor::permute(std::move(tp1_), ptup1));
     tp2_ = Tensor::cast<DenseTensor>(Tensor::permute(std::move(tp2_), ptup2));
 
