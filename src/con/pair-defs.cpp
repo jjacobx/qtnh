@@ -9,6 +9,11 @@
 
 namespace qtnh {
   template<> qtnh::tptr PairContractor<DenseTensor, DenseTensor>::contract() {
+    #ifdef DEBUG
+      if (utils::is_root())
+        std::cout << "STARTING DENSE-DENSE CONTRACTION\n";
+    #endif
+
     auto ws = params_.wires;
 
     auto ndis1 = tp1_->disDims().size();
@@ -239,6 +244,11 @@ namespace qtnh {
   }
 
   template<> qtnh::tptr PairContractor<DenseTensor, SymmTensor>::contract() {
+    #ifdef DEBUG
+      if (utils::is_root())
+        std::cout << "STARTING DENSE-SYMM CONTRACTION\n";
+    #endif
+
     std::size_t input_count = 0;
     for (auto w : params_.wires) {
       if (w.second < (tp2_->disDims().size() / 2) || ((w.second >= tp2_->disDims().size()) && (w.second < (tp2_->disDims().size() + tp2_->locDims().size() / 2)))) {
