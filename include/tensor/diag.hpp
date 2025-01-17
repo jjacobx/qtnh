@@ -89,9 +89,8 @@ namespace qtnh {
       /// @param env Environment to use for construction. 
       /// @param dis_dims Distributed index dimensions. 
       /// @param loc_dims Local index dimensions. 
-      /// @param n_dis_in_dims Number of distributed input dimensions. 
-      /// @param diag_els Complex vector of local diagonal elements. 
       /// @param truncated Flag for whether the front has been truncated to 0. 
+      /// @param diag_els Complex vector of local diagonal elements. 
       /// @return Ownership of unique pointer to created tensor.
       static std::unique_ptr<DiagTensor> make(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, bool truncated, std::vector<qtnh::tel>&& diag_els) {
         return std::unique_ptr<DiagTensor>(new DiagTensor(env, dis_dims, loc_dims, truncated, std::move(diag_els)));
