@@ -126,14 +126,18 @@ tp = Tensor::rescatter(std::move(tp), { 1, 4, 0 });
 
 #### Contraction
 
-Two tensors can be contracted using the static `Tensor::contract(tptr, tptr, vector<wire>)` function. A `wire` represents a pair of index locations to contract with each other. The main restriction is that contracted indices need to be of the same type, i.e. both distributed or both local. An empty vector of wires makes the contraction equivalent to a *tensor product*. By default, when contracting two dense tensors, open indices from the second tensor will be appended at the end of open indices from the first one (after the right index type). 
+Two tensors can be contracted using a template class `PairContractor<Tensor, Tensor>`, which is aliased by `pcon`. A contractor instance is created by moving two contracted tensor, and passing a `ConParams` object, which specifies the contraction details. At the very least, it requires a set of wires over which the tensors are to be contracted. Both indices in any wire need to be of the same type , i.e. both distributed or both local. An empty vector of wires makes the contraction equivalent to a *tensor product*. To contract the tensors, the `contract()` method needs to be called from the contractor. Both input tensors get destroyed in the process, and the output is a `tptr` to the result tensor. By default, when contracting two dense tensors, open indices from the second tensor will be appended at the end of open indices from the first one (after the right index type). 
 
 ```c++
 tptr tp0 = DenseTensor::make(env, {}, { 2 }, { 1, 0 }); // |0> single-qubit state 
 
 // Tensor product between |0> states. Copy prevents |0> from being deleted. 
-tptr phi = Tensor::contract(tp0->copy(), tp0->copy(), {}); // Phi = |00> state
-phi = Tensor::contract(std::move(phi), tp0->copy(), {}); // Phi = |000> state
+auto params = ConParams(std::vector<wire> {});
+auto con = pcon(tp0->copy(), tp0->copy(), params);
+tptr phi = con.contract(); // Phi = |00> state
+
+con = pcon(std::move(phi), tp0->copy(), params);
+phi = con.contract(); // Phi = |000> state
 
 // Distribute first qubit. 
 tps = Tensor::rescatter(std::move(phi), 1);
@@ -141,26 +145,34 @@ tps = Tensor::rescatter(std::move(phi), 1);
 auto a = std::pow(2, -.5); // Hadamard gate element
 tptr had = DenseTensor::make(env, {}, { 2, 2 }, { a, a, a, -a }); // H gate
 
-phi = Tensor::contract(std::move(phi), had->copy(), {{ 2, 0 }}); // |00+> state
+params = ConParams(std::vector<wire> {{ 2, 0 }});
+con = pcon(std::move(phi), had->copy(), params);
+phi = con.contract(); // |00+> state
 
 // Scatter H gate to contract with distributed index. 
 had = Tensor::rescatter(std::move(had), 2);
-phi = Tensor::contract(std::move(phi), had->copy(), {{ 0, 0 }}); // |+0+> state
+params = ConParams(std::vector<wire> {{ 0, 0 }});
+con = pcon(std::move(phi), had->copy(), params);
+phi = con.contract(); // |+0+> state
 ```
 
-In the examples above, only last distributed or local indices of the state are contracted. This is because if the first local index is contracted, it will be moved to the last position because of index replacement. This can be remedied by using `ConParams` in place of the vector of wires, which is a struct to store more advanced parameters for contraction. It accept wires and dimension replacement tuples, which indicate where the indices should end up in the result. Closed indices are ignored. 
+In the examples above, only last distributed or local indices of the state are contracted. This is because if the first local index is contracted, it will be moved to the last position because of index replacement. This can be remedied by creating more complex `ConParams` object. It can also store dimension replacement tuples, which indicate where the indices should end up in the result. Closed indices are ignored. 
 
 ```c++
-// Create contraction parameters with a (1, 0) wire. 
-ConParams params({ 1, 0 });
+// Create a single (1, 0) wire. 
+auto wires = std::vector<wire> {{ 1, 0 }};
 
 // X is a wildcard, defined to be UINT16_MAX. 
-params.dimRepls1 = { 0, X, 2 };
-params.dimRepls2 = { X, 1 };
+auto dim_repls_1 = std::vector<tidx_tup_st> { 0, X, 2 };
+auto dim_repls_2 = std::vector<tidx_tup_st> { X, 1 };
+
+params = ConParams(wires, dim_repls_1, dim_repls_2);
 
 // Gather H gate to contract with local index. 
 had = Tensor::rescatter(std::move(had), -2);
-phi = Tensor::contract(std::move(phi), had->copy(), params); // |+0+> state
+
+con = pcon(std::move(phi), had->copy(), params);
+phi = con.contract(); // |+0+> state
 ```
 
 Some tensor contractions have different default dimension replacement policies. For instance, symmetric tensors try to replace contracted indices. The `ConParams` struct is passed to contraction by reference, which means it can be used to determine the replacement policy used, if a custom one was not defined. 

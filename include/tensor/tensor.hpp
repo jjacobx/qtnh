@@ -61,12 +61,15 @@ namespace qtnh {
 
         Broadcaster& operator=(Broadcaster&& b) noexcept;
 
+        /// @brief Helper to return all params at once. 
+        /// @return Broadcaster parameters struct. 
+        constexpr BcParams params() { return { str, cyc, off }; }
         /// @brief Helper to calculate span of the entire tensor across contiguous ranks. 
         /// @return Number of contiguous ranks that store the tensor. 
-        qtnh::uint span() const noexcept { return str * base * cyc; }
+        constexpr qtnh::uint span() { return str * base * cyc; }
         /// @brief Helper to calculate between which ranks the tensor is contained. 
         /// @return A tuple containing first and last rank that store the tensor. 
-        std::pair<qtnh::uint, qtnh::uint> range() const noexcept { return { off, off + span() }; }
+        constexpr std::pair<qtnh::uint, qtnh::uint> range() { return { off, off + span() }; }
       };
 
       // This can be made constexpr in C++ 20
@@ -189,24 +192,6 @@ namespace qtnh {
       /// @return Ownership of tptr to permuted tensor. 
       static qtnh::tptr permute(qtnh::tptr tp, std::vector<qtnh::tidx_tup_st> ptup) {
         return utils::one_unique(std::move(tp), tp->permute(ptup));
-      }
-
-      /// @brief Contract two tensors with given contraction parameters. 
-      /// @param tp1 Ownership of tptr to first tensor. 
-      /// @param tp2 Ownership of tptr to second tensor. 
-      /// @param params Reference to contraction parameters to use. 
-      /// @return Ownership of tptr to result. 
-      /// 
-      /// If using default dimension replacements, they can be extracted from the params argument. 
-      static qtnh::tptr contract(qtnh::tptr tp1, qtnh::tptr tp2, ConParams& params);
-      /// @brief Contract two tensors with given wires and default contraction parameters. 
-      /// @param tp1 Ownership of tptr to first tensor. 
-      /// @param tp2 Ownership of tptr to second tensor. 
-      /// @param wires Vector of wires between indices to be contracted. 
-      /// @return Ownership of tptr to result. 
-      static qtnh::tptr contract(qtnh::tptr tp1, qtnh::tptr tp2, std::vector<qtnh::wire> wires) {
-        ConParams params(wires);
-        return contract(std::move(tp1), std::move(tp2), params);
       }
 
     protected:

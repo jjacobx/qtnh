@@ -21,15 +21,16 @@ namespace qtnh {
     }
 
     std::size_t dims_to_size(qtnh::tidx_tup dims) { 
-      return std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<qtnh::tidx>()); 
+      auto size = std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<qtnh::tidx>()); 
+      return std::size_t(size);
     }
 
     std::size_t idxs_to_i(qtnh::tidx_tup idxs, qtnh::tidx_tup dims) { 
       std::size_t i = 0;
       std::size_t base = 1;
-      for (int j = idxs.size() - 1; j >= 0; --j) {
-          i += idxs.at(j) * base;
-          base *= dims.at(j);
+      for (auto j = idxs.size(); j > 0; --j) {
+          i += idxs.at(j - 1) * base;
+          base *= dims.at(j - 1);
       }
 
       return i;
@@ -37,9 +38,9 @@ namespace qtnh {
 
     qtnh::tidx_tup i_to_idxs(std::size_t i, qtnh::tidx_tup dims) {
       auto idxs = dims;
-      for (int j = dims.size() - 1; j >= 0; --j) {
-        idxs.at(j) = i % dims.at(j);
-        i /= dims.at(j);
+      for (auto j = dims.size(); j > 0; --j) {
+        idxs.at(j - 1) = i % dims.at(j - 1);
+        i /= dims.at(j - 1);
       }
 
       return idxs;
@@ -56,6 +57,10 @@ namespace qtnh {
 
     std::pair<qtnh::tidx_tup, qtnh::tidx_tup> split_dims(qtnh::tidx_tup dims, qtnh::tidx_tup_st n) {
       return { qtnh::tidx_tup(dims.begin(), dims.begin() + n), qtnh::tidx_tup(dims.begin() + n, dims.end()) };
+    }
+
+    qtnh::tidx_tup halve_dims(qtnh::tidx_tup dims) {
+      return qtnh::tidx_tup(dims.begin(), dims.begin() + dims.size() / 2);
     }
 
     std::vector<qtnh::wire> invert_wires(std::vector<qtnh::wire> wires) {

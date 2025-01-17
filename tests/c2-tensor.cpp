@@ -8,6 +8,7 @@
 #include "tensor/dense.hpp"
 #include "tensor/symm.hpp"
 #include "tensor/diag.hpp"
+#include "con/pair-defs.hpp"
 
 #include "gen/random-tensors.hpp"
 
@@ -23,8 +24,8 @@ TEST_CASE("tensor-construction") {
   }
 
   SECTION("symmetric-tensor") {
-    REQUIRE_NOTHROW(SymmTensor::make(ENV, {}, { 2, 2 }, 0, { 1.0i, 2.0i, 3.0i, 4.0i }));
-    REQUIRE_NOTHROW(SymmTensor::make(ENV, {}, { 2, 2 }, 0, { 1.0i, 2.0i, 3.0i, 4.0i }, { 1, 1, 0 }));
+    REQUIRE_NOTHROW(SymmTensor::make(ENV, {}, { 2, 2 }, { 1.0i, 2.0i, 3.0i, 4.0i }));
+    REQUIRE_NOTHROW(SymmTensor::make(ENV, {}, { 2, 2 }, { 1.0i, 2.0i, 3.0i, 4.0i }, { 1, 1, 0 }));
   }
 
   SECTION("swap-tensor") {
@@ -32,23 +33,22 @@ TEST_CASE("tensor-construction") {
     REQUIRE_NOTHROW(SwapTensor::make(ENV, 2, 0, { 1, 1, 0 }));
   }
 
-  // TODO: Implement diagonal tensors. 
-  // SECTION("diagonal-tensor") {
-  //   REQUIRE_NOTHROW(DiagTensor::make(ENV, {}, { 2, 2 }, 0, { 1.0i, 2.0i, 3.0i, 4.0i }, 0));
-  //   REQUIRE_NOTHROW(DiagTensor::make(ENV, {}, { 2, 2 }, 0, { 1.0i, 2.0i, 3.0i, 4.0i }, 0, { 1, 1, 0 }));
-  // }
+  SECTION("diagonal-tensor") {
+    REQUIRE_NOTHROW(DiagTensor::make(ENV, {}, { 2, 2, 2, 2 }, 0, { 1.0i, 2.0i, 3.0i, 4.0i }));
+    REQUIRE_NOTHROW(DiagTensor::make(ENV, {}, { 2, 2, 2, 2 }, 0, { 1.0i, 2.0i, 3.0i, 4.0i }, { 1, 1, 0 }));
+  }
 
   SECTION("identity-tensor") {
-    REQUIRE_NOTHROW(IdenTensor::make(ENV, {}, { 2, 2 }, 0, 0));
-    REQUIRE_NOTHROW(IdenTensor::make(ENV, {}, { 2, 2 }, 0, 0, { 1, 1, 0 }));
+    REQUIRE_NOTHROW(IdenTensor::make(ENV, {}, { 2, 2 }, 0));
+    REQUIRE_NOTHROW(IdenTensor::make(ENV, {}, { 2, 2 }, 0, { 1, 1, 0 }));
   }
 }
 
 TEST_CASE("tensor-accessors") {
   auto tp_dense = DenseTensor::make(ENV, {}, { 2, 2 }, { 1.0i, 2.0i, 3.0i, 4.0i });
-  auto tp_symm = SymmTensor::make(ENV, {}, { 2, 2 }, 0, { 1.0i, 2.0i, 3.0i, 4.0i });
+  auto tp_symm = SymmTensor::make(ENV, {}, { 2, 2 }, { 1.0i, 2.0i, 3.0i, 4.0i });
   auto tp_swap = SwapTensor::make(ENV, 2, 0);
-  auto tp_iden = IdenTensor::make(ENV, {}, { 2, 2 }, 0, 0);
+  auto tp_iden = IdenTensor::make(ENV, {}, { 2, 2 }, 0);
 
   SECTION("get-dims") {
     REQUIRE(tp_dense->totDims() == tidx_tup { 2, 2 });
@@ -145,7 +145,9 @@ TEST_CASE("tensor-contraction") {
       tptr tp2 = DenseTensor::make(ENV, {}, cv.t2_info.dims, std::vector<tel>(cv.t2_info.els));
       tptr tp3;
 
-      REQUIRE_NOTHROW(tp3 = Tensor::contract(std::move(tp1), std::move(tp2), cv.wires));
+      auto params = ConParams(cv.wires);
+      auto con = pcon(std::move(tp1), std::move(tp2), params);
+      REQUIRE_NOTHROW(tp3 = con.contract());
 
       auto dims = cv.t3_info.dims;
       auto els = cv.t3_info.els;
@@ -161,7 +163,9 @@ TEST_CASE("tensor-contraction") {
     // Invalid contraction dimensions
     tptr tp1 = DenseTensor::make(ENV, {}, { 2, 2 }, { 1.0, 2.0, 3.0, 4.0 });
     tptr tp2 = DenseTensor::make(ENV, {}, { 3 }, { 1.0, 2.0, 3.0 });
-    REQUIRE_THROWS(Tensor::contract(std::move(tp1), std::move(tp2), {{ 0, 0 }}));
+
+    auto params = ConParams({{ 0, 0 }});
+    REQUIRE_THROWS(pcon(std::move(tp1), std::move(tp2), params));
   }
 
   SECTION("dense-swap") {
@@ -170,7 +174,9 @@ TEST_CASE("tensor-contraction") {
       tptr tp2 = SwapTensor::make(ENV, cv.t2_info.dims.at(0), 0);
       tptr tp3;
 
-      REQUIRE_NOTHROW(tp3 = Tensor::contract(std::move(tp1), std::move(tp2), cv.wires));
+      auto params = ConParams(cv.wires);
+      auto con = pcon(std::move(tp1), std::move(tp2), params);
+      REQUIRE_NOTHROW(tp3 = con.contract());
 
       auto dims = cv.t3_info.dims;
       auto els = cv.t3_info.els;
@@ -189,17 +195,20 @@ TEST_CASE("tensor-contraction") {
       tptr tp2 = SwapTensor::make(ENV, cv.t2_info.dims.at(0), 0);
       tptr tp3;
 
-      REQUIRE_THROWS(tp3 = Tensor::contract(std::move(tp1), std::move(tp2), cv.wires));
+      auto params = ConParams(cv.wires);
+      REQUIRE_THROWS(pcon(std::move(tp1), std::move(tp2), params));
     }
   }
 
   SECTION("dense-identity") {
     for (auto& cv : gen::id_vals) {
       tptr tp1 = DenseTensor::make(ENV, {}, cv.t1_info.dims, std::vector<tel>(cv.t1_info.els));
-      tptr tp2 = IdenTensor::make(ENV, {}, cv.t2_info.dims, 0, 0);
+      tptr tp2 = IdenTensor::make(ENV, {}, cv.t2_info.dims, 0);
       tptr tp3;
 
-      REQUIRE_NOTHROW(tp3 = Tensor::contract(std::move(tp1), std::move(tp2), cv.wires));
+      auto params = ConParams(cv.wires);
+      auto con = pcon(std::move(tp1), std::move(tp2), params);
+      REQUIRE_NOTHROW(tp3 = con.contract());
 
       auto dims = cv.t3_info.dims;
       auto els = cv.t3_info.els;
@@ -212,4 +221,7 @@ TEST_CASE("tensor-contraction") {
       }
     }
   }
+
+  // TODO: Implement diagonal tensor contraction. 
+  // SECTION("dense-diag") {}
 }

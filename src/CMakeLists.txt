@@ -2,6 +2,7 @@ add_library(qtnh)
 
 add_subdirectory(core)
 add_subdirectory(tensor)
+add_subdirectory(con)
 
 target_compile_features(qtnh
   PUBLIC
@@ -11,16 +12,23 @@ target_compile_features(qtnh
 target_compile_options(qtnh
   PRIVATE
   -Wall
+  -Wextra
+  #-Wshadow - unfixable warnings
+  -Wpedantic
   -Wdelete-non-virtual-dtor
+  -Woverloaded-virtual
+  -Wsuggest-override
+  -Wconversion
+  -Wno-sign-conversion
 )
 
 # Turn off Wsign-compare in Release builds
-if (CMAKE_BUILD_TYPE MATCHES Release)
-  target_compile_options(qtnh
-    PRIVATE
-    -Wno-sign-compare
-  )
-endif()
+# if (CMAKE_BUILD_TYPE MATCHES Release)
+#   target_compile_options(qtnh
+#     PRIVATE
+#     -Wno-sign-compare
+#   )
+# endif()
 
 # Set DEBUG flag in Debug builds
 if (CMAKE_BUILD_TYPE MATCHES Debug)

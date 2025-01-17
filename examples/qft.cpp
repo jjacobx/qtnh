@@ -25,8 +25,8 @@ qtnh::uint Qp(const QTNHEnv& env, TensorNetwork& tn) {
   return tn.make<DenseTensor>(env, tidx_tup {}, tidx_tup { 2 }, std::move(els));
 }
 
-qtnh::uint DIST(const QTNHEnv& env, TensorNetwork& tn, bool in) {
-  return tn.make<IdenTensor>(env, tidx_tup { 2 }, tidx_tup { 2 }, in, 0);
+qtnh::uint RESC(const QTNHEnv& env, TensorNetwork& tn) {
+  return tn.make<RescTensor>(env, 2);
 }
 
 qtnh::uint H(const QTNHEnv& env, TensorNetwork& tn) {
@@ -35,7 +35,7 @@ qtnh::uint H(const QTNHEnv& env, TensorNetwork& tn) {
     std::pow(2, -.5), -std::pow(2, -.5) 
   };
 
-  return tn.make<SymmTensor>(env, tidx_tup {}, tidx_tup { 2, 2 }, 0, std::move(els));
+  return tn.make<SymmTensor>(env, tidx_tup {}, tidx_tup { 2, 2 }, std::move(els));
 }
 
 qtnh::uint CPH(const QTNHEnv& env, TensorNetwork& tn, double p) {
@@ -47,7 +47,7 @@ qtnh::uint CPH(const QTNHEnv& env, TensorNetwork& tn, double p) {
     0, 0, 0, std::exp(1i * p)
   };
 
-  return tn.make<SymmTensor>(env, tidx_tup {}, tidx_tup { 2, 2, 2, 2 }, 0, std::move(els));
+  return tn.make<SymmTensor>(env, tidx_tup {}, tidx_tup { 2, 2, 2, 2 }, std::move(els));
 }
 
 int main() {
@@ -65,7 +65,7 @@ int main() {
     qidxi.at(i) = 0;
 
     if (i < DQUBITS) {
-      auto tid = DIST(env, tn, 0);
+      auto tid = RESC(env, tn);
       auto bid = tn.addBond(qid.at(i), tid, {{ 0, 1 }});
       con_ord.push_back(bid);
 
@@ -86,11 +86,11 @@ int main() {
 
     // Distribute the Hadamard gate if it acts on a distributed qubit. 
     if (i < DQUBITS) {
-      tid1 = DIST(env, tn, 1);
+      tid1 = RESC(env, tn);
       auto bid1 = tn.addBond(tid1, hid, {{ 1, 0 }});
       con_ord.push_back(bid1);
 
-      tid2 = DIST(env, tn, 0);
+      tid2 = RESC(env, tn);
       auto bid2 = tn.addBond(hid, tid2, {{ 1, 1 }});
       con_ord.push_back(bid2);
       idxi2 = 0;
@@ -108,24 +108,24 @@ int main() {
       auto idxi1 = 0, idxi2 = 1, idxi3 = 2, idxi4 = 3;
       
       if (i < DQUBITS) {
-        tid1 = DIST(env, tn, 1);
+        tid1 = RESC(env, tn);
         auto bid1 = tn.addBond(tid1, cpid, {{ 1, 0 }});
         con_ord.push_back(bid1);
         idxi1 = 0;
 
-        tid3 = DIST(env, tn, 0);
+        tid3 = RESC(env, tn);
         auto bid2 = tn.addBond(cpid, tid3, {{ 2, 1 }});
         con_ord.push_back(bid2);
         idxi3 = 0;
       }
 
       if (j < DQUBITS) {
-        tid2 = DIST(env, tn, 1);
+        tid2 = RESC(env, tn);
         auto bid1 = tn.addBond(tid2, cpid, {{ 1, 1 }});
         con_ord.push_back(bid1);
         idxi2 = 0;
 
-        tid4 = DIST(env, tn, 0);
+        tid4 = RESC(env, tn);
         auto bid2 = tn.addBond(cpid, tid4, {{ 3, 1 }});
         con_ord.push_back(bid2);
         idxi4 = 0;

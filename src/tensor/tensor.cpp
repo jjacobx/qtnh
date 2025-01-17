@@ -1,5 +1,6 @@
 #include <iomanip>
 #include <mpi.h>
+#include <numeric>
 
 #include "tensor/tensor.hpp"
 #include "tensor/indexing.hpp"
@@ -12,7 +13,7 @@ namespace qtnh {
     : Tensor(env, dis_dims, loc_dims, BcParams { 1, 1, 0 }) {}
 
   Tensor::Tensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, BcParams params)
-    : dis_dims_(dis_dims), loc_dims_(loc_dims), bc_(env, utils::dims_to_size(dis_dims), params) {}
+    : dis_dims_(dis_dims), loc_dims_(loc_dims), bc_(env, qtnh::uint(utils::dims_to_size(dis_dims)), params) {}
 
   template<> 
   bool Tensor::canConvert<DenseTensor>() {
@@ -37,28 +38,45 @@ namespace qtnh {
   }
 
   qtnh::tel Tensor::fetch(qtnh::tidx_tup tot_idxs) const {
-    // TODO: MPI_Send of nearest element
     auto [dis_idxs, loc_idxs] = utils::split_dims(tot_idxs, dis_dims_.size());
-    return (*this)[loc_idxs]; // Temporary – return local element
+
+    auto i = utils::idxs_to_i(dis_idxs, dis_dims_);
+    auto r = i * bc_.str + bc_.off;
+
+    qtnh::tel el;
+    if (bc_.env.proc_id == r)
+      el = (*this)[loc_idxs];
+    
+    MPI_Bcast(&el, 1, MPI_C_DOUBLE_COMPLEX, int(r), MPI_COMM_WORLD);
+
+    return el;
   }
 
   Tensor::Broadcaster::Broadcaster(const QTNHEnv &env, qtnh::uint base, BcParams params) 
     : env(env), base(base), str(params.str), cyc(params.cyc), off(params.off) {
       int rel_id = env.proc_id - off; // ! relative ID may be negative
       active = (rel_id >= 0) && (rel_id < (int)(str * cyc * base));
-      
-      // Group active ranks into a single communicator
-      MPI_Comm active_comm;
-      MPI_Comm_split(MPI_COMM_WORLD, active, rel_id, &active_comm);
 
-      // Group communicator will be uninitialised on inactive ranks
+      MPI_Group world_group;
+      MPI_Comm_group(MPI_COMM_WORLD, &world_group);
+
+      // Create a group with active ranks. 
+      std::vector<int> active_ids(str * cyc * base);
+      std::iota(active_ids.begin(), active_ids.end(), off);
+      MPI_Group active_group;
+      MPI_Group_incl(world_group, int(active_ids.size()), active_ids.data(), &active_group);
+
+      // Group communicator can be set up only on active ranks. 
       if (active) {
+        MPI_Comm active_comm;
+        MPI_Comm_create_group(MPI_COMM_WORLD, active_group, 0, &active_comm);
+
         int colour = (rel_id / (base * str)) * str + rel_id % str;
         MPI_Comm_split(active_comm, colour, rel_id, &group_comm);
         MPI_Comm_rank(group_comm, &group_id);
-      }
 
-      MPI_Comm_free(&active_comm);
+        MPI_Comm_free(&active_comm);
+      }
     }
 
   Tensor::Broadcaster& Tensor::Broadcaster::operator=(Broadcaster&& b) noexcept {

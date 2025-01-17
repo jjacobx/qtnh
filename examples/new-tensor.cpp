@@ -28,7 +28,8 @@ int main() {
     std::cout << env.proc_id << " | T1[0] (scatter 1) = " << (*tp1)[0] << "\n";
   }
 
-  tptr tp3 = Tensor::contract(std::move(tp1), std::move(tp2), {{ 1, 1 }});
+  auto params = ConParams({{ 1, 1 }});
+  tptr tp3 = pcon(std::move(tp1), std::move(tp2), params).contract();
   if (tp3->bc().active) {
     std::cout << env.proc_id << " | T3[0] = " << (*tp3)[0] << "\n";
   }
@@ -47,7 +48,8 @@ int main() {
   tp1 = DenseTensor::make(env, {}, { 2, 2, 2 }, std::vector<tel>(els1));
   tp2 = DenseTensor::make(env, {}, { 4, 2 }, std::vector<tel>(els2));
 
-  tp3 = Tensor::contract(std::move(tp1), std::move(tp2), {});
+  params = ConParams(std::vector<wire> {});
+  tp3 = pcon(std::move(tp1), std::move(tp2), params).contract();
   if (tp3->has({1, 1, 1, 3, 1})) {
     std::cout << env.proc_id << ": T3[(1, 1, 1, 3, 1)] (tensor product) = " << tp3->at({1, 1, 1, 3, 1}) << "\n";
   }
