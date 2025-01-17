@@ -18,8 +18,8 @@ target_compile_options(qtnh
   -Wdelete-non-virtual-dtor
   -Woverloaded-virtual
   -Wsuggest-override
-  #-Wsign-conversion – fixme
-  #-Wint-conversion – fixme
+  -Wconversion
+  -Wno-sign-conversion
 )
 
 # Turn off Wsign-compare in Release builds
