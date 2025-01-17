@@ -171,7 +171,7 @@ params = ConParams(wires, dim_repls_1, dim_repls_2);
 // Gather H gate to contract with local index. 
 had = Tensor::rescatter(std::move(had), -2);
 
-con = pcon(std::move(phi), had->copy(), params)
+con = pcon(std::move(phi), had->copy(), params);
 phi = con.contract(); // |+0+> state
 ```
 
