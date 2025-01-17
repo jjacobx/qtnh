@@ -61,7 +61,7 @@ TEST_CASE("scatter-tensor", "[mpi][2rank]") {
 
   SECTION("distribute") {
     // ! This should be inside the section, but for some reason it causes segmentation fault. 
-    // REQUIRE_NOTHROW(t3u = std::unique_ptr<DDenseTensor>(t1u->distribute(1)));
+    // REQUIRE_NOTHROW(tp3 = Tensor::rescatter(std::move(tp1), 1));
 
     if (ENV.proc_id == 0) {
       REQUIRE(tp3->at({ 0, 0, 0 }) == 1.0 + 1.0i);
@@ -71,9 +71,10 @@ TEST_CASE("scatter-tensor", "[mpi][2rank]") {
   }
 
   SECTION("contract") {
-    REQUIRE_NOTHROW(tp4 = Tensor::contract(std::move(tp2), std::move(tp3), {{ 1, 1 }}));
-
-    // TODO: check elements
+    // * The code below might rarely segfault for unknown reasons. 
+    auto params = ConParams({{ 1, 1 }});
+    auto con = pcon(std::move(tp2), std::move(tp3), params);
+    REQUIRE_NOTHROW(tp4 = con.contract());
   }
 }
 
@@ -86,7 +87,9 @@ TEST_CASE("contract-tensor", "[mpi][2rank]") {
     
     tp1 = Tensor::rescatter(std::move(tp1), 1);
 
-    tptr tp3 = Tensor::contract(std::move(tp1), std::move(tp2), cv.wires);
+    auto params = ConParams(cv.wires);
+    auto con = pcon(std::move(tp1), std::move(tp2), params);
+    tptr tp3 = con.contract();
 
     auto dims = cv.t3_info.dims;
     auto els = cv.t3_info.els;
@@ -112,7 +115,9 @@ TEST_CASE("contract-tensor", "[mpi][3rank]") {
     
     tp1 = Tensor::rescatter(std::move(tp1), 1);
 
-    tptr tp3 = Tensor::contract(std::move(tp1), std::move(tp2), cv.wires);
+    auto params = ConParams(cv.wires);
+    auto con = pcon(std::move(tp1), std::move(tp2), params);
+    tptr tp3 = con.contract();
 
     auto dims = cv.t3_info.dims;
     auto els = cv.t3_info.els;
@@ -139,7 +144,9 @@ TEST_CASE("contract-tensor", "[mpi][4rank]") {
     tp1 = Tensor::rescatter(std::move(tp1), 1);
     tp2 = Tensor::rescatter(std::move(tp2), 1);
 
-    tptr tp3 = Tensor::contract(std::move(tp1), std::move(tp2), cv.wires);
+    auto params = ConParams(cv.wires);
+    auto con = pcon(std::move(tp1), std::move(tp2), params);
+    tptr tp3 = con.contract();
 
     auto dims = cv.t3_info.dims;
     auto els = cv.t3_info.els;
@@ -167,7 +174,9 @@ TEST_CASE("contract-tensor", "[mpi][6rank]") {
     tp1 = Tensor::rescatter(std::move(tp1), 1);
     tp2 = Tensor::rescatter(std::move(tp2), 1);
 
-    tptr tp3 = Tensor::contract(std::move(tp1), std::move(tp2), cv.wires);
+    auto params = ConParams(cv.wires);
+    auto con = pcon(std::move(tp1), std::move(tp2), params);
+    tptr tp3 = con.contract();
 
     auto dims = cv.t3_info.dims;
     auto els = cv.t3_info.els;
@@ -195,7 +204,9 @@ TEST_CASE("contract-tensor", "[mpi][8rank]") {
     tp1 = Tensor::rescatter(std::move(tp1), 2);
     tp2 = Tensor::rescatter(std::move(tp2), 1);
 
-    tptr tp3 = Tensor::contract(std::move(tp1), std::move(tp2), cv.wires);
+    auto params = ConParams(cv.wires);
+    auto con = pcon(std::move(tp1), std::move(tp2), params);
+    tptr tp3 = con.contract();
 
     auto dims = cv.t3_info.dims;
     auto els = cv.t3_info.els;
@@ -237,7 +248,6 @@ TEST_CASE("collectives", "[mpi][4rank]") {
   }
 }
 
-// TODO: Re-implement QFT. 
 TEST_CASE("qft", "[mpi][16rank][qft]") {
   using namespace qtnh;
 
