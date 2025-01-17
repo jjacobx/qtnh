@@ -145,7 +145,7 @@ namespace qtnh {
 
   DiagTensor* DiagTensor::rebcast(BcParams params) {
     auto diag_params = params;
-    if (!truncated_) diag_params.cyc *= diagonal_.disSize();
+    if (!truncated_) diag_params.cyc *= qtnh::uint(diagonal_.disSize());
     diagonal_._rebcast_internal(&diagonal_, diag_params);
 
     // Update broadcasters
@@ -190,7 +190,7 @@ namespace qtnh {
     auto params = diagonal_.bc_.params();
 
     if (!truncated_) { 
-      params.cyc /= dis_size;
+      params.cyc /= qtnh::uint(dis_size);
       dis_size *= dis_size;
     }
 
@@ -203,7 +203,7 @@ namespace qtnh {
     if (truncated_) return this;
 
     auto diag_params = diagonal_.bc_.params();
-    diag_params.cyc /= diagonal_.disSize();
+    diag_params.cyc /= qtnh::uint(diagonal_.disSize());
 
     diagonal_._rebcast_internal(&diagonal_, diag_params);
     diagonal_.bc_ = { diagonal_.bc_.env, diagonal_.bc_.base, diag_params };
@@ -216,7 +216,7 @@ namespace qtnh {
     if (!truncated_) return this;
 
     auto diag_params = diagonal_.bc_.params();
-    diag_params.cyc *= diagonal_.disSize();
+    diag_params.cyc *= qtnh::uint(diagonal_.disSize());
 
     diagonal_._rebcast_internal(&diagonal_, diag_params);
     diagonal_.bc_ = { diagonal_.bc_.env, diagonal_.bc_.base, diag_params };

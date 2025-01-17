@@ -13,7 +13,7 @@ namespace qtnh {
     : Tensor(env, dis_dims, loc_dims, BcParams { 1, 1, 0 }) {}
 
   Tensor::Tensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, BcParams params)
-    : dis_dims_(dis_dims), loc_dims_(loc_dims), bc_(env, utils::dims_to_size(dis_dims), params) {}
+    : dis_dims_(dis_dims), loc_dims_(loc_dims), bc_(env, qtnh::uint(utils::dims_to_size(dis_dims)), params) {}
 
   template<> 
   bool Tensor::canConvert<DenseTensor>() {
@@ -47,7 +47,7 @@ namespace qtnh {
     if (bc_.env.proc_id == r)
       el = (*this)[loc_idxs];
     
-    MPI_Bcast(&el, 1, MPI_C_DOUBLE_COMPLEX, r, MPI_COMM_WORLD);
+    MPI_Bcast(&el, 1, MPI_C_DOUBLE_COMPLEX, int(r), MPI_COMM_WORLD);
 
     return el;
   }
@@ -64,7 +64,7 @@ namespace qtnh {
       std::vector<int> active_ids(str * cyc * base);
       std::iota(active_ids.begin(), active_ids.end(), off);
       MPI_Group active_group;
-      MPI_Group_incl(world_group, active_ids.size(), active_ids.data(), &active_group);
+      MPI_Group_incl(world_group, int(active_ids.size()), active_ids.data(), &active_group);
 
       // Group communicator can be set up only on active ranks. 
       if (active) {

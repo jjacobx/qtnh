@@ -158,10 +158,10 @@ namespace qtnh {
       loc_dims_.insert(loc_dims_.end() - loc_size, loc_dims_out.begin(), loc_dims_out.end());
       loc_dims_.insert(loc_dims_.begin(), loc_dims_in.begin(), loc_dims_in.end());
 
-      qtnh::uint shift = utils::dims_to_size(loc_dims_in) * utils::dims_to_size(loc_dims_out);
+      auto shift = qtnh::uint(utils::dims_to_size(loc_dims_in) * utils::dims_to_size(loc_dims_out));
       BcParams params { bc_.str * shift, bc_.cyc, bc_.off };
 
-      Broadcaster new_bc(bc_.env, disSize(), params);
+      Broadcaster new_bc(bc_.env, qtnh::uint(disSize()), params);
       bc_ = std::move(new_bc);
 
       // ! This works for now, but might be necessary to update broadcaster once again in some cases. 
@@ -180,9 +180,9 @@ namespace qtnh {
       dis_dims_.insert(dis_dims_.end(), dis_dims_out.begin(), dis_dims_out.end());
       dis_dims_.insert(dis_dims_.begin() + dis_size, dis_dims_in.begin(), dis_dims_in.end());
 
-      qtnh::uint shift = utils::dims_to_size(dis_dims_in) * utils::dims_to_size(dis_dims_out);
+      auto shift = qtnh::uint(utils::dims_to_size(dis_dims_in) * utils::dims_to_size(dis_dims_out));
       BcParams params { std::max(1U, bc_.str / shift), bc_.cyc, bc_.off };
-      Broadcaster new_bc(bc_.env, disSize(), params);
+      Broadcaster new_bc(bc_.env, qtnh::uint(disSize()), params);
       bc_ = std::move(new_bc);
 
       // ! This works for now, but might be necessary to update broadcaster once again in some cases. 
@@ -227,7 +227,7 @@ namespace qtnh {
     dis_dims_ = new_dis_dims;
     loc_dims_ = new_loc_dims;
 
-    Broadcaster new_bc(bc().env, disSize(), { bc().str, bc().cyc, bc().off });
+    Broadcaster new_bc(bc().env, qtnh::uint(disSize()), { bc().str, bc().cyc, bc().off });
     bc_ = std::move(new_bc);
 
     return this;

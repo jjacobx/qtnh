@@ -218,13 +218,13 @@ namespace qtnh {
         if (ti3.ifls().at(i).label == "reduced") dis_idxs.at(i) = 0;
       }
       
-      auto colour = utils::idxs_to_i(dis_idxs, t3.disDims());
+      auto colour = int(utils::idxs_to_i(dis_idxs, t3.disDims()));
 
       // ! Expect MPI memory limit issues. 
       // ! Can be performed multiple times with offset for larger arrays. 
       MPI_Comm allr_comm;
       MPI_Comm_split(t3.bc().group_comm, colour, t3.bc().group_id, &allr_comm);
-      MPI_Allreduce(MPI_IN_PLACE, t3.loc_els_.data(), loc_size, MPI_C_DOUBLE_COMPLEX, MPI_SUM, allr_comm);
+      MPI_Allreduce(MPI_IN_PLACE, t3.loc_els_.data(), int(loc_size), MPI_C_DOUBLE_COMPLEX, MPI_SUM, allr_comm);
       MPI_Comm_free(&allr_comm);
     }
 
@@ -315,9 +315,9 @@ namespace qtnh {
     auto ws = params.wires;
 
     auto ndis1 = tp1->disDims().size();
-    auto nloc1 = tp1->locDims().size();
+    //auto nloc1 = tp1->locDims().size();
     auto ndis_out2 = tp2->disDims().size() / 2;
-    auto nloc_out2 = tp2->locDims().size() / 2;
+    //auto nloc_out2 = tp2->locDims().size() / 2;
 
     // STEP 1: Permute distributed contracted dims. 
     std::vector<qtnh::tidx_tup_st> ptup1(tp1->totDims().size());
