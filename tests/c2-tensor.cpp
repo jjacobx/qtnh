@@ -8,6 +8,7 @@
 #include "tensor/dense.hpp"
 #include "tensor/symm.hpp"
 #include "tensor/diag.hpp"
+#include "con/pair-defs.hpp"
 
 #include "gen/random-tensors.hpp"
 
@@ -145,7 +146,9 @@ TEST_CASE("tensor-contraction") {
       tptr tp2 = DenseTensor::make(ENV, {}, cv.t2_info.dims, std::vector<tel>(cv.t2_info.els));
       tptr tp3;
 
-      REQUIRE_NOTHROW(tp3 = Tensor::contract(std::move(tp1), std::move(tp2), cv.wires));
+      auto params = ConParams(cv.wires);
+      auto con = pcon(std::move(tp1), std::move(tp2), params);
+      REQUIRE_NOTHROW(tp3 = con.contract());
 
       auto dims = cv.t3_info.dims;
       auto els = cv.t3_info.els;
@@ -161,7 +164,9 @@ TEST_CASE("tensor-contraction") {
     // Invalid contraction dimensions
     tptr tp1 = DenseTensor::make(ENV, {}, { 2, 2 }, { 1.0, 2.0, 3.0, 4.0 });
     tptr tp2 = DenseTensor::make(ENV, {}, { 3 }, { 1.0, 2.0, 3.0 });
-    REQUIRE_THROWS(Tensor::contract(std::move(tp1), std::move(tp2), {{ 0, 0 }}));
+
+    auto params = ConParams({{ 0, 0 }});
+    REQUIRE_THROWS(pcon(std::move(tp1), std::move(tp2), params));
   }
 
   SECTION("dense-swap") {
@@ -170,7 +175,9 @@ TEST_CASE("tensor-contraction") {
       tptr tp2 = SwapTensor::make(ENV, cv.t2_info.dims.at(0), 0);
       tptr tp3;
 
-      REQUIRE_NOTHROW(tp3 = Tensor::contract(std::move(tp1), std::move(tp2), cv.wires));
+      auto params = ConParams(cv.wires);
+      auto con = pcon(std::move(tp1), std::move(tp2), params);
+      REQUIRE_NOTHROW(tp3 = con.contract());
 
       auto dims = cv.t3_info.dims;
       auto els = cv.t3_info.els;
@@ -189,7 +196,8 @@ TEST_CASE("tensor-contraction") {
       tptr tp2 = SwapTensor::make(ENV, cv.t2_info.dims.at(0), 0);
       tptr tp3;
 
-      REQUIRE_THROWS(tp3 = Tensor::contract(std::move(tp1), std::move(tp2), cv.wires));
+      auto params = ConParams(cv.wires);
+      REQUIRE_THROWS(pcon(std::move(tp1), std::move(tp2), params));
     }
   }
 
@@ -199,7 +207,9 @@ TEST_CASE("tensor-contraction") {
       tptr tp2 = IdenTensor::make(ENV, {}, cv.t2_info.dims, 0);
       tptr tp3;
 
-      REQUIRE_NOTHROW(tp3 = Tensor::contract(std::move(tp1), std::move(tp2), cv.wires));
+      auto params = ConParams(cv.wires);
+      auto con = pcon(std::move(tp1), std::move(tp2), params);
+      REQUIRE_NOTHROW(tp3 = con.contract());
 
       auto dims = cv.t3_info.dims;
       auto els = cv.t3_info.els;
