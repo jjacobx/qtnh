@@ -285,6 +285,9 @@ namespace qtnh {
           params_.dimRepls2.at(i) = from_dims.at(k++);
         }
       }
+
+      // * Might need to retain this when function completes. 
+      params_.useDefRepls = false;
     }
 
     // * Potentially expensive conversion. 
