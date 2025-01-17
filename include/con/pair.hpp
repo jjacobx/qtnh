@@ -73,6 +73,22 @@ namespace qtnh {
 
       qtnh::tptr contract();
   };
+
+  template<typename T1>
+  class PairContractor<T1, SwapTensor, rm_if_iden<T1>> : private ContractorBase<T1, SwapTensor> {
+    public:
+      using ContractorBase<T1, SwapTensor>::ContractorBase;
+      ~PairContractor() = default;
+
+      PairContractor(const PairContractor&) = delete;
+      PairContractor(PairContractor&&) = default;
+      PairContractor& operator=(const PairContractor&) = delete;
+      PairContractor& operator=(PairContractor&&) = default;
+
+      const ConParams& params() const noexcept { return this->params_; }
+
+      qtnh::tptr contract();
+  };
 }
 
 #endif

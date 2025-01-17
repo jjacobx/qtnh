@@ -41,6 +41,8 @@ namespace qtnh {
         return _contract<T1, RescTensor>(std::move(tp1), std::move(tp2), params);
       case TT::symmTensor:
         return _contract<T1, SymmTensor>(std::move(tp1), std::move(tp2), params);
+      case TT::swapTensor:
+        return _contract<T1, SwapTensor>(std::move(tp1), std::move(tp2), params);
       case TT::diagTensor:
         return _contract<T1, DiagTensor>(std::move(tp1), std::move(tp2), params);
       case TT::idenTensor:
@@ -58,6 +60,8 @@ namespace qtnh {
         return _contract_disp<RescTensor>(std::move(this->tp1_), std::move(this->tp2_), this->params_);
       case TT::symmTensor:
         return _contract_disp<SymmTensor>(std::move(this->tp1_), std::move(this->tp2_), this->params_);
+      case TT::swapTensor:
+        return _contract_disp<SwapTensor>(std::move(this->tp1_), std::move(this->tp2_), this->params_);
       case TT::diagTensor:
         return _contract_disp<DiagTensor>(std::move(this->tp1_), std::move(this->tp2_), this->params_);
       case TT::idenTensor:
@@ -102,6 +106,26 @@ namespace qtnh {
 
     // TODO: Optimise if all wires match
     // return std::move(this->tp2_);
+  }
+
+  template<typename T1>
+  qtnh::tptr PairContractor<T1, SwapTensor, rm_if_iden<T1>>::contract() {
+    // * For now convert to symmetric tensor. 
+    PairContractor<T1, SymmTensor> dcon(
+      std::move(this->tp1_), 
+      Tensor::convert<SymmTensor>(std::move(this->tp2_)), 
+      this->params_
+    );
+
+    auto tp_res = dcon.contract();
+    this->params_ = dcon.params();
+
+    return tp_res;
+
+    // TODO: Optimise if all wires match
+    // auto w1 = this->params_.wires[0].first;
+    // auto w2 = this->params_.wires[1].first;
+    // return Tensor::swap(std::move(this->tp1_), w1, w2);
   }
 
   // template<> qtnh::tptr PairContractor<Tensor, Tensor>::contract();
