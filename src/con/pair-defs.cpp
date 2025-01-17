@@ -310,4 +310,61 @@ namespace qtnh {
 
     return tp_res;
   }
+
+  qtnh::tptr _contract_dense_diag(qtnh::tptr tp1, qtnh::tptr tp2, ConParams& params) {
+    auto ws = params.wires;
+
+    auto ndis1 = tp1->disDims().size();
+    auto nloc1 = tp1->locDims().size();
+    auto ndis_out2 = tp2->disDims().size() / 2;
+    auto nloc_out2 = tp2->locDims().size() / 2;
+
+    // STEP 1: Permute distributed contracted dims. 
+    std::vector<qtnh::tidx_tup_st> ptup1(tp1->totDims().size());
+    std::vector<qtnh::tidx_tup_st> ptup2(tp2->totDims().size());
+    std::iota(ptup1.begin(), ptup1.end(), 0);
+    std::iota(ptup2.begin(), ptup2.end(), 0);
+
+    std::sort(ws.begin(), ws.end(), utils::wirecomp::second);
+
+    std::size_t ndis_cons = 0;
+    for (auto w : ws) {
+      if (w.first < ndis1) {
+        if (w.first < ndis1) ptup1.at(w.first) = ndis1 - ndis_cons - 1;
+        for (qtnh::tidx_tup_st i = w.first + 1; i < ndis1; ++i) {
+          if (ptup1.at(i) < ndis1 - ndis_cons) --ptup1.at(i);
+        }
+
+        // Wires are sorted by second, so this is guaranteed to update all previous values. 
+        if (w.second < ndis_out2) ptup2.at(w.second) = 0;
+        for (qtnh::tidx_tup_st i = w.second; i > 0; --i) {
+          ++ptup2.at(i - 1);
+        }
+
+        ++ndis_cons;
+      }
+    }
+
+    tp1 = Tensor::permute(std::move(tp1), ptup1);
+    tp2 = SymmTensorBase::permuteIO(std::move(tp2), ptup2);
+
+    // Update dimension replacements after permutations. 
+    auto dim_repls1_p = utils::permute_vec(params.dimRepls1, ptup1);
+    auto dim_repls2_p = utils::permute_vec(params.dimRepls2, ptup2);
+
+
+    // STEP 2: Align by broadcast. 
+    auto dis_dims1 = tp1->disDims();
+    auto dis_dims_out2 = utils::split_dims(tp2->disDims(), ndis_out2).first;
+    dis_dims1.erase(dis_dims1.end() - ndis_cons, dis_dims1.end());
+    dis_dims_out2.erase(dis_dims_out2.begin(), dis_dims_out2.begin() + ndis_cons);
+
+    auto align_str = (qtnh::uint)utils::dims_to_size(dis_dims_out2);
+    auto align_cyc = (qtnh::uint)utils::dims_to_size(dis_dims1);
+    auto align_off = std::min(tp1->bc().off, tp2->bc().off);
+    tp1 = Tensor::rebcast(std::move(tp1), { align_str, 1, align_off });
+    tp2 = Tensor::rebcast(std::move(tp2), { 1, align_cyc, align_off });
+
+    return tp1;
+  }
 }
