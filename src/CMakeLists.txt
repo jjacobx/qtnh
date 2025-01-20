@@ -11,9 +11,10 @@ target_compile_features(qtnh
 
 target_compile_options(qtnh
   PRIVATE
+  # -fext-numeric-literals # – next time when compiling with clang
   -Wall
   -Wextra
-  #-Wshadow - unfixable warnings
+  #-Wshadow # - unfixable warnings
   -Wpedantic
   -Wdelete-non-virtual-dtor
   -Woverloaded-virtual
