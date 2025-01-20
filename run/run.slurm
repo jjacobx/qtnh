@@ -4,7 +4,7 @@
 #SBATCH --job-name=qtnh
 #SBATCH --time=0:20:0
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=16
+#SBATCH --ntasks-per-node=128
 #SBATCH --cpus-per-task=1
 
 # Replace [budget code] below with your budget code (e.g. t01)
@@ -27,4 +27,4 @@ export SRUN_CPUS_PER_TASK=$SLURM_CPUS_PER_TASK
 #   Using 512 MPI processes and 128 MPI processes per node
 #   srun picks up the distribution from the sbatch options
 
-srun --distribution=block:block --hint=nomultithread ../build/examples/simple-tensor
+srun --distribution=block:block --hint=nomultithread ../build/examples/distribution
