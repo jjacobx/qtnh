@@ -65,3 +65,20 @@ target_compile_options(qft
   PRIVATE
   -Wall
 )
+
+add_executable(distribution
+distribution.cpp
+)
+
+add_dependencies(distribution
+  qtnh
+)
+
+target_link_libraries(distribution
+  qtnh
+)
+
+target_compile_options(distribution
+  PRIVATE
+  -Wall
+)
