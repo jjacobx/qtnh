@@ -1,5 +1,4 @@
 #include <iostream>
-
 #include "qtnh.hpp"
 
 using namespace qtnh;
@@ -7,8 +6,8 @@ using namespace qtnh::ops;
 
 using namespace std::complex_literals;
 
-const unsigned int NQUBITS = 5; 
-const unsigned int DQUBITS = 2;
+// const unsigned int NQUBITS = 5; 
+// const unsigned int DQUBITS = 2;
 
 uint Q0(const QTNHEnv& env, TensorNetwork& tn) {
   std::vector<tel> els = { 1.0, 0.0 };
@@ -50,8 +49,18 @@ qtnh::uint CPH(const QTNHEnv& env, TensorNetwork& tn, double p) {
   return tn.make<SymmTensor>(env, tidx_tup {}, tidx_tup { 2, 2, 2, 2 }, std::move(els));
 }
 
-int main() {
+int main(int argc, char* argv[]) {
   using namespace qtnh;
+
+  auto NQUBITS = 5U;
+  auto DQUBITS = 2U;
+
+  if (argc > 1) {
+    NQUBITS = static_cast<unsigned int>(strtol(argv[1], nullptr, 0));
+  } 
+  if (argc > 2) {
+    DQUBITS = static_cast<unsigned int>(strtol(argv[2], nullptr, 0));
+  }
 
   QTNHEnv env;
   TensorNetwork tn;
