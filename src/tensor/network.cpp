@@ -66,6 +66,9 @@ namespace qtnh {
     auto tp1 = std::move(tensors_.at(tid1));
     auto tp2 = std::move(tensors_.at(tid2));
 
+    tp1->activate();
+    tp2->activate();
+
     ConParams params(b.wires);
     auto con = qtnh::pcon(std::move(tp1), std::move(tp2), params);
     auto tp3 = con.contract();
@@ -167,6 +170,10 @@ namespace qtnh {
         }
         utils::barrier();
       #endif
+
+      utils::barrier();
+      if (utils::is_root())
+        std::cout << "Number of active communicators: " << QTNHEnv::num_comms << "\n";
     }
 
     return tid;

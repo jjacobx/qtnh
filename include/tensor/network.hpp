@@ -65,6 +65,7 @@ namespace qtnh {
       template<class T, class... U>
       qtnh::uint make(U&&... us) {
         tensors_.insert({ ++tensor_counter, T::make(std::forward<U>(us)...) });
+        tensors_.at(tensor_counter)->deactivate();
         return tensor_counter;
       }
 
