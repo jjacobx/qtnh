@@ -332,6 +332,8 @@ namespace qtnh {
       MPI_Allgather(loc_els_.data(), int(target->locSize()), MPI_C_DOUBLE_COMPLEX, 
                     new_els.data(), int(target->locSize()), MPI_C_DOUBLE_COMPLEX, gath_comm);
 
+      MPI_Comm_free(&gath_comm);
+
       loc_els_ = std::move(new_els);
     } else if (offset > 0) {
       auto loc_dims = target->locDims();
