@@ -57,6 +57,7 @@ namespace qtnh {
 
         Broadcaster() = delete;
         Broadcaster(const QTNHEnv& env, qtnh::uint base, BcParams params);
+        Broadcaster(const QTNHEnv& env, qtnh::uint base, BcParams params, bool create_comm);
         ~Broadcaster();
 
         Broadcaster& operator=(Broadcaster&& b) noexcept;
@@ -70,6 +71,10 @@ namespace qtnh {
         /// @brief Helper to calculate between which ranks the tensor is contained. 
         /// @return A tuple containing first and last rank that store the tensor. 
         constexpr std::pair<qtnh::uint, qtnh::uint> range() { return { off, off + span() }; }
+
+        bool has_comm = false;
+        void create_comm();
+        void delete_comm();
       };
 
       // This can be made constexpr in C++ 20
@@ -163,6 +168,14 @@ namespace qtnh {
       /// This method doesn't require checking if the value is present or if the tensor is active. 
       /// Because of the broadcast, it is inefficient to use it too often. 
       virtual qtnh::tel fetch(qtnh::tidx_tup tot_idxs) const;
+
+      void activate() {
+        if (!bc_.has_comm) bc_.create_comm();
+      }
+
+      void deactivate() {
+        bc_.delete_comm();
+      }
 
       /// @brief Swap indices on current tensor. 
       /// @param tp Ownership of tptr to tensor to swap. 
