@@ -72,6 +72,9 @@ namespace qtnh {
     cyc = b.cyc;
     off = b.off;
 
+    if (group_comm != MPI_COMM_NULL)
+      MPI_Comm_free(&group_comm);
+
     group_comm = MPI_COMM_NULL;
     std::swap(group_comm, b.group_comm);
 
