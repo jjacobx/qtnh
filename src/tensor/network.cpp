@@ -171,9 +171,9 @@ namespace qtnh {
         utils::barrier();
       #endif
 
-      utils::barrier();
-      if (utils::is_root())
-        std::cout << "Number of active communicators: " << QTNHEnv::num_comms << "\n";
+      if (utils::is_root()) {
+        std::cout << bond_counter << " bonds left to contract\n";
+      }
     }
 
     return tid;
