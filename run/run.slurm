@@ -12,6 +12,9 @@
 #SBATCH --partition=standard
 #SBATCH --qos=standard
 
+# Disable leak sanitier for MPI libs
+export LSAN_OPTIONS=suppressions=lsan.supp,print_suppressions=0
+
 # Set the number of threads to 1
 export OMP_NUM_THREADS=1
 

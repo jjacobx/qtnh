@@ -1,0 +1,3 @@
+leak:libmpi_cray.so
+leak:libmpi_gnu_91.so
+leak:fabric.c
