@@ -13,7 +13,8 @@ namespace qtnh {
   // Specialised convert template from tensor header requires full class definition. 
   template<> 
   std::unique_ptr<DiagTensor> Tensor::convert<DiagTensor>(tptr tp) {
-    return utils::one_unique(std::move(tp), tp->toDiag()); 
+    auto p = tp->toDiag();
+    return utils::one_unique(std::move(tp), p); 
   }
 
   bool DiagTensorBase::available(qtnh::tidx_tup tot_idxs) const noexcept {

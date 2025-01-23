@@ -14,7 +14,8 @@ namespace qtnh {
   // Specialised convert template from tensor header requires full class definition. 
   template<> 
   std::unique_ptr<SymmTensor> Tensor::convert<SymmTensor>(tptr tp) {
-    return utils::one_unique(std::move(tp), tp->toSymm()); 
+    auto p = tp->toSymm();
+    return utils::one_unique(std::move(tp), p); 
   }
 
   SymmTensor* SymmTensorBase::toSymm() noexcept {

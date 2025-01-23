@@ -24,21 +24,24 @@ namespace qtnh {
       /// @param idx2 Second index to swap. 
       /// @return Ownership of tptr to swapped tensor. 
       static qtnh::tptr swapIO(qtnh::tptr tp, qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) {
-        return utils::one_unique(std::move(tp), tp->cast<SymmTensorBase>()->swapIO(idx1, idx2));
+        auto p = tp->cast<SymmTensorBase>()->swapIO(idx1, idx2);
+        return utils::one_unique(std::move(tp), p);
       }
       /// @brief Shift the border between shared and distributed dimensions by a given offset for both input and output. 
       /// @param tp Ownership of tptr to tensor to re-scatter. 
       /// @param offset New offset between distributed and local dimensions – negative gathers, while positive scatters. 
       /// @return Ownership of tptr to re-scattered tensor. 
       static qtnh::tptr rescatterIO(qtnh::tptr tp, int offset) {
-        return utils::one_unique(std::move(tp), tp->cast<SymmTensorBase>()->rescatterIO(offset));
+        auto p = tp->cast<SymmTensorBase>()->rescatterIO(offset);
+        return utils::one_unique(std::move(tp), p);
       }
       /// @brief Permute both input and output tensor indices according to mappings in the permutation tuple. 
       /// @param tp Ownership of tptr to tensor to permute. 
       /// @param ptup Permutation tuple of the same size as input/output dimensions (half total dimensions), and each entry unique. 
       /// @return Ownership of tptr to permuted tensor. 
       static qtnh::tptr permuteIO(qtnh::tptr tp, std::vector<qtnh::tidx_tup_st> ptup) {
-        return utils::one_unique(std::move(tp), tp->cast<SymmTensorBase>()->permuteIO(ptup));
+        auto p = tp->cast<SymmTensorBase>()->permuteIO(ptup);
+        return utils::one_unique(std::move(tp), p);
       }
 
     protected:

@@ -27,11 +27,13 @@ namespace qtnh {
       bool available(qtnh::tidx_tup tot_dims) const noexcept;
 
       static qtnh::tptr truncate(qtnh::tptr tp) {
-        return utils::one_unique(std::move(tp), tp->cast<DiagTensorBase>()->truncate());
+        auto p = tp->cast<DiagTensorBase>()->truncate();
+        return utils::one_unique(std::move(tp), p);
       }
 
       static qtnh::tptr expand(qtnh::tptr tp) {
-        return utils::one_unique(std::move(tp), tp->cast<DiagTensorBase>()->expand());
+        auto p = tp->cast<DiagTensorBase>()->expand();
+        return utils::one_unique(std::move(tp), p);
       }
 
     protected:

@@ -183,28 +183,32 @@ namespace qtnh {
       /// @param idx2 Second index to swap. 
       /// @return Ownership of tptr to swapped tensor. 
       static qtnh::tptr swap(qtnh::tptr tp, qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) {
-        return utils::one_unique(std::move(tp), tp->swap(idx1, idx2));
+        auto p = tp->swap(idx1, idx2);
+        return utils::one_unique(std::move(tp), p);
       }
       /// @brief Re-broadcast current tensor. 
       /// @param tp Ownership of tptr to tensor to re-broadcast. 
       /// @param params Broadcast parameters of the tensor (str, cyc, off)
       /// @return Ownership of tptr to re-broadcasted tensor. 
       static qtnh::tptr rebcast(qtnh::tptr tp, BcParams params) {
-        return utils::one_unique(std::move(tp), tp->rebcast(params));
+        auto p = tp->rebcast(params);
+        return utils::one_unique(std::move(tp), p);
       }
       /// @brief Shift the border between shared and distributed dimensions by a given offset. 
       /// @param tp Ownership of tptr to tensor to re-scatter. 
       /// @param offset New offset between distributed and local dimensions – negative gathers, while positive scatters. 
       /// @return Ownership of tptr to re-scattered tensor. 
       static qtnh::tptr rescatter(qtnh::tptr tp, int offset) {
-        return utils::one_unique(std::move(tp), tp->rescatter(offset));
+        auto p = tp->rescatter(offset);
+        return utils::one_unique(std::move(tp), p);
       }
       /// @brief Permute tensor indices according to mappings in the permutation tuple. 
       /// @param tp Ownership of tptr to tensor to permute. 
       /// @param ptup Permutation tuple of the same size as total dimensions, and each entry unique. 
       /// @return Ownership of tptr to permuted tensor. 
       static qtnh::tptr permute(qtnh::tptr tp, std::vector<qtnh::tidx_tup_st> ptup) {
-        return utils::one_unique(std::move(tp), tp->permute(ptup));
+        auto p = tp->permute(ptup);
+        return utils::one_unique(std::move(tp), p);
       }
 
     protected:

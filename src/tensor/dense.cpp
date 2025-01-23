@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cassert>
 
 #include "tensor/dense.hpp"
 #include "tensor/indexing.hpp"
@@ -13,7 +14,8 @@ namespace qtnh {
   // Specialised convert template from tensor header requires full class definition. 
   template<> 
   std::unique_ptr<DenseTensor> Tensor::convert<DenseTensor>(tptr tp) {
-    return utils::one_unique(std::move(tp), tp->toDense()); 
+    auto p = tp->toDense();
+    return utils::one_unique(std::move(tp), p);
   }
 
   DenseTensor* DenseTensorBase::toDense() noexcept {
