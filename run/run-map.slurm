@@ -12,6 +12,9 @@
 #SBATCH --partition=standard
 #SBATCH --qos=standard
 
+# Load modules
+module load forge
+
 # Set the number of threads to 1
 export OMP_NUM_THREADS=1
 
@@ -29,9 +32,9 @@ echo
 
 # Set launch parameters
 DIR=../build/examples
-EXE="$DIR/qft 10 6"
+EXE="$DIR/qft 21 6"
 MPI_ARGS="--distribution=block:block --hint=nomultithread"
 
 # Launch the parallel job
-echo "Running ${EXE}: "
-srun $MPI_ARGS $EXE
+echo "Running and profiling ${EXE}: "
+map -n $SLURM_NTASKS --mpi=slurm --mpiargs="$MPI_ARGS" --profile $EXE
