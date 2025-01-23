@@ -21,15 +21,8 @@ target_compile_options(qtnh
   -Wsuggest-override
   -Wconversion
   -Wno-sign-conversion
+  -Wno-unused-parameter
 )
-
-# Turn off Wsign-compare in Release builds
-# if (CMAKE_BUILD_TYPE MATCHES Release)
-#   target_compile_options(qtnh
-#     PRIVATE
-#     -Wno-sign-compare
-#   )
-# endif()
 
 # Set DEBUG flag in Debug builds
 if (CMAKE_BUILD_TYPE MATCHES Debug)
@@ -39,16 +32,32 @@ if (CMAKE_BUILD_TYPE MATCHES Debug)
   )
 endif()
 
+option(MAP "Turn on ARM MAP profiling" OFF)
+if (MAP)
+  message(STATUS "ARM MAP profiling enabled.")
+  set(FORGE_DIR "$ENV{FORGE_DIR}")
+  target_link_options(qtnh
+    PUBLIC
+    -L${FORGE_DIR}/map/libs/default/gnu/ofi
+    -lmap-sampler-pmpi
+    -lmap-sampler
+    -Wl,--eh-frame-hdr
+    -Wl,-rpath=${FORGE_DIR}/map/libs/default/gnu/ofi
+  )
+endif()
+
 option(FSANITIZE "Turn on fsanitize debug flags" OFF)
 if (FSANITIZE)
   message(STATUS "Setting -fsanitize=undefined,address.")
   target_compile_options(qtnh
     PRIVATE
     -fsanitize=undefined,address
+    -g
   )
   target_link_libraries(qtnh
     PUBLIC
     -fsanitize=undefined,address
+    -lg
   )
 endif()
 

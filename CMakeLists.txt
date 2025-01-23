@@ -37,7 +37,13 @@ enable_testing()
 include(CTest)
 include(Catch)
 
-add_subdirectory(tests)
+option(BUILD_TESTS "Build tests" ON)
+
+if (BUILD_TESTS)
+  add_subdirectory(tests)
+else()
+  message(STATUS "Skipping tests")
+endif()
 
 ## Examples
 add_subdirectory(examples)
