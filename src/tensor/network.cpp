@@ -172,7 +172,7 @@ namespace qtnh {
       #endif
 
       if (utils::is_root()) {
-        std::cout << bond_counter << " bonds left to contract\n";
+        std::cout << "Contracted " << bond_counter - bonds_.size() << "/" << bond_counter << " bonds\n";
       }
     }
 
