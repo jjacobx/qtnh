@@ -7,10 +7,10 @@
 #SBATCH --ntasks-per-node=128
 #SBATCH --cpus-per-task=1
 
-# Replace [budget code] below with your budget code (e.g. t01)
 #SBATCH --account=d35-ja
 #SBATCH --partition=standard
 #SBATCH --qos=standard
+#SBATCH --output=out/%j.out
 
 # Load modules
 module load forge
@@ -34,10 +34,12 @@ echo "OMP_NUM_THREADS=${OMP_NUM_THREADS}"
 echo
 
 # Set launch parameters
+PROG=qft
 DIR=../build/examples
-EXE="$DIR/qft 21 6"
+EXE="$DIR/$PROG 21 6"
 MPI_ARGS="--distribution=block:block --hint=nomultithread"
+MAP_OUT="map/run-${SLURM_JOB_ID}_${PROG}_${SLURM_NTASKS}p"
 
 # Launch the parallel job
 echo "Running and profiling ${EXE}: "
-map -n $SLURM_NTASKS --mpi=slurm --mpiargs="$MPI_ARGS" --profile $EXE
+map -n $SLURM_NTASKS --mpi=slurm --mpiargs="$MPI_ARGS" -o "${MAP_OUT}.map" --profile $EXE

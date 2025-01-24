@@ -11,6 +11,7 @@
 #SBATCH --account=d35-ja
 #SBATCH --partition=standard
 #SBATCH --qos=standard
+#SBATCH --output=out/%j.out
 
 # Disable leak sanitier for MPI libs
 export LSAN_OPTIONS=suppressions=lsan.supp,print_suppressions=0
@@ -31,8 +32,9 @@ echo "OMP_NUM_THREADS=${OMP_NUM_THREADS}"
 echo
 
 # Set launch parameters
+PROG=qft
 DIR=../build/examples
-EXE="$DIR/qft 10 6"
+EXE="$DIR/$PROG 10 6"
 MPI_ARGS="--distribution=block:block --hint=nomultithread"
 
 # Launch the parallel job
