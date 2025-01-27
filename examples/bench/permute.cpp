@@ -28,12 +28,16 @@ int main(int argc, char* argv[]) {
   QTNHEnv env;
   TensorNetwork tn;
 
-  tidx_tup t1_loc_dims(10, NQUBITS);
+  tidx_tup t1_loc_dims(NQUBITS, 2);
   std::vector<tel> t1_els(1 << NQUBITS);
-  std::iota(t1_els.begin(), t1_els.end(), 0);
+  if (utils::is_root()){
+    std::iota(t1_els.begin(), t1_els.end(), 0);
+  }
 
   tptr tp1 = DenseTensor::make(env, {}, t1_loc_dims, std::move(t1_els));
-  tp1 = Tensor::rescatter(std::move(tp1), int(DQUBITS));
+  for (auto i = 0U; i < DQUBITS; ++i) {
+    tp1 = Tensor::rescatter(std::move(tp1), 1);
+  }
 
   std::vector<tidx_tup_st> ptup(NQUBITS);
   std::iota(ptup.begin(), ptup.end(), 1);
@@ -49,7 +53,7 @@ int main(int argc, char* argv[]) {
   utils::barrier();
   auto stop = high_resolution_clock::now();
 
-  auto delta = duration_cast<microseconds>(stop - start);
+  auto delta = duration_cast<milliseconds>(stop - start);
   if (utils::is_root()) {
     std::cout << "Time taken: " << delta.count() << " ms\n";
   }
