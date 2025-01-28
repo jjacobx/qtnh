@@ -382,20 +382,48 @@ namespace qtnh {
 
     // Vectors for temporary datatypes. Size 128 should be enough for any realistic dense tensor. 
     std::vector<MPI_Datatype> send_types(128, MPI_C_DOUBLE_COMPLEX), recv_types(128, MPI_C_DOUBLE_COMPLEX);
-    std::size_t i1 = 0, i2 = 0;
+    auto i1 = 0UL, i2 = 0UL;
+    auto ext1 = 1UL, ext2 = 1UL;
+    auto new_ext1 = 1UL, new_ext2 = 1UL;
+    auto count1 = 1UL, count2 = 1UL;
 
     for (auto k = old_dims.size(); k > ndis; --k) {
       auto i = k - 1;
       auto j = ptup.at(i);
       if (j >= ndis) {
-        MPI_Type_create_resized(send_types.at(i1), 0, old_cumdims.at(i) * sizeof(qtnh::tel), &send_types.at(i1 + 1));
-        MPI_Type_contiguous(int(old_dims.at(i)), send_types.at(i1 + 1), &send_types.at(i1 + 2));
+        new_ext1 = old_cumdims.at(i) * sizeof(qtnh::tel);
+        count1 *= old_dims.at(i);
+        if (count1 * ext1 != new_ext1){
+          MPI_Type_create_resized(send_types.at(i1), 0, new_ext1, &send_types.at(i1 + 1));
+          MPI_Type_contiguous(int(count1), send_types.at(i1 + 1), &send_types.at(i1 + 2));
 
-        MPI_Type_create_resized(recv_types.at(i2), 0, new_cumdims.at(j) * sizeof(qtnh::tel), &recv_types.at(i2 + 1));
-        MPI_Type_contiguous(int(new_dims.at(j)), recv_types.at(i2 + 1), &recv_types.at(i2 + 2));
+          ext1 = count1 * new_ext1;
+          count1 = 1UL;
+          i1 += 2;
+        }
 
-        i1 += 2, i2 += 2;
+        new_ext2 = new_cumdims.at(j) * sizeof(qtnh::tel);
+        count2 *= new_dims.at(j);
+        if (count2 * ext2 != new_ext2){
+          MPI_Type_create_resized(recv_types.at(i2), 0, new_ext2, &recv_types.at(i2 + 1));
+          MPI_Type_contiguous(int(count2), recv_types.at(i2 + 1), &recv_types.at(i2 + 2));
+
+          ext2 = count2 * new_ext2;
+          count2 = 1UL;
+          i2 += 2;
+        }
       }
+    }
+
+    if (count1 > 1) {
+      MPI_Type_create_resized(send_types.at(i1), 0, new_ext1, &send_types.at(i1 + 1));
+      MPI_Type_contiguous(int(count1), send_types.at(i1 + 1), &send_types.at(i1 + 2));
+      i1 += 2;
+    }
+    if (count2 > 1) {
+      MPI_Type_create_resized(recv_types.at(i2), 0, new_ext2, &recv_types.at(i2 + 1));
+      MPI_Type_contiguous(int(count2), recv_types.at(i2 + 1), &recv_types.at(i2 + 2));
+      i2 += 2;
     }
 
     MPI_Datatype send_type, recv_type;
