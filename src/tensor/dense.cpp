@@ -449,7 +449,7 @@ namespace qtnh {
     }
 
     auto [send_type, recv_type] = _get_permute_datatypes(old_dims, new_dims, ndis, ptup);
-    
+
     std::vector<TIFlag> old_ifls(old_dims.size());
     std::vector<TIFlag> new_ifls(new_dims.size());
     for (auto i = 0UL; i < old_dims.size(); ++i) {
@@ -529,6 +529,9 @@ namespace qtnh {
 
       loc_els_ = std::move(new_els);
     }
+
+    MPI_Type_free(&send_type);
+    MPI_Type_free(&recv_type);
   }
 
   void TIDense::_shift_internal(Tensor* target, qtnh::tidx_tup_st from, qtnh::tidx_tup_st to, int offset) {
