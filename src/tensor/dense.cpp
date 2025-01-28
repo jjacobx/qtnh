@@ -355,24 +355,13 @@ namespace qtnh {
     }
   }
 
-  void TIDense::_permute_internal(Tensor* target, std::vector<qtnh::tidx_tup_st> ptup) {
-    #ifdef DEBUG
-      utils::barrier();
-      if (utils::is_root()) {
-        using namespace ops;
-        std::cout << "Permuting: " << ptup << std::endl;
-      }
-      utils::barrier();
-    #endif
-    auto ndis = target->disDims().size();
-
-    auto old_dims = target->totDims();
-    qtnh::tidx_tup new_dims(old_dims.size());
-    for (std::size_t i = 0; i < old_dims.size(); ++i) {
-      new_dims.at(ptup.at(i)) = old_dims.at(i);
-    }
-
-    // ! Conversion between size_t and MPI_Aint might not work. 
+  std::pair<MPI_Datatype, MPI_Datatype> _get_permute_datatypes(
+    std::vector<std::size_t> old_dims, 
+    std::vector<std::size_t> new_dims, 
+    std::size_t ndis,
+    std::vector<qtnh::tidx_tup_st> ptup
+  ) {
+        // ! Conversion between size_t and MPI_Aint might not work. 
     std::vector<std::size_t> old_cumdims(old_dims.size(), 1);
     std::vector<std::size_t> new_cumdims(new_dims.size(), 1);
     for (auto i = old_dims.size() - 1; i > 0; --i) {
@@ -439,6 +428,28 @@ namespace qtnh {
       if (recv_types.at(i) != MPI_C_DOUBLE_COMPLEX) MPI_Type_free(&recv_types.at(i));
     }
 
+    return { send_type, recv_type };
+  }
+
+  void TIDense::_permute_internal(Tensor* target, std::vector<qtnh::tidx_tup_st> ptup) {
+    #ifdef DEBUG
+      utils::barrier();
+      if (utils::is_root()) {
+        using namespace ops;
+        std::cout << "Permuting: " << ptup << std::endl;
+      }
+      utils::barrier();
+    #endif
+    auto ndis = target->disDims().size();
+
+    auto old_dims = target->totDims();
+    qtnh::tidx_tup new_dims(old_dims.size());
+    for (std::size_t i = 0; i < old_dims.size(); ++i) {
+      new_dims.at(ptup.at(i)) = old_dims.at(i);
+    }
+
+    auto [send_type, recv_type] = _get_permute_datatypes(old_dims, new_dims, ndis, ptup);
+    
     std::vector<TIFlag> old_ifls(old_dims.size());
     std::vector<TIFlag> new_ifls(new_dims.size());
     for (auto i = 0UL; i < old_dims.size(); ++i) {
