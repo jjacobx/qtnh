@@ -13,6 +13,12 @@
 #SBATCH --qos=standard
 #SBATCH --output=out/%j.out
 
+if [ "$MPI_IMPL" == "ucx" ]; then
+  echo "Changing to UCX MPI implementation"
+  module load craype-network-ucx &> /dev/null
+  module load cray-mpich-ucx &> /dev/null
+fi
+
 # Disable leak sanitier for MPI libs
 export LSAN_OPTIONS=suppressions=lsan.supp,print_suppressions=0
 
@@ -32,9 +38,12 @@ echo "OMP_NUM_THREADS=${OMP_NUM_THREADS}"
 echo
 
 # Set launch parameters
-PROG=qft
-DIR=../build/examples
-EXE="$DIR/$PROG 10 6"
+PROG=permute
+DIR=../build/examples/bench
+NQUBITS=26
+DQUBITS=8
+NITER=100
+EXE="$DIR/$PROG $NQUBITS $DQUBITS $NITER"
 MPI_ARGS="--distribution=block:block --hint=nomultithread"
 
 # Launch the parallel job
