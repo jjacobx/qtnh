@@ -57,6 +57,7 @@ namespace qtnh {
 
         Broadcaster() = delete;
         Broadcaster(const QTNHEnv& env, qtnh::uint base, BcParams params);
+        Broadcaster(const QTNHEnv& env, qtnh::uint base, BcParams params, bool create_comm);
         ~Broadcaster();
 
         Broadcaster& operator=(Broadcaster&& b) noexcept;
@@ -70,6 +71,10 @@ namespace qtnh {
         /// @brief Helper to calculate between which ranks the tensor is contained. 
         /// @return A tuple containing first and last rank that store the tensor. 
         constexpr std::pair<qtnh::uint, qtnh::uint> range() { return { off, off + span() }; }
+
+        bool has_comm = false;
+        void create_comm();
+        void delete_comm();
       };
 
       // This can be made constexpr in C++ 20
@@ -146,7 +151,7 @@ namespace qtnh {
       /// might have different values. 
       virtual qtnh::tel operator[](qtnh::tidx_tup loc_idxs) const = 0;
 
-      /// @brief Access element at total indices if pr      virtual bool isSymm() const noexcept override { return true; }esent. 
+      /// @brief Access element at total indices if present. 
       /// @param tot_idxs Indices with total position of the element. 
       /// @return Value of the element at given indices. Throws error if value is not present. 
       ///
@@ -164,34 +169,46 @@ namespace qtnh {
       /// Because of the broadcast, it is inefficient to use it too often. 
       virtual qtnh::tel fetch(qtnh::tidx_tup tot_idxs) const;
 
+      void activate() {
+        if (!bc_.has_comm) bc_.create_comm();
+      }
+
+      void deactivate() {
+        bc_.delete_comm();
+      }
+
       /// @brief Swap indices on current tensor. 
       /// @param tp Ownership of tptr to tensor to swap. 
       /// @param idx1 First index to swap. 
       /// @param idx2 Second index to swap. 
       /// @return Ownership of tptr to swapped tensor. 
       static qtnh::tptr swap(qtnh::tptr tp, qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) {
-        return utils::one_unique(std::move(tp), tp->swap(idx1, idx2));
+        auto p = tp->swap(idx1, idx2);
+        return utils::one_unique(std::move(tp), p);
       }
       /// @brief Re-broadcast current tensor. 
       /// @param tp Ownership of tptr to tensor to re-broadcast. 
       /// @param params Broadcast parameters of the tensor (str, cyc, off)
       /// @return Ownership of tptr to re-broadcasted tensor. 
       static qtnh::tptr rebcast(qtnh::tptr tp, BcParams params) {
-        return utils::one_unique(std::move(tp), tp->rebcast(params));
+        auto p = tp->rebcast(params);
+        return utils::one_unique(std::move(tp), p);
       }
       /// @brief Shift the border between shared and distributed dimensions by a given offset. 
       /// @param tp Ownership of tptr to tensor to re-scatter. 
       /// @param offset New offset between distributed and local dimensions – negative gathers, while positive scatters. 
       /// @return Ownership of tptr to re-scattered tensor. 
       static qtnh::tptr rescatter(qtnh::tptr tp, int offset) {
-        return utils::one_unique(std::move(tp), tp->rescatter(offset));
+        auto p = tp->rescatter(offset);
+        return utils::one_unique(std::move(tp), p);
       }
       /// @brief Permute tensor indices according to mappings in the permutation tuple. 
       /// @param tp Ownership of tptr to tensor to permute. 
       /// @param ptup Permutation tuple of the same size as total dimensions, and each entry unique. 
       /// @return Ownership of tptr to permuted tensor. 
       static qtnh::tptr permute(qtnh::tptr tp, std::vector<qtnh::tidx_tup_st> ptup) {
-        return utils::one_unique(std::move(tp), tp->permute(ptup));
+        auto p = tp->permute(ptup);
+        return utils::one_unique(std::move(tp), p);
       }
 
     protected:

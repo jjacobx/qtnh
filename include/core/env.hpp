@@ -13,6 +13,8 @@ namespace qtnh {
       unsigned int num_processes;  ///< Number of MPI processes. 
       // unsigned int num_threads;    ///< Number of OpenMP threads. 
 
+      inline static unsigned int num_comms = 1;
+
       /// Default constructor. 
       /// Initialises MPI and populates struct members accordingly. 
       QTNHEnv();

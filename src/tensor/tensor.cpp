@@ -1,4 +1,5 @@
 #include <iomanip>
+#include <iostream>
 #include <mpi.h>
 #include <numeric>
 
@@ -13,7 +14,7 @@ namespace qtnh {
     : Tensor(env, dis_dims, loc_dims, BcParams { 1, 1, 0 }) {}
 
   Tensor::Tensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, BcParams params)
-    : dis_dims_(dis_dims), loc_dims_(loc_dims), bc_(env, qtnh::uint(utils::dims_to_size(dis_dims)), params) {}
+    : dis_dims_(dis_dims), loc_dims_(loc_dims), bc_(env, qtnh::uint(utils::dims_to_size(dis_dims)), params, true) {}
 
   template<> 
   bool Tensor::canConvert<DenseTensor>() {
@@ -52,38 +53,27 @@ namespace qtnh {
     return el;
   }
 
-  Tensor::Broadcaster::Broadcaster(const QTNHEnv &env, qtnh::uint base, BcParams params) 
+  Tensor::Broadcaster::Broadcaster(const QTNHEnv &env, qtnh::uint base, BcParams params)
+    : Broadcaster(env, base, params, true) {}
+
+  Tensor::Broadcaster::Broadcaster(const QTNHEnv &env, qtnh::uint base, BcParams params, bool communicate) 
     : env(env), base(base), str(params.str), cyc(params.cyc), off(params.off) {
-      int rel_id = env.proc_id - off; // ! relative ID may be negative
-      active = (rel_id >= 0) && (rel_id < (int)(str * cyc * base));
+    int rel_id = env.proc_id - off; // ! relative ID may be negative
+    active = (rel_id >= 0) && (rel_id < (int)(str * cyc * base));
 
-      MPI_Group world_group;
-      MPI_Comm_group(MPI_COMM_WORLD, &world_group);
-
-      // Create a group with active ranks. 
-      std::vector<int> active_ids(str * cyc * base);
-      std::iota(active_ids.begin(), active_ids.end(), off);
-      MPI_Group active_group;
-      MPI_Group_incl(world_group, int(active_ids.size()), active_ids.data(), &active_group);
-
-      // Group communicator can be set up only on active ranks. 
-      if (active) {
-        MPI_Comm active_comm;
-        MPI_Comm_create_group(MPI_COMM_WORLD, active_group, 0, &active_comm);
-
-        int colour = (rel_id / (base * str)) * str + rel_id % str;
-        MPI_Comm_split(active_comm, colour, rel_id, &group_comm);
-        MPI_Comm_rank(group_comm, &group_id);
-
-        MPI_Comm_free(&active_comm);
-      }
+    if (communicate) {
+      create_comm();
     }
+  }
 
   Tensor::Broadcaster& Tensor::Broadcaster::operator=(Broadcaster&& b) noexcept {
     base = b.base;
     str = b.str;
     cyc = b.cyc;
     off = b.off;
+
+    if (group_comm != MPI_COMM_NULL)
+      MPI_Comm_free(&group_comm);
 
     group_comm = MPI_COMM_NULL;
     std::swap(group_comm, b.group_comm);
@@ -97,7 +87,52 @@ namespace qtnh {
   
   // In case there is a limited communicator pool, they should be actively freed
   Tensor::Broadcaster::~Broadcaster() {
-    if (active) MPI_Comm_free(&group_comm);
+    delete_comm();
+  }
+
+  void Tensor::Broadcaster::create_comm() {
+    #ifdef DEBUG
+      if (utils::is_root()) std::cout << "CREATING GROUP_COMM\n";
+    #endif
+
+    MPI_Group world_group;
+    MPI_Comm_group(MPI_COMM_WORLD, &world_group);
+
+    // Create a group with active ranks. 
+    std::vector<int> active_ids(str * cyc * base);
+    std::iota(active_ids.begin(), active_ids.end(), off);
+    MPI_Group active_group;
+    MPI_Group_incl(world_group, int(active_ids.size()), active_ids.data(), &active_group);
+
+    // Group communicator can be set up only on active ranks. 
+    if (active) {
+      MPI_Comm active_comm;
+      MPI_Comm_create_group(MPI_COMM_WORLD, active_group, 0, &active_comm);
+
+      int rel_id = env.proc_id - off;
+      int colour = (rel_id / (base * str)) * str + rel_id % str;
+      MPI_Comm_split(active_comm, colour, rel_id, &group_comm);
+      MPI_Comm_rank(group_comm, &group_id);
+
+      MPI_Comm_free(&active_comm);
+    }
+
+    MPI_Group_free(&world_group);
+    MPI_Group_free(&active_group);
+
+    ++QTNHEnv::num_comms;
+    has_comm = true;
+  }
+
+  void Tensor::Broadcaster::delete_comm() {
+    #ifdef DEBUG
+      if (utils::is_root()) std::cout << "FREEING GROUP_COMM\n";
+    #endif
+    
+    if (group_comm != MPI_COMM_NULL) MPI_Comm_free(&group_comm);
+
+    if (has_comm) --QTNHEnv::num_comms;
+    has_comm = false;
   }
 
   namespace ops {

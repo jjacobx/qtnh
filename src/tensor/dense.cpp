@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cassert>
 
 #include "tensor/dense.hpp"
 #include "tensor/indexing.hpp"
@@ -13,7 +14,8 @@ namespace qtnh {
   // Specialised convert template from tensor header requires full class definition. 
   template<> 
   std::unique_ptr<DenseTensor> Tensor::convert<DenseTensor>(tptr tp) {
-    return utils::one_unique(std::move(tp), tp->toDense()); 
+    auto p = tp->toDense();
+    return utils::one_unique(std::move(tp), p);
   }
 
   DenseTensor* DenseTensorBase::toDense() noexcept {
@@ -332,6 +334,8 @@ namespace qtnh {
       MPI_Allgather(loc_els_.data(), int(target->locSize()), MPI_C_DOUBLE_COMPLEX, 
                     new_els.data(), int(target->locSize()), MPI_C_DOUBLE_COMPLEX, gath_comm);
 
+      MPI_Comm_free(&gath_comm);
+
       loc_els_ = std::move(new_els);
     } else if (offset > 0) {
       auto loc_dims = target->locDims();
@@ -351,6 +355,83 @@ namespace qtnh {
     }
   }
 
+  std::pair<MPI_Datatype, MPI_Datatype> _get_permute_datatypes(
+    std::vector<std::size_t> old_dims, 
+    std::vector<std::size_t> new_dims, 
+    std::size_t ndis,
+    std::vector<qtnh::tidx_tup_st> ptup
+  ) {
+    // ! Conversion between size_t and MPI_Aint might not work. 
+    std::vector<std::size_t> old_cumdims(old_dims.size(), 1);
+    std::vector<std::size_t> new_cumdims(new_dims.size(), 1);
+    for (auto i = old_dims.size() - 1; i > 0; --i) {
+      old_cumdims.at(i - 1) = old_cumdims.at(i) * old_dims.at(i);
+      new_cumdims.at(i - 1) = new_cumdims.at(i) * new_dims.at(i);
+    }
+
+    // Vectors for temporary datatypes. Size 128 should be enough for any realistic dense tensor. 
+    std::vector<MPI_Datatype> send_types(128, MPI_C_DOUBLE_COMPLEX), recv_types(128, MPI_C_DOUBLE_COMPLEX);
+    auto ext1 = sizeof(qtnh::tel), ext2 = sizeof(qtnh::tel);
+    auto new_ext1 = sizeof(qtnh::tel), new_ext2 = sizeof(qtnh::tel);
+    auto count1 = 1UL, count2 = 1UL;
+    auto i1 = 0UL, i2 = 0UL;
+
+    for (auto k = old_dims.size(); k > ndis; --k) {
+      auto i = k - 1;
+      auto j = ptup.at(i);
+      if (j >= ndis) {
+        new_ext1 = old_cumdims.at(i) * sizeof(qtnh::tel);
+        // std::cout << "Send extent: " << count1 * ext1 << ", expected: " << new_ext1 << "\n";
+        if (count1 * ext1 != new_ext1){
+          MPI_Type_contiguous(int(count1), send_types.at(i1), &send_types.at(i1 + 1));
+          MPI_Type_create_resized(send_types.at(i1 + 1), 0, new_ext1, &send_types.at(i1 + 2));
+
+          ext1 = new_ext1;
+          count1 = 1UL;
+          i1 += 2;
+        }
+        
+        new_ext2 = new_cumdims.at(j) * sizeof(qtnh::tel);
+        // std::cout << "Recv extent: " << count2 * ext2 << ", expected: " << new_ext2 << "\n";
+        if (count2 * ext2 != new_ext2){
+          MPI_Type_contiguous(int(count2), recv_types.at(i2), &recv_types.at(i2 + 1));
+          MPI_Type_create_resized(recv_types.at(i2 + 1), 0, new_ext2, &recv_types.at(i2 + 2));
+
+          ext2 = new_ext2;
+          count2 = 1UL;
+          i2 += 2;
+        }
+
+        count1 *= old_dims.at(i);
+        count2 *= new_dims.at(j);
+      }
+    }
+
+    if (count1 > 1) {
+      MPI_Type_contiguous(int(count1), send_types.at(i1), &send_types.at(i1 + 1));
+      ++i1;
+    }
+    if (count2 > 1) {
+      MPI_Type_contiguous(int(count2), recv_types.at(i2), &recv_types.at(i2 + 1));
+      ++i2;
+    }
+
+    MPI_Datatype send_type, recv_type;
+    MPI_Type_create_resized(send_types.at(i1), 0, sizeof(qtnh::tel), &send_type);
+    MPI_Type_create_resized(recv_types.at(i2), 0, sizeof(qtnh::tel), &recv_type);
+
+    MPI_Type_commit(&send_type);
+    MPI_Type_commit(&recv_type);
+
+    // Free unused datatypes to prevent memory leaks. 
+    for (std::size_t i = 0; i < 128; ++i) {
+      if (send_types.at(i) != MPI_C_DOUBLE_COMPLEX) MPI_Type_free(&send_types.at(i));
+      if (recv_types.at(i) != MPI_C_DOUBLE_COMPLEX) MPI_Type_free(&recv_types.at(i));
+    }
+
+    return { send_type, recv_type };
+  }
+
   void TIDense::_permute_internal(Tensor* target, std::vector<qtnh::tidx_tup_st> ptup) {
     #ifdef DEBUG
       utils::barrier();
@@ -368,44 +449,7 @@ namespace qtnh {
       new_dims.at(ptup.at(i)) = old_dims.at(i);
     }
 
-    // ! Conversion between size_t and MPI_Aint might not work. 
-    std::vector<std::size_t> old_cumdims(old_dims.size(), 1);
-    std::vector<std::size_t> new_cumdims(new_dims.size(), 1);
-    for (auto i = old_dims.size() - 1; i > 0; --i) {
-      old_cumdims.at(i - 1) = old_cumdims.at(i) * old_dims.at(i);
-      new_cumdims.at(i - 1) = new_cumdims.at(i) * new_dims.at(i);
-    }
-
-    // Vectors for temporary datatypes. Size 128 should be enough for any realistic dense tensor. 
-    std::vector<MPI_Datatype> send_types(128, MPI_C_DOUBLE_COMPLEX), recv_types(128, MPI_C_DOUBLE_COMPLEX);
-    std::size_t i1 = 0, i2 = 0;
-
-    for (auto k = old_dims.size(); k > ndis; --k) {
-      auto i = k - 1;
-      auto j = ptup.at(i);
-      if (j >= ndis) {
-        MPI_Type_create_resized(send_types.at(i1), 0, old_cumdims.at(i) * sizeof(qtnh::tel), &send_types.at(i1 + 1));
-        MPI_Type_contiguous(int(old_dims.at(i)), send_types.at(i1 + 1), &send_types.at(i1 + 2));
-
-        MPI_Type_create_resized(recv_types.at(i2), 0, new_cumdims.at(j) * sizeof(qtnh::tel), &recv_types.at(i2 + 1));
-        MPI_Type_contiguous(int(new_dims.at(j)), recv_types.at(i2 + 1), &recv_types.at(i2 + 2));
-
-        i1 += 2, i2 += 2;
-      }
-    }
-
-    MPI_Datatype send_type, recv_type;
-    MPI_Type_create_resized(send_types.at(i1), 0, sizeof(qtnh::tel), &send_type);
-    MPI_Type_create_resized(recv_types.at(i2), 0, sizeof(qtnh::tel), &recv_type);
-
-    MPI_Type_commit(&send_type);
-    MPI_Type_commit(&recv_type);
-
-    // Free unused datatypes to prevent memory leaks. 
-    for (std::size_t i = 0; i < 128; ++i) {
-      if (send_types.at(i) != MPI_C_DOUBLE_COMPLEX) MPI_Type_free(&send_types.at(i));
-      if (recv_types.at(i) != MPI_C_DOUBLE_COMPLEX) MPI_Type_free(&recv_types.at(i));
-    }
+    auto [send_type, recv_type] = _get_permute_datatypes(old_dims, new_dims, ndis, ptup);
 
     std::vector<TIFlag> old_ifls(old_dims.size());
     std::vector<TIFlag> new_ifls(new_dims.size());
@@ -486,6 +530,9 @@ namespace qtnh {
 
       loc_els_ = std::move(new_els);
     }
+
+    MPI_Type_free(&send_type);
+    MPI_Type_free(&recv_type);
   }
 
   void TIDense::_shift_internal(Tensor* target, qtnh::tidx_tup_st from, qtnh::tidx_tup_st to, int offset) {

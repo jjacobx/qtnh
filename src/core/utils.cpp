@@ -75,5 +75,9 @@ namespace qtnh {
       auto diff_mod_sq = std::pow(a.real() - b.real(), 2.0) + std::pow(a.imag() - b.imag(), 2.0);
       return std::sqrt(diff_mod_sq) < tol;
     }
+
+    bool compatible(qtnh::tidx_tup dims1, qtnh::tidx_tup dims2) {
+      return (dims_to_size(dims1) == dims_to_size(dims2));
+    }
   }
 }
