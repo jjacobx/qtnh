@@ -151,7 +151,7 @@ namespace qtnh {
       /// might have different values. 
       virtual qtnh::tel operator[](qtnh::tidx_tup loc_idxs) const = 0;
 
-      /// @brief Access element at total indices if pr      virtual bool isSymm() const noexcept override { return true; }esent. 
+      /// @brief Access element at total indices if present. 
       /// @param tot_idxs Indices with total position of the element. 
       /// @return Value of the element at given indices. Throws error if value is not present. 
       ///
