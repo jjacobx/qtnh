@@ -65,6 +65,12 @@ namespace qtnh {
     /// @return True if elements are approximately equal and false otherwise. 
     bool equal(qtnh::tel a, qtnh::tel b, double tol = 1E-5);
 
+    /// @brief Check if dimensions have the same total size. 
+    /// @param dims1 First dimension tuple. 
+    /// @param dims2 Second dimension tuple. 
+    /// @return True if dimensions are compatible. 
+    bool compatible(qtnh::tidx_tup dims1, qtnh::tidx_tup dims2);
+
     template<typename T>
     std::unique_ptr<T> one_unique(std::unique_ptr<T> u, T* t) {
       if (u.get() == t) return u;
