@@ -3,7 +3,7 @@
 
 #include "core/env.hpp"
 
-const int SIZE = 20;
+const auto SIZE = 20UL;
 
 int main() {
   qtnh::QTNHEnv env;
