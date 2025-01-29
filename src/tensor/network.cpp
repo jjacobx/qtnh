@@ -164,7 +164,7 @@ namespace qtnh {
       #ifdef DEBUG
         utils::barrier();
         auto& t = *tensors_.at(tid);
-        if (t.bc().active) {
+        if (t.bc().isActive()) {
           using namespace ops;
           std::cout << t.bc().env.proc_id << " | T (result) = " << t << "\n";
         }

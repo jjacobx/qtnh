@@ -27,7 +27,7 @@ namespace qtnh {
       ifls.at(i) = { "distributed", 0 };
     }
 
-    auto curr_idxs = utils::concat_dims(utils::i_to_idxs(bc_.group_id, dis_dims_), qtnh::tidx_tup(loc_dims_.size(), 0));
+    auto curr_idxs = utils::concat_dims(utils::i_to_idxs(bc_.gid(), dis_dims_), qtnh::tidx_tup(loc_dims_.size(), 0));
 
     TIndexing ti(totDims(), ifls);
     for (auto idxs : ti.tup("local", curr_idxs)) {
@@ -35,7 +35,7 @@ namespace qtnh {
     }
 
     // ? Is it better to use local members or accessors? 
-    return new DenseTensor(bc_.env, dis_dims_, loc_dims_, std::move(els), BcParams { bc_.str, bc_.cyc, bc_.off });
+    return new DenseTensor(bc_.env(), dis_dims_, loc_dims_, std::move(els), bc_.params());
   }
 
   Tensor* DenseTensorBase::swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) {
@@ -62,7 +62,7 @@ namespace qtnh {
 
   qtnh::tptr DenseTensor::copy() const noexcept {
     auto els = loc_els_;
-    auto tp = new DenseTensor(bc_.env, dis_dims_, loc_dims_, std::move(els), { bc_.str, bc_.cyc, bc_.off });
+    auto tp = new DenseTensor(bc_.env(), dis_dims_, loc_dims_, std::move(els), bc_.params());
     return std::unique_ptr<DenseTensor>(tp);
   }
 
@@ -78,7 +78,7 @@ namespace qtnh {
 
   qtnh::tel DenseTensor::at(qtnh::tidx_tup tot_idxs) const {
     auto [dis_idxs, loc_idxs] = utils::split_dims(tot_idxs, dis_dims_.size());
-    if (bc_.group_id != (int)utils::idxs_to_i(dis_idxs, dis_dims_)) {
+    if (bc_.gid() != (int)utils::idxs_to_i(dis_idxs, dis_dims_)) {
       throw std::invalid_argument("Element at given indices is not present on calling rank. ");
     }
 
@@ -87,7 +87,7 @@ namespace qtnh {
 
   qtnh::tel& DenseTensor::at(qtnh::tidx_tup tot_idxs) {
     auto [dis_idxs, loc_idxs] = utils::split_dims(tot_idxs, dis_dims_.size());
-    if (bc_.group_id != (int)utils::idxs_to_i(dis_idxs, dis_dims_)) {
+    if (bc_.gid() != (int)utils::idxs_to_i(dis_idxs, dis_dims_)) {
       throw std::invalid_argument("Element at given indices is not present on calling rank. ");
     }
 
@@ -99,7 +99,7 @@ namespace qtnh {
     auto target_id = utils::idxs_to_i(dis_idxs, dis_dims_);
 
     int call_id;
-    MPI_Comm_rank(bc_.group_comm, &call_id);
+    MPI_Comm_rank(bc_.gcomm(), &call_id);
 
     if (call_id == (int)target_id) {
       auto i = utils::idxs_to_i(loc_idxs, loc_dims_);
@@ -116,7 +116,7 @@ namespace qtnh {
     _rebcast_internal(this, params);
     
     // Update broadcaster
-    Broadcaster new_bc(bc_.env, bc_.base, params);
+    Broadcaster new_bc(bc_.env(), bc_.base(), params);
     bc_ = std::move(new_bc);
 
     return this;
@@ -133,18 +133,21 @@ namespace qtnh {
       loc_dims_.insert(loc_dims_.begin(), loc_dims2.begin(), loc_dims2.end());
       dis_dims_.erase(dis_dims_.end() + offset, dis_dims_.end());
 
-      Broadcaster new_bc(bc_.env, qtnh::uint(disSize()), { bc_.str * shift, bc_.cyc, bc_.off });
+      auto params = bc_.params();
+      params.str *= shift;
+      Broadcaster new_bc(bc_.env(), qtnh::uint(disSize()), params);
       bc_ = std::move(new_bc);
     } else if (offset > 0) {
       auto dis_dims2 = qtnh::tidx_tup(loc_dims_.begin(), loc_dims_.begin() + offset);
       auto shift = utils::dims_to_size(dis_dims2);
-
-      BcParams params { (qtnh::uint)std::max(1UL, bc_.str / shift), bc_.cyc, bc_.off };
+      
+      auto params = bc_.params();
+      params.str = (qtnh::uint)std::max(1UL, params.str / shift);
 
       loc_dims_.erase(loc_dims_.begin(), loc_dims_.begin() + offset);
       dis_dims_.insert(dis_dims_.end(), dis_dims2.begin(), dis_dims2.end());
 
-      Broadcaster new_bc(bc_.env, qtnh::uint(disSize()), params);
+      Broadcaster new_bc(bc_.env(), qtnh::uint(disSize()), params);
       bc_ = std::move(new_bc);
     }
 
@@ -164,7 +167,7 @@ namespace qtnh {
     dis_dims_ = new_dis_dims;
     loc_dims_ = new_loc_dims;
 
-    Broadcaster new_bc(bc().env, qtnh::uint(disSize()), { bc().str, bc().cyc, bc().off });
+    Broadcaster new_bc(bc().env(), qtnh::uint(disSize()), bc_.params());
     bc_ = std::move(new_bc);
 
     return this;
@@ -173,7 +176,7 @@ namespace qtnh {
   void TIDense::_swap_internal(Tensor* target, qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) {
     auto& bc = target->bc();
 
-    if (!bc.active) return;
+    if (!bc.isActive()) return;
     if (idx1 > idx2) std::swap(idx1, idx2);
 
     // Case: asymmetric swap
@@ -232,7 +235,7 @@ namespace qtnh {
       qtnh::tidx_tup mid_dist_dims(target->disDims().begin() + idx1 + 1, target->disDims().end());
       auto dist_stride = utils::dims_to_size(mid_dist_dims);
 
-      auto dist_idxs = utils::i_to_idxs(target->bc().group_id, target->disDims());
+      auto dist_idxs = utils::i_to_idxs(target->bc().gid(), target->disDims());
       auto rank_idx = dist_idxs.at(idx1);
 
       MPI_Datatype strided, restrided;
@@ -241,7 +244,7 @@ namespace qtnh {
       MPI_Type_commit(&restrided);
 
       MPI_Comm swap_comm;
-      MPI_Comm_split(bc.group_comm, bc.group_id - int(rank_idx * dist_stride), bc.group_id, &swap_comm);
+      MPI_Comm_split(bc.gcomm(), bc.gid() - int(rank_idx * dist_stride), bc.gid(), &swap_comm);
 
       std::vector<qtnh::tel> new_els(loc_els_.size());
       for (auto i = 0UL; i < dims.at(idx1); ++i) {
@@ -260,14 +263,14 @@ namespace qtnh {
 
     // Case: distributed swap
     if (idx2 < target->disDims().size()) {
-      auto target_idxs = utils::i_to_idxs(bc.group_id, target->disDims());
+      auto target_idxs = utils::i_to_idxs(bc.gid(), target->disDims());
       std::swap(target_idxs.at(idx1), target_idxs.at(idx2));
       auto target_i = utils::idxs_to_i(target_idxs, target->disDims());
 
       std::vector<qtnh::tel> new_els(loc_els_.size());
       // TODO: Consider MPI message size limit – not a scatter. 
       MPI_Sendrecv(loc_els_.data(), int(loc_els_.size()), MPI_C_DOUBLE_COMPLEX, int(target_i), 0, 
-                   new_els.data(), int(new_els.size()), MPI_C_DOUBLE_COMPLEX, int(target_i), 0, bc.group_comm, MPI_STATUS_IGNORE);
+                   new_els.data(), int(new_els.size()), MPI_C_DOUBLE_COMPLEX, int(target_i), 0, bc.gcomm(), MPI_STATUS_IGNORE);
       
       // ! new_els should not be copied, and original loc_els should be destroyed
       loc_els_ = std::move(new_els);
@@ -277,27 +280,27 @@ namespace qtnh {
 
   void TIDense::_rebcast_internal(Tensor* target, BcParams params) {
     auto& bc = target->bc();
-    Tensor::Broadcaster new_bc(bc.env, bc.base, params);
+    Broadcaster new_bc(bc.env(), bc.base(), params);
     std::vector<MPI_Request> send_reqs(params.str * params.cyc, MPI_REQUEST_NULL);
 
-    if (bc.active) {
+    if (bc.isActive()) {
       std::vector<int> send_sources;
       std::vector<int> send_targets;
 
-      for (qtnh::uint i = 0; i < bc.str; ++i) {
-        for (qtnh::uint j = 0; j < bc.cyc; ++j) {
-          send_sources.push_back(i + (bc.base * j + bc.group_id) * bc.str + bc.off);
+      for (qtnh::uint i = 0; i < bc.params().str; ++i) {
+        for (qtnh::uint j = 0; j < bc.params().cyc; ++j) {
+          send_sources.push_back(i + (bc.base() * j + bc.gid()) * bc.params().str + bc.params().off);
         }
       }
 
       for (qtnh::uint i = 0; i < params.str; ++i) {
         for (qtnh::uint j = 0; j < params.cyc; ++j) {
-          send_targets.push_back(i + (bc.base * j + bc.group_id) * params.str + params.off);
+          send_targets.push_back(i + (bc.base() * j + bc.gid()) * params.str + params.off);
         }
       }
 
       // TODO: optimisation where if data is already present at target, it is not sent. 
-      if ((int)bc.env.proc_id == send_sources.at(0)) {
+      if ((int)bc.env().proc_id == send_sources.at(0)) {
         for (std::size_t i = 0; i < send_targets.size(); ++i) {
           MPI_Isend(loc_els_.data(), int(loc_els_.size()), MPI_C_DOUBLE_COMPLEX, send_targets.at(i), 0, MPI_COMM_WORLD, &send_reqs.at(i));
         }
@@ -305,9 +308,9 @@ namespace qtnh {
     }
 
     std::vector<qtnh::tel> new_els(0);
-    if (new_bc.active) {
+    if (new_bc.isActive()) {
       new_els.resize(target->locSize());
-      int recv_source = new_bc.group_id * bc.str + bc.off;
+      int recv_source = new_bc.gid() * bc.params().str + bc.params().off;
       MPI_Recv(new_els.data(), int(new_els.size()), MPI_C_DOUBLE_COMPLEX, recv_source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
 
@@ -321,14 +324,14 @@ namespace qtnh {
     auto& bc = target->bc();
 
    if (offset < 0) {
-      if (!bc.active) return;
+      if (!bc.isActive()) return;
       
       auto dis_dims = target->disDims();
       auto loc_dims2 = qtnh::tidx_tup(dis_dims.end() + offset, dis_dims.end());
       auto shift = utils::dims_to_size(loc_dims2);
 
       MPI_Comm gath_comm;
-      MPI_Comm_split(bc.group_comm, bc.group_id / int(shift), bc.group_id, &gath_comm);
+      MPI_Comm_split(bc.gcomm(), bc.gid() / int(shift), bc.gid(), &gath_comm);
 
       std::vector<qtnh::tel> new_els(target->locSize() * shift);
       MPI_Allgather(loc_els_.data(), int(target->locSize()), MPI_C_DOUBLE_COMPLEX, 
@@ -343,13 +346,14 @@ namespace qtnh {
       auto shift = utils::dims_to_size(dis_dims2);
 
       // Align with multiples of shift
-      BcParams params { (qtnh::uint)std::max(shift, (bc.str / shift) * shift), bc.cyc, bc.off };
+      auto params = bc.params();
+      params.str = (qtnh::uint)std::max(shift, (params.str / shift) * shift);
       _rebcast_internal(target, params);
 
-      Tensor::Broadcaster bc2(bc.env, bc.base, params);
-      if (!bc2.active) return;
+      Broadcaster bc2(bc.env(), bc.base(), params);
+      if (!bc2.isActive()) return;
 
-      auto split_id = (((bc2.env.proc_id - bc2.off) % (bc2.base * bc2.str)) / (bc2.str / shift)) % shift;
+      auto split_id = (((bc2.env().proc_id - params.off) % (bc2.base() * params.str)) / (params.str / shift)) % shift;
       loc_els_.erase(loc_els_.begin(), loc_els_.begin() + target->locSize() / shift * split_id);
       loc_els_.erase(loc_els_.begin() + target->locSize() / shift, loc_els_.end());
     }
@@ -467,10 +471,10 @@ namespace qtnh {
     // ! The broadcaster will fail if cyc > 1 and new base is of different size. 
     // ! Might need to re-bcast to cyc = 1 in such case. 
     auto& old_bc = target->bc();
-    Tensor::Broadcaster new_bc(old_bc.env, qtnh::uint(utils::dims_to_size(new_dis_dims)), { old_bc.str, old_bc.cyc, old_bc.off });
+    Broadcaster new_bc(old_bc.env(), qtnh::uint(utils::dims_to_size(new_dis_dims)), old_bc.params());
 
-    auto max_base = std::max(old_bc.base, new_bc.base);
-    auto max_gid = (qtnh::uint)std::max(old_bc.group_id, new_bc.group_id);
+    auto max_base = std::max(old_bc.base(), new_bc.base());
+    auto max_gid = (qtnh::uint)std::max(old_bc.gid(), new_bc.gid());
     
     std::vector<int> send_counts(max_base, 0), recv_counts(max_base, 0);
     std::vector<int> send_displs(max_base, 0), recv_displs(max_base, 0);
@@ -478,7 +482,7 @@ namespace qtnh {
     TIndexing old_dis_ti(old_dis_dims, old_dis_ifls), old_loc_ti(old_loc_dims, old_loc_ifls);
     TIndexing new_dis_ti(new_dis_dims, new_dis_ifls), new_loc_ti(new_loc_dims, new_loc_ifls);
 
-    auto old_dis_idxs = utils::i_to_idxs(old_bc.group_id, old_dis_dims);
+    auto old_dis_idxs = utils::i_to_idxs(old_bc.gid(), old_dis_dims);
     qtnh::tidx_tup send_dis_idxs(ndis);
     for (std::size_t i = 0; i < ndis; ++i) {
       auto j = ptup.at(i);
@@ -487,13 +491,13 @@ namespace qtnh {
 
     auto old_loc_it = old_loc_ti.num("to-dis").begin();
     auto new_dis_it = new_dis_ti.num("from-loc", send_dis_idxs).begin();
-    while (old_loc_it != old_loc_it.end() && new_dis_it != new_dis_it.end() && max_gid < old_bc.base) {
+    while (old_loc_it != old_loc_it.end() && new_dis_it != new_dis_it.end() && max_gid < old_bc.base()) {
       send_counts.at(*new_dis_it) = 1; // Datatype should cover all data
       send_displs.at(*new_dis_it) = int(*old_loc_it);
       old_loc_it++, new_dis_it++;
     }
 
-    auto new_dis_idxs = utils::i_to_idxs(new_bc.group_id, old_dis_dims);
+    auto new_dis_idxs = utils::i_to_idxs(new_bc.gid(), old_dis_dims);
     qtnh::tidx_tup recv_dis_idxs(ndis);
     for (std::size_t i = 0; i < ndis; ++i) {
       auto j = ptup.at(i);
@@ -502,19 +506,19 @@ namespace qtnh {
 
     auto new_loc_it = new_loc_ti.num("from-dis").begin();
     auto old_dis_it = old_dis_ti.num("to-loc", recv_dis_idxs).begin();
-    while (new_loc_it != new_loc_it.end() && old_dis_it != old_dis_it.end() && max_gid < new_bc.base) {
+    while (new_loc_it != new_loc_it.end() && old_dis_it != old_dis_it.end() && max_gid < new_bc.base()) {
       recv_counts.at(*old_dis_it) = 1; // Datatype should cover all data
       recv_displs.at(*old_dis_it) = int(*new_loc_it);
       new_loc_it++, old_dis_it++;
     }
 
     // Determine which communicator to use
-    MPI_Comm transpose_comm = new_bc.group_comm;
+    MPI_Comm transpose_comm = new_bc.gcomm();
     if (utils::dims_to_size(old_dis_dims) > utils::dims_to_size(new_dis_dims)) {
-      transpose_comm = target->bc().group_comm;
+      transpose_comm = target->bc().gcomm();
     }
 
-    if (target->bc().active || new_bc.active) {
+    if (target->bc().isActive() || new_bc.isActive()) {
       #ifdef DEBUG
         using namespace ops;
         std::cout << new_bc.env.proc_id << " | Sc: (" << send_counts << "); ";
@@ -557,21 +561,21 @@ namespace qtnh {
     DenseTensorBase(env, { n }, { n }, params) {}
   
   qtnh::tptr RescTensor::copy() const noexcept {
-    auto tp = new RescTensor(bc_.env, dis_dims_.at(0), { bc_.str, bc_.cyc, bc_.off });
+    auto tp = new RescTensor(bc_.env(), dis_dims_.at(0), bc_.params());
     return std::unique_ptr<RescTensor>(tp);
   }
 
   qtnh::tel RescTensor::operator[](qtnh::tidx_tup loc_idxs) const {
-    return (bc_.group_id == (int)loc_idxs.at(0));
+    return (bc_.gid() == (int)loc_idxs.at(0));
   }
 
   qtnh::tel RescTensor::operator[](std::size_t i) const {
-    return (bc_.group_id == (int)i);
+    return (bc_.gid() == (int)i);
   }
 
   qtnh::tel RescTensor::at(qtnh::tidx_tup tot_idxs) const {
     auto [dis_idxs, loc_idxs] = utils::split_dims(tot_idxs, dis_dims_.size());
-    if (bc_.group_id != (int)utils::idxs_to_i(dis_idxs, dis_dims_)) {
+    if (bc_.gid() != (int)utils::idxs_to_i(dis_idxs, dis_dims_)) {
       throw std::invalid_argument("Element at given indices is not present on calling rank. ");
     }
 
@@ -580,7 +584,7 @@ namespace qtnh {
 
 
   RescTensor* RescTensor::rebcast(BcParams params) {
-    Broadcaster new_bc(bc_.env, bc_.base, params);
+    Broadcaster new_bc(bc_.env(), bc_.base(), params);
     bc_ = std::move(new_bc);
 
     return this;

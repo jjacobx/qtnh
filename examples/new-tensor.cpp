@@ -16,32 +16,32 @@ int main() {
   tptr tp1 = DenseTensor::make(env, {}, { 2, 2, 2 }, std::vector<tel>(els1));
   tptr tp2 = DenseTensor::make(env, {}, { 4, 2 }, std::vector<tel>(els2));
 
-  if (tp1->bc().active) {
+  if (tp1->bc().isActive()) {
     std::cout << env.proc_id << " | T1[0] = " << (*tp1)[0] << "\n";
   }
-  if (tp2->bc().active) {
+  if (tp2->bc().isActive()) {
     std::cout << env.proc_id << " | T2[0] = " << (*tp2)[0] << "\n";
   }
   
   tp1 = Tensor::rescatter(std::move(tp1), 1);
-  if (tp1->bc().active) {
+  if (tp1->bc().isActive()) {
     std::cout << env.proc_id << " | T1[0] (scatter 1) = " << (*tp1)[0] << "\n";
   }
 
   auto params = ConParams({{ 1, 1 }});
   tptr tp3 = pcon(std::move(tp1), std::move(tp2), params).contract();
-  if (tp3->bc().active) {
+  if (tp3->bc().isActive()) {
     std::cout << env.proc_id << " | T3[0] = " << (*tp3)[0] << "\n";
   }
 
   tp1 = DenseTensor::make(env, {}, { 2, 2, 2 }, std::vector<tel>(els1));
   tp1 = Tensor::rescatter(std::move(tp1), 2);
-  if (tp1->bc().active) {
+  if (tp1->bc().isActive()) {
     std::cout << env.proc_id << " | T1[0] (scatter 2) = " << (*tp1)[0] << "\n";
   }
 
   tp1 = Tensor::rescatter(std::move(tp1), -2);
-  if (tp1->bc().active) {
+  if (tp1->bc().isActive()) {
     std::cout << env.proc_id << " | T1[0] (gather 2) = " << (*tp1)[0] << "\n";
   }
 

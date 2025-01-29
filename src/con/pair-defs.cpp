@@ -103,7 +103,7 @@ namespace qtnh {
 
     auto align_str = (qtnh::uint)utils::dims_to_size(dis_dims2);
     auto align_cyc = (qtnh::uint)utils::dims_to_size(dis_dims1);
-    auto align_off = std::min(tp1_->bc().off, tp2_->bc().off);
+    auto align_off = std::min(tp1_->bc().params().off, tp2_->bc().params().off);
     tp1_ = Tensor::cast<DenseTensor>(Tensor::rebcast(std::move(tp1_), { align_str, 1, align_off }));
     tp2_ = Tensor::cast<DenseTensor>(Tensor::rebcast(std::move(tp2_), { 1, align_cyc, align_off }));
 
@@ -163,13 +163,13 @@ namespace qtnh {
     );
 
     std::size_t loc_size = 0;
-    if (tp1_->bc().active && tp2_->bc().active) {
+    if (tp1_->bc().isActive() && tp2_->bc().isActive()) {
       loc_size = utils::dims_to_size(ti3.cut("distributed").dims());
     }
 
     auto els = std::vector<qtnh::tel>(loc_size);
     DenseTensor t3 { 
-      tp1_->bc().env, 
+      tp1_->bc().env(), 
       ti3.cut("local").dims(), 
       ti3.keep("local").dims(), 
       std::move(els), 
@@ -179,7 +179,7 @@ namespace qtnh {
     ti1 = ti1.cut("distributed").cut("reduced");
     ti2 = ti2.cut("distributed").cut("reduced");
 
-    if (t3.bc().active) {
+    if (t3.bc().isActive()) {
       auto it3 = ti3.keep("local").num("local").begin();
       for (auto idxs1 : ti1.tup("local")) {
         for (auto idxs2 : ti2.tup("local")) {
@@ -213,7 +213,7 @@ namespace qtnh {
       }
 
       // STEP 4: All-reduce distributed wires. 
-      auto dis_idxs = utils::i_to_idxs(t3.bc().group_id, t3.disDims());
+      auto dis_idxs = utils::i_to_idxs(t3.bc().gid(), t3.disDims());
       for (auto i = 0u; i < dis_idxs.size(); ++i) {
         if (ti3.ifls().at(i).label == "reduced") dis_idxs.at(i) = 0;
       }
@@ -223,7 +223,7 @@ namespace qtnh {
       // ! Expect MPI memory limit issues. 
       // ! Can be performed multiple times with offset for larger arrays. 
       MPI_Comm allr_comm;
-      MPI_Comm_split(t3.bc().group_comm, colour, t3.bc().group_id, &allr_comm);
+      MPI_Comm_split(t3.bc().gcomm(), colour, t3.bc().gid(), &allr_comm);
       MPI_Allreduce(MPI_IN_PLACE, t3.loc_els_.data(), int(loc_size), MPI_C_DOUBLE_COMPLEX, MPI_SUM, allr_comm);
       MPI_Comm_free(&allr_comm);
     }
@@ -248,7 +248,7 @@ namespace qtnh {
     auto [new_dis_dims, virtual_dims] = utils::split_dims(t3.disDims(), t3.disDims().size() - ndis_cons);
     BcParams new_params { static_cast<qtnh::uint>(utils::dims_to_size(virtual_dims)), 1, align_off };
 
-    return DenseTensor::make(t3.bc().env, new_dis_dims, t3.locDims(), std::move(t3.loc_els_), new_params);
+    return DenseTensor::make(t3.bc().env(), new_dis_dims, t3.locDims(), std::move(t3.loc_els_), new_params);
   }
 
   template<> qtnh::tptr PairContractor<DenseTensor, SymmTensor>::contract() {
@@ -361,7 +361,7 @@ namespace qtnh {
 
     auto align_str = (qtnh::uint)utils::dims_to_size(dis_dims_out2);
     auto align_cyc = (qtnh::uint)utils::dims_to_size(dis_dims1);
-    auto align_off = std::min(tp1->bc().off, tp2->bc().off);
+    auto align_off = std::min(tp1->bc().params().off, tp2->bc().params().off);
     tp1 = Tensor::rebcast(std::move(tp1), { align_str, 1, align_off });
     tp2 = Tensor::rebcast(std::move(tp2), { 1, align_cyc, align_off });
 
