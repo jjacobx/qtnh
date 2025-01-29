@@ -24,8 +24,8 @@ int main() {
   double send_buffer[SIZE];
   double recv_buffer[SIZE];
 
-  for (int i = 0; i < SIZE; ++i) {
-    send_buffer[i] = i;
+  for (auto i = 0UL; i < SIZE; ++i) {
+    send_buffer[i] = static_cast<double>(i);
     recv_buffer[i] = 0;
   }
 
