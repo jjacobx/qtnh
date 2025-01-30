@@ -39,12 +39,15 @@ namespace qtnh {
   class Broadcaster {
     public:
       Broadcaster() = delete;
+      Broadcaster(Broadcaster& bc) = delete;
+
       Broadcaster(Broadcaster&& bc);
       Broadcaster(const QTNHEnv& env, qtnh::uint base, BcParams params);
       Broadcaster(const QTNHEnv& env, qtnh::uint base, BcParams params, bool create_comm);
       ~Broadcaster();
 
       Broadcaster& operator=(Broadcaster&& b) noexcept;
+      Broadcaster& operator=(Broadcaster& b) = delete;
 
       constexpr qtnh::uint base() const { return base_; }
       constexpr bool hasComm() const { return has_comm_; }
@@ -52,7 +55,7 @@ namespace qtnh {
       constexpr int gid() const { return gid_; }
 
       const QTNHEnv& env() const {return env_; }
-      const MPI_Comm& gcomm() const { return gcomm_; }
+      const MPI_Comm& gcomm();
 
       /// @brief Helper to return all params at once. 
       /// @return Broadcaster parameters struct. 

@@ -6,6 +6,10 @@
 #include "tensor/tensor.hpp"
 #include "tensor/indexing.hpp"
 
+#ifndef AUTO_COMM_INIT
+#define AUTO_COMM_INIT 0
+#endif
+
 namespace qtnh {
   Tensor::Tensor(const QTNHEnv& env) 
     : Tensor(env, qtnh::tidx_tup(), qtnh::tidx_tup()) {}
@@ -14,7 +18,8 @@ namespace qtnh {
     : Tensor(env, dis_dims, loc_dims, BcParams { 1, 1, 0 }) {}
 
   Tensor::Tensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, BcParams params)
-    : dis_dims_(dis_dims), loc_dims_(loc_dims), bc_(env, qtnh::uint(utils::dims_to_size(dis_dims)), params, true) {}
+    : dis_dims_(dis_dims), loc_dims_(loc_dims), 
+      bc_(env, qtnh::uint(utils::dims_to_size(dis_dims)), params, AUTO_COMM_INIT) {}
 
   template<> 
   bool Tensor::canConvert<DenseTensor>() {
@@ -53,14 +58,10 @@ namespace qtnh {
     return el;
   }
 
-  Broadcaster::Broadcaster(Broadcaster&& bc)
-    : Broadcaster(bc.env_, bc.base_, bc.params(), false) {
-    is_active_ = bc.is_active_;
-    if (bc.has_comm_) {
-      gcomm_ = MPI_COMM_NULL;
-      std::swap(gcomm_, bc.gcomm_);
-      has_comm_ = true;
-    }
+  Broadcaster::Broadcaster(Broadcaster&& b)
+    : Broadcaster(b.env_, b.base_, b.params(), false) {
+    std::swap(gcomm_, b.gcomm_);
+    std::swap(has_comm_, b.has_comm_);
   }
 
   Broadcaster::Broadcaster(const QTNHEnv &env, qtnh::uint base, BcParams params)
@@ -70,33 +71,36 @@ namespace qtnh {
     : env_(env), base_(base), str_(params.str), cyc_(params.cyc), off_(params.off) {
     int rel_id = env.proc_id - off_; // ! relative ID may be negative
     is_active_ = (rel_id >= 0) && (rel_id < (int)(str_ * cyc_ * base_));
-
+    if (is_active_) gid_ = (rel_id / str_) % base_;
     if (communicate) createComm();
+    // if (env.proc_id == 0) std::cout << "Communicate: " << communicate << "\n";
   }
 
   Broadcaster& Broadcaster::operator=(Broadcaster&& b) noexcept {
-    base_ = b.base_;
-    str_ = b.str_;
-    cyc_ = b.cyc_;
-    off_ = b.off_;
+    std::swap(base_, b.base_);
+    std::swap(str_, b.str_);
+    std::swap(cyc_, b.cyc_);
+    std::swap(off_, b.off_);
 
-    if (gcomm_ != MPI_COMM_NULL)
-      MPI_Comm_free(&gcomm_);
+    std::swap(gid_, b.gid_);
+    std::swap(is_active_, b.is_active_);
 
-    gcomm_ = MPI_COMM_NULL;
+    // ! The moved broadcaster should be deleted. 
+    // ! Swapping communicators will hopefully free the old one. 
     std::swap(gcomm_, b.gcomm_);
-
-    gid_ = b.gid_;
-    is_active_ = b.is_active_;
-    has_comm_ = b.has_comm_;
+    std::swap(has_comm_, b.has_comm_);
 
     return *this;
   }
 
-  
   // In case there is a limited communicator pool, they should be actively freed
   Broadcaster::~Broadcaster() {
     deleteComm();
+  }
+
+  const MPI_Comm& Broadcaster::gcomm() {
+    if (!has_comm_) createComm();
+    return gcomm_;
   }
 
   void Broadcaster::createComm() {
@@ -121,7 +125,14 @@ namespace qtnh {
       int rel_id = env_.proc_id - off_;
       int colour = (rel_id / (base_ * str_)) * str_ + rel_id % str_;
       MPI_Comm_split(active_comm, colour, rel_id, &gcomm_);
-      MPI_Comm_rank(gcomm_, &gid_);
+
+      // TODO: Remove if everything works well. 
+      int test_gid;
+      MPI_Comm_rank(gcomm_, &test_gid);
+      if (gid_ != test_gid) {
+        std::cout << "gid = " << gid_ << " but should be " << test_gid << "\n";
+        MPI_Abort(gcomm_, 25);
+      }
 
       MPI_Comm_free(&active_comm);
     }
