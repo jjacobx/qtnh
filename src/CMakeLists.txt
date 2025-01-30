@@ -82,13 +82,6 @@ target_link_libraries(qtnh
   ${MATH_LIBRARY}
 )
 
-if(OpenMP_FOUND)
-  target_link_libraries(qtnh
-    PUBLIC
-    OpenMP::OpenMP_CXX
-  )
-endif()
-
 if(MPI_FOUND)
   target_link_libraries(qtnh
     PUBLIC
