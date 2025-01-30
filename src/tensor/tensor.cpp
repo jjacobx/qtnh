@@ -184,5 +184,9 @@ namespace qtnh {
 
       return out;
     }
+
+    bool operator==(const BcParams& p1,const BcParams& p2) {
+      return (p1.str == p2.str) && (p1.cyc == p2.cyc) && (p1.off == p2.off);
+    }
   }
 }
