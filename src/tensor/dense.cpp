@@ -113,7 +113,10 @@ namespace qtnh {
   }
 
   DenseTensor* DenseTensor::rebcast(BcParams params) {
-    bc_ = _rebcast_internal(this, params);
+    using namespace qtnh::ops;
+    auto invariant = (params == bc_.params());
+
+    if (!invariant) bc_ = _rebcast_internal(this, params);
     return this;
   }
 
@@ -136,7 +139,15 @@ namespace qtnh {
   }
 
   DenseTensor* DenseTensor::permute(std::vector<qtnh::tidx_tup_st> ptup) {
-    bc_ = _permute_internal(this, ptup);
+    auto invariant = true;
+    for (auto i = 0UL; i < ptup.size(); ++i) {
+      if (ptup.at(i) != i) {
+        invariant = false;
+        break;
+      }
+    }
+
+    if (!invariant) bc_ = _permute_internal(this, ptup);
     return this;
   }
 
