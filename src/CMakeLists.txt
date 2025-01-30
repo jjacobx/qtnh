@@ -61,11 +61,12 @@ if (FSANITIZE)
   )
 endif()
 
-option(DEF_STENSOR_BCAST "Broadcast shared tensors from root." 1)
-if (NOT DEF_STENSOR_BCAST)
+option(AUTO_COMM_INIT "Automatically activate tensors." OFF)
+if (AUTO_COMM_INIT)
+  message(STATUS "Enabling automatic tensor activation.")
   target_compile_options(qtnh
     PRIVATE
-    -DDEF_STENSOR_BCAST=0
+    -DAUTO_COMM_INIT=1
   )
 endif()
 
