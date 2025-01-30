@@ -1,9 +1,11 @@
+#include <chrono>
 #include <iostream>
 #include "qtnh.hpp"
 
 using namespace qtnh;
 using namespace qtnh::ops;
 
+using namespace std::chrono;
 using namespace std::complex_literals;
 
 uint Q0(const QTNHEnv& env, TensorNetwork& tn) {
@@ -149,11 +151,20 @@ int main(int argc, char* argv[]) {
 
   if (utils::is_root()) std::cout << "Starting contraction\n";
 
+  utils::barrier();
+  auto start = high_resolution_clock::now();
+
   auto tid = tn.contractAll(con_ord);
   auto tp = tn.extract(tid);
 
+  utils::barrier();
+  auto stop = high_resolution_clock::now();
+
   if (utils::is_root()) {
     std::cout << env.proc_id << " | T[0] = " << (*tp)[0] << "\n";
+    
+    auto delta = duration_cast<milliseconds>(stop - start);
+    std::cout << "Time taken: " << delta.count() << " ms\n";
   }
 
   return 0;
