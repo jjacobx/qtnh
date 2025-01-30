@@ -155,21 +155,7 @@ namespace qtnh {
   }
 
   DenseTensor* DenseTensor::permute(std::vector<qtnh::tidx_tup_st> ptup) {
-    _permute_internal(this, ptup);
-
-    qtnh::tidx_tup new_dims(totDims().size());
-    for (std::size_t i = 0; i < new_dims.size(); ++i) {
-      new_dims.at(ptup.at(i)) = totDims().at(i);
-    }
-    
-
-    auto [new_dis_dims, new_loc_dims] = utils::split_dims(new_dims, disDims().size());
-    dis_dims_ = new_dis_dims;
-    loc_dims_ = new_loc_dims;
-
-    Broadcaster new_bc(bc().env(), qtnh::uint(disSize()), bc_.params());
-    bc_ = std::move(new_bc);
-
+    bc_ = _permute_internal(this, ptup);
     return this;
   }
 
@@ -436,7 +422,7 @@ namespace qtnh {
     return { send_type, recv_type };
   }
 
-  void TIDense::_permute_internal(Tensor* target, std::vector<qtnh::tidx_tup_st> ptup) {
+  Broadcaster TIDense::_permute_internal(Tensor* target, std::vector<qtnh::tidx_tup_st> ptup) {
     #ifdef DEBUG
       utils::barrier();
       if (utils::is_root()) {
@@ -471,7 +457,10 @@ namespace qtnh {
     // ! The broadcaster will fail if cyc > 1 and new base is of different size. 
     // ! Might need to re-bcast to cyc = 1 in such case. 
     auto& old_bc = target->bc();
-    Broadcaster new_bc(old_bc.env(), qtnh::uint(utils::dims_to_size(new_dis_dims)), old_bc.params());
+    auto& new_bc = old_bc;
+    if (!utils::compatible(old_dis_dims, new_dis_dims)) {
+     new_bc = Broadcaster(old_bc.env(), qtnh::uint(utils::dims_to_size(new_dis_dims)), old_bc.params());
+    }
 
     auto max_base = std::max(old_bc.base(), new_bc.base());
     auto max_gid = (qtnh::uint)std::max(old_bc.gid(), new_bc.gid());
@@ -537,6 +526,8 @@ namespace qtnh {
 
     MPI_Type_free(&send_type);
     MPI_Type_free(&recv_type);
+
+    return Broadcaster(std::move(new_bc));
   }
 
   void TIDense::_shift_internal(Tensor* target, qtnh::tidx_tup_st from, qtnh::tidx_tup_st to, int offset) {
