@@ -176,5 +176,13 @@ namespace qtnh {
 
       return out;
     }
+
+    std::ostream& operator<<(std::ostream& out, const Broadcaster& o) {
+      out << "Bcaster [base: " << o.base() << ", ";
+      out << "params: { " << o.params().str << ", " << o.params().cyc << ", " << o.params().off;
+      out << " }]";
+
+      return out;
+    }
   }
 }

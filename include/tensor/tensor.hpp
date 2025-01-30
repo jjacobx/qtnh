@@ -285,6 +285,7 @@ namespace qtnh {
   namespace ops {
     /// Print tensor elements via std::cout. 
     std::ostream& operator<<(std::ostream&, const Tensor&);
+    std::ostream& operator<<(std::ostream&, const Broadcaster&);
   }
 }
 
