@@ -172,6 +172,7 @@ namespace qtnh {
       #endif
 
       if (utils::is_root()) {
+        // if (utils::is_root()) std::cout << "Communicators: " << tp1->bc().env().num_comms << "\n";
         std::cout << "Contracted " << bond_counter - bonds_.size() << "/" << bond_counter << " bonds\n";
       }
     }
