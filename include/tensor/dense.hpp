@@ -19,11 +19,11 @@ namespace qtnh {
       virtual ~TIDense() = default;
 
     protected:
-      void _swap_internal(Tensor* target, qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2);
-      void _rebcast_internal(Tensor* target, BcParams params);
-      void _rescatter_internal(Tensor* target, int offset);
+      Broadcaster _swap_internal(Tensor* target, qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2);
+      Broadcaster _rebcast_internal(Tensor* target, BcParams params);
+      Broadcaster _rescatter_internal(Tensor* target, int offset);
       Broadcaster _permute_internal(Tensor* target, std::vector<tidx_tup_st> ptup);
-      void _shift_internal(Tensor* target, qtnh::tidx_tup_st from, qtnh::tidx_tup_st to, int offset);
+      Broadcaster _shift_internal(Tensor* target, qtnh::tidx_tup_st from, qtnh::tidx_tup_st to, int offset);
 
       std::vector<qtnh::tel> loc_els_;  ///< Local elements. 
   };
