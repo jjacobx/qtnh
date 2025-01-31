@@ -8,7 +8,7 @@
 
 
 namespace qtnh {
-  void _local_contraction(Tensor* tp1, Tensor* tp2, Tensor* tp3, TIndexing ti1, TIndexing ti2, TIndexing ti3) {
+  void _local_contraction(Tensor* tp1, Tensor* tp2, DenseTensor* tp3, TIndexing ti1, TIndexing ti2, TIndexing ti3) {
     auto it3 = ti3.keep("local").num("local").begin();
     for (auto idxs1 : ti1.tup("local")) {
       for (auto idxs2 : ti2.tup("local")) {
