@@ -10,10 +10,17 @@
 #SBATCH --account=d35-ja
 #SBATCH --partition=standard
 #SBATCH --qos=standard
-#SBATCH --output=out/%j.out
+#SBATCH --output=out/map/%j.out
 
 # Load modules
 module load forge
+
+# Set MPI implementation
+: ${MPI_IMPL=OFI}
+if [ "$MPI_IMPL" == "UCX" ]; then
+  module load craype-network-ucx &> /dev/null
+  module load cray-mpich-ucx &> /dev/null
+fi
 
 # Disable leak sanitier for MPI libs
 export LSAN_OPTIONS=suppressions=lsan.supp,print_suppressions=0
@@ -30,14 +37,14 @@ echo "SLURM_JOB_ID=${SLURM_JOB_ID}"
 echo "SLURM_JOB_NAME=${SLURM_JOB_NAME}"
 echo "SLURM_JOB_NUM_NODES=${SLURM_JOB_NUM_NODES}"
 echo "SLURM_NTASKS=${SLURM_NTASKS}"
-echo "OMP_NUM_THREADS=${OMP_NUM_THREADS}"
+echo "MPI_IMPL=${MPI_IMPL}"
 echo
 
 # Set launch parameters
-PROG=permute
-NQUBITS=23
-DQUBITS=3
-NITER=1000
+: ${PROG=permute}
+: ${NQUBITS=23}
+: ${DQUBITS=3}
+: ${NITER=1000}
 DIR=../build/examples/bench
 EXE="$DIR/$PROG $NQUBITS $DQUBITS $NITER"
 MPI_ARGS="--distribution=block:block --hint=nomultithread"
