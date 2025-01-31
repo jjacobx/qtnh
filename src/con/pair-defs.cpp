@@ -8,6 +8,41 @@
 
 
 namespace qtnh {
+  void _local_contraction(Tensor* tp1, Tensor* tp2, Tensor* tp3, TIndexing ti1, TIndexing ti2, TIndexing ti3) {
+    auto it3 = ti3.keep("local").num("local").begin();
+    for (auto idxs1 : ti1.tup("local")) {
+      for (auto idxs2 : ti2.tup("local")) {
+        qtnh::tel el3 = 0.0;
+
+        #ifdef DEBUG
+          using namespace qtnh::ops;
+          std::cout << t3.bc().env.proc_id << " | t3[" << *it3 << "] = ";
+        #endif
+
+        auto it1 = ti1.num("closed", idxs1);
+        auto it2 = ti2.num("closed", idxs2);
+        while(it1 != it1.end() && it2 != it2.end()) {
+          #ifdef DEBUG
+            std::cout << "t1[" << *it1 << "] * t2[" << *it2 << "]";
+          #endif
+
+          el3 += (*tp1)[*(it1++)] * (*tp2)[*(it2++)];
+
+          #ifdef DEBUG
+            if (it1 != it1.end() && it2 != it2.end()) std::cout << " + ";
+          #endif
+        }
+
+        (*tp3)[*(it3++)] = el3;
+
+        #ifdef DEBUG
+          std::cout << " = " << el3  << std::endl;
+        #endif
+      }
+    }
+  }
+
+
   template<> qtnh::tptr PairContractor<DenseTensor, DenseTensor>::contract() {
     #ifdef DEBUG
       if (utils::is_root())
@@ -180,37 +215,7 @@ namespace qtnh {
     ti2 = ti2.cut("distributed").cut("reduced");
 
     if (t3.bc().isActive()) {
-      auto it3 = ti3.keep("local").num("local").begin();
-      for (auto idxs1 : ti1.tup("local")) {
-        for (auto idxs2 : ti2.tup("local")) {
-          qtnh::tel el3 = 0.0;
-
-          #ifdef DEBUG
-            using namespace qtnh::ops;
-            std::cout << t3.bc().env.proc_id << " | t3[" << *it3 << "] = ";
-          #endif
-
-          auto it1 = ti1.num("closed", idxs1);
-          auto it2 = ti2.num("closed", idxs2);
-          while(it1 != it1.end() && it2 != it2.end()) {
-            #ifdef DEBUG
-              std::cout << "t1[" << *it1 << "] * t2[" << *it2 << "]";
-            #endif
-
-            el3 += (*tp1_)[*(it1++)] * (*tp2_)[*(it2++)];
-
-            #ifdef DEBUG
-              if (it1 != it1.end() && it2 != it2.end()) std::cout << " + ";
-            #endif
-          }
-
-          t3[*(it3++)] = el3;
-
-          #ifdef DEBUG
-            std::cout << " = " << el3  << std::endl;
-          #endif
-        }
-      }
+      _local_contraction(tp1_.get(), tp2_.get(), &t3, ti1, ti2, ti3);
 
       if (ndis_cons > 0) {
         // STEP 4: All-reduce distributed wires. 
