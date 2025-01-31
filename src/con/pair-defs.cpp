@@ -212,20 +212,22 @@ namespace qtnh {
         }
       }
 
-      // STEP 4: All-reduce distributed wires. 
-      auto dis_idxs = utils::i_to_idxs(t3.bc().gid(), t3.disDims());
-      for (auto i = 0u; i < dis_idxs.size(); ++i) {
-        if (ti3.ifls().at(i).label == "reduced") dis_idxs.at(i) = 0;
-      }
-      
-      auto colour = int(utils::idxs_to_i(dis_idxs, t3.disDims()));
+      if (ndis_cons > 0) {
+        // STEP 4: All-reduce distributed wires. 
+        auto dis_idxs = utils::i_to_idxs(t3.bc().gid(), t3.disDims());
+        for (auto i = 0u; i < dis_idxs.size(); ++i) {
+          if (ti3.ifls().at(i).label == "reduced") dis_idxs.at(i) = 0;
+        }
+        
+        auto colour = int(utils::idxs_to_i(dis_idxs, t3.disDims()));
 
-      // ! Expect MPI memory limit issues. 
-      // ! Can be performed multiple times with offset for larger arrays. 
-      MPI_Comm allr_comm;
-      MPI_Comm_split(t3.bc().gcomm(), colour, t3.bc().gid(), &allr_comm);
-      MPI_Allreduce(MPI_IN_PLACE, t3.loc_els_.data(), int(loc_size), MPI_C_DOUBLE_COMPLEX, MPI_SUM, allr_comm);
-      MPI_Comm_free(&allr_comm);
+        // ! Expect MPI memory limit issues. 
+        // ! Can be performed multiple times with offset for larger arrays. 
+        MPI_Comm allr_comm;
+        MPI_Comm_split(t3.bc().gcomm(), colour, t3.bc().gid(), &allr_comm);
+        MPI_Allreduce(MPI_IN_PLACE, t3.loc_els_.data(), int(loc_size), MPI_C_DOUBLE_COMPLEX, MPI_SUM, allr_comm);
+        MPI_Comm_free(&allr_comm);
+      }
     }
 
     // STEP 5: Convert virtual index to stretch factor. 
