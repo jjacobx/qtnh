@@ -32,6 +32,14 @@ if (CMAKE_BUILD_TYPE MATCHES Debug)
   )
 endif()
 
+if (CMAKE_BUILD_TYPE MATCHES Release)
+  message(STATUS "Optimisations set to O3.")
+  target_compile_options(qtnh
+    PRIVATE
+    -O3
+  )
+endif()
+
 option(MAP "Turn on ARM MAP profiling" OFF)
 if (MAP)
   message(STATUS "ARM MAP profiling enabled.")
