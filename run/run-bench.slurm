@@ -38,7 +38,7 @@ echo "OMP_NUM_THREADS=${OMP_NUM_THREADS}"
 echo
 
 # Set launch parameters
-PROG=permute
+PROG=contract
 DIR=../build/examples/bench
 NQUBITS=26
 DQUBITS=8
