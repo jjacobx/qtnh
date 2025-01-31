@@ -3,17 +3,15 @@
 # Slurm job options (job-name, compute nodes, job time)
 #SBATCH --job-name=qtnh
 #SBATCH --time=0:20:0
-#SBATCH --nodes=1
-#SBATCH --ntasks-per-node=8
+#SBATCH --nodes=8
+#SBATCH --ntasks-per-node=128
 #SBATCH --cpus-per-task=1
 
+# Replace [budget code] below with your budget code (e.g. t01)
 #SBATCH --account=d35-ja
 #SBATCH --partition=standard
 #SBATCH --qos=standard
-#SBATCH --output=out/map/%j.out
-
-# Load modules
-module load forge
+#SBATCH --output=out/qft/%j.out
 
 # Set MPI implementation
 : ${MPI_IMPL=OFI}
@@ -40,16 +38,38 @@ echo "SLURM_NTASKS=${SLURM_NTASKS}"
 echo "MPI_IMPL=${MPI_IMPL}"
 echo
 
+# Print git info
+echo "Git info: "
+echo "Abbr. hash: $(git log -n 1 --format=%h)"
+echo "Commit message: $(git log -n 1 --format=%s)"
+echo "Commit date: $(git log -n 1 --format=%cs)"
+echo "Branch: $(git branch --show-current)"
+echo
+
 # Set launch parameters
-: ${PROG=permute}
-: ${NQUBITS=23}
-: ${DQUBITS=3}
-: ${NITER=1000}
-DIR=../build/examples/bench
-EXE="$DIR/$PROG $NQUBITS $DQUBITS $NITER"
+: ${PROG=qft}
+: ${NQUBITS=24}
+: ${DQUBITS=8}
+DIR=../build/examples
+EXE="$DIR/$PROG $NQUBITS $DQUBITS"
 MPI_ARGS="--distribution=block:block --hint=nomultithread"
-MAP_OUT="map/run-${SLURM_JOB_ID}_${PROG}_${SLURM_NTASKS}p_${NQUBITS}q_${DQUBITS}d_${NITER}i.map"
 
 # Launch the parallel job
-echo "Running and profiling ${EXE}: "
-map -n $SLURM_NTASKS --mpi=slurm --mpiargs="$MPI_ARGS" -o "${MAP_OUT}.map" --profile $EXE
+echo "Running ${EXE}: "
+srun $MPI_ARGS $EXE
+echo "Finished running"
+echo
+
+# Wait for job stats
+sleep 10
+
+# Stats for pretty printing
+PRETTY_STATS=jobid,jobname,state,exitcode,elapsed,consumedenergy,ReqCPUFreqMax
+
+# Print useful job stats
+echo "Job stats:"
+sacct -j $SLURM_JOB_ID.0 --format=$PRETTY_STATS
+echo
+
+# Write all stats to file
+sacct -j $SLURM_JOB_ID --json > out/jobinfo/$SLURM_JOB_ID.json

@@ -27,14 +27,14 @@ namespace qtnh {
       ifls.at(i) = { "distributed", 0 };
     }
 
-    auto curr_idxs = utils::concat_dims(utils::i_to_idxs(bc_.group_id, dis_dims_), qtnh::tidx_tup(loc_dims_.size(), 0));
+    auto curr_idxs = utils::concat_dims(utils::i_to_idxs(bc_.gid(), dis_dims_), qtnh::tidx_tup(loc_dims_.size(), 0));
 
     TIndexing ti(totDims(), ifls);
     for (auto idxs : ti.tup("local", curr_idxs)) {
       els.push_back(this->at(idxs));
     }
 
-    return new SymmTensor(bc_.env, dis_dims_, loc_dims_, std::move(els), BcParams { bc_.str, bc_.cyc, bc_.off });
+    return new SymmTensor(bc_.env(), dis_dims_, loc_dims_, std::move(els), bc_.params());
   }
 
 
@@ -62,7 +62,7 @@ namespace qtnh {
 
   std::unique_ptr<Tensor> SymmTensor::copy() const noexcept {
     auto els = loc_els_;
-    auto tp = new SymmTensor(bc_.env, dis_dims_, loc_dims_, std::move(els), { bc_.str, bc_.cyc, bc_.off });
+    auto tp = new SymmTensor(bc_.env(), dis_dims_, loc_dims_, std::move(els), bc_.params());
     return std::unique_ptr<SymmTensor>(tp);
   }
 
@@ -78,7 +78,7 @@ namespace qtnh {
 
   qtnh::tel SymmTensor::at(qtnh::tidx_tup tot_idxs) const {
     auto [dis_idxs, loc_idxs] = utils::split_dims(tot_idxs, dis_dims_.size());
-    if (bc_.group_id != (int)utils::idxs_to_i(dis_idxs, dis_dims_)) {
+    if (bc_.gid() != (int)utils::idxs_to_i(dis_idxs, dis_dims_)) {
       throw std::invalid_argument("Element at given indices is not present on calling rank. ");
     }
 
@@ -87,7 +87,7 @@ namespace qtnh {
 
   qtnh::tel& SymmTensor::at(qtnh::tidx_tup tot_idxs) {
     auto [dis_idxs, loc_idxs] = utils::split_dims(tot_idxs, dis_dims_.size());
-    if (bc_.group_id != (int)utils::idxs_to_i(dis_idxs, dis_dims_)) {
+    if (bc_.gid() != (int)utils::idxs_to_i(dis_idxs, dis_dims_)) {
       throw std::invalid_argument("Element at given indices is not present on calling rank. ");
     }
 
@@ -99,7 +99,7 @@ namespace qtnh {
     auto target_id = (int)utils::idxs_to_i(dis_idxs, dis_dims_);
 
     int call_id;
-    MPI_Comm_rank(bc_.group_comm, &call_id);
+    MPI_Comm_rank(bc_.gcomm(), &call_id);
 
     if (call_id == target_id) {
       auto i = utils::idxs_to_i(loc_idxs, loc_dims_);
@@ -137,7 +137,7 @@ namespace qtnh {
     _rebcast_internal(this, params);
     
     // Update broadcaster
-    Broadcaster new_bc(bc_.env, bc_.base, params);
+    Broadcaster new_bc(bc_.env(), bc_.base(), params);
     bc_ = std::move(new_bc);
 
     return this;
@@ -160,9 +160,10 @@ namespace qtnh {
       loc_dims_.insert(loc_dims_.begin(), loc_dims_in.begin(), loc_dims_in.end());
 
       auto shift = qtnh::uint(utils::dims_to_size(loc_dims_in) * utils::dims_to_size(loc_dims_out));
-      BcParams params { bc_.str * shift, bc_.cyc, bc_.off };
+      auto params = bc_.params();
+      params.str *= shift;
 
-      Broadcaster new_bc(bc_.env, qtnh::uint(disSize()), params);
+      Broadcaster new_bc(bc_.env(), qtnh::uint(disSize()), params);
       bc_ = std::move(new_bc);
 
       // ! This works for now, but might be necessary to update broadcaster once again in some cases. 
@@ -182,8 +183,9 @@ namespace qtnh {
       dis_dims_.insert(dis_dims_.begin() + dis_size, dis_dims_in.begin(), dis_dims_in.end());
 
       auto shift = qtnh::uint(utils::dims_to_size(dis_dims_in) * utils::dims_to_size(dis_dims_out));
-      BcParams params { std::max(1U, bc_.str / shift), bc_.cyc, bc_.off };
-      Broadcaster new_bc(bc_.env, qtnh::uint(disSize()), params);
+      auto params = bc_.params();
+      params.str = std::max(1U, params.str / shift);
+      Broadcaster new_bc(bc_.env(), qtnh::uint(disSize()), params);
       bc_ = std::move(new_bc);
 
       // ! This works for now, but might be necessary to update broadcaster once again in some cases. 
@@ -228,7 +230,7 @@ namespace qtnh {
     dis_dims_ = new_dis_dims;
     loc_dims_ = new_loc_dims;
 
-    Broadcaster new_bc(bc().env, qtnh::uint(disSize()), { bc().str, bc().cyc, bc().off });
+    Broadcaster new_bc(bc_.env(), qtnh::uint(disSize()), bc_.params());
     bc_ = std::move(new_bc);
 
     return this;
@@ -242,12 +244,12 @@ namespace qtnh {
 
   std::unique_ptr<Tensor> SwapTensor::copy() const noexcept {
     auto n = dis_dims_.size() > 0 ? dis_dims_.at(0) : loc_dims_.at(0);
-    auto tp = new SwapTensor(bc_.env, n, dis_dims_.size() / 2, { bc_.str, bc_.cyc, bc_.off });
+    auto tp = new SwapTensor(bc_.env(), n, dis_dims_.size() / 2, bc_.params());
     return std::unique_ptr<SwapTensor>(tp);
   }
 
   qtnh::tel SwapTensor::operator[](qtnh::tidx_tup loc_idxs) const {
-    auto dis_idxs = utils::i_to_idxs(bc_.group_id, dis_dims_);
+    auto dis_idxs = utils::i_to_idxs(bc_.gid(), dis_dims_);
     auto tot_idxs = utils::concat_dims(dis_idxs, loc_idxs);
 
     // CASE d = 1: 
@@ -263,7 +265,7 @@ namespace qtnh {
 
   qtnh::tel SwapTensor::operator[](std::size_t i) const {
     auto loc_idxs = utils::i_to_idxs(i, loc_dims_);
-    auto dis_idxs = utils::i_to_idxs(bc_.group_id, dis_dims_);
+    auto dis_idxs = utils::i_to_idxs(bc_.gid(), dis_dims_);
     auto tot_idxs = utils::concat_dims(dis_idxs, loc_idxs);
 
     // CASE d = 1: 
@@ -279,7 +281,7 @@ namespace qtnh {
 
   qtnh::tel SwapTensor::at(qtnh::tidx_tup tot_idxs) const {
     auto [dis_idxs, loc_idxs] = utils::split_dims(tot_idxs, dis_dims_.size());
-    if (bc_.group_id != (int)utils::idxs_to_i(dis_idxs, dis_dims_)) {
+    if (bc_.gid() != (int)utils::idxs_to_i(dis_idxs, dis_dims_)) {
       throw std::invalid_argument("Element at given indices is not present on calling rank. ");
     }
 
@@ -287,7 +289,7 @@ namespace qtnh {
   }
 
   SwapTensor* SwapTensor::rebcast(BcParams params) {
-    Broadcaster new_bc(bc_.env, bc_.base, params);
+    Broadcaster new_bc(bc_.env(), bc_.base(), params);
     bc_ = std::move(new_bc);
 
     return this;

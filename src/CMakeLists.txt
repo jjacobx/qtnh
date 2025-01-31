@@ -32,6 +32,14 @@ if (CMAKE_BUILD_TYPE MATCHES Debug)
   )
 endif()
 
+if (CMAKE_BUILD_TYPE MATCHES Release)
+  message(STATUS "Optimisations set to O3.")
+  target_compile_options(qtnh
+    PRIVATE
+    -O3
+  )
+endif()
+
 option(MAP "Turn on ARM MAP profiling" OFF)
 if (MAP)
   message(STATUS "ARM MAP profiling enabled.")
@@ -61,11 +69,12 @@ if (FSANITIZE)
   )
 endif()
 
-option(DEF_STENSOR_BCAST "Broadcast shared tensors from root." 1)
-if (NOT DEF_STENSOR_BCAST)
+option(AUTO_COMM_INIT "Automatically activate tensors." OFF)
+if (AUTO_COMM_INIT)
+  message(STATUS "Enabling automatic tensor activation.")
   target_compile_options(qtnh
     PRIVATE
-    -DDEF_STENSOR_BCAST=0
+    -DAUTO_COMM_INIT=1
   )
 endif()
 
@@ -80,13 +89,6 @@ target_link_libraries(qtnh
   PUBLIC
   ${MATH_LIBRARY}
 )
-
-if(OpenMP_FOUND)
-  target_link_libraries(qtnh
-    PUBLIC
-    OpenMP::OpenMP_CXX
-  )
-endif()
 
 if(MPI_FOUND)
   target_link_libraries(qtnh

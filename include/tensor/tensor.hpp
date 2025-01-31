@@ -34,48 +34,64 @@ namespace qtnh {
       std::vector<qtnh::tidx_tup_st> dimRepls2;
   };
 
+
+  /// @brief Tensor broadcaster class responsible for handling how tensor is shared in distributed memory. 
+  class Broadcaster {
+    public:
+      Broadcaster() = delete;
+      Broadcaster(Broadcaster& bc) = delete;
+
+      Broadcaster(Broadcaster&& bc);
+      Broadcaster(const QTNHEnv& env, qtnh::uint base, BcParams params);
+      Broadcaster(const QTNHEnv& env, qtnh::uint base, BcParams params, bool create_comm);
+      ~Broadcaster();
+
+      Broadcaster& operator=(Broadcaster&& b) noexcept;
+      Broadcaster& operator=(Broadcaster& b) = delete;
+
+      constexpr qtnh::uint base() const { return base_; }
+      constexpr bool hasComm() const { return has_comm_; }
+      constexpr bool isActive() const { return is_active_; }
+      constexpr int gid() const { return gid_; }
+
+      const QTNHEnv& env() const {return env_; }
+      const MPI_Comm& gcomm();
+
+      /// @brief Helper to return all params at once. 
+      /// @return Broadcaster parameters struct. 
+      constexpr BcParams params() const { return { str_, cyc_, off_ }; }
+      /// @brief Helper to calculate span of the entire tensor across contiguous ranks. 
+      /// @return Number of contiguous ranks that store the tensor. 
+      constexpr qtnh::uint span() const { return str_ * base_ * cyc_; }
+      /// @brief Helper to calculate between which ranks the tensor is contained. 
+      /// @return A tuple containing first and last rank that store the tensor. 
+      constexpr std::pair<qtnh::uint, qtnh::uint> range() const { return { off_, off_ + span() }; }
+
+      void createComm();  ///< Initialise group communicator. 
+      void deleteComm();  ///< Free group communicator. 
+
+    private:
+      const QTNHEnv& env_;  ///< Environment to use MPI/OpenMP in. 
+      qtnh::uint base_;     ///< Base distributed size of the tensor. 
+
+      qtnh::uint str_;  ///< Number of times each local tensor chunk is repeated across contiguous processes. 
+      qtnh::uint cyc_;  ///< Number of times the entire tensor structure is repeated. 
+      qtnh::uint off_;  ///< Number of empty processes before the tensor begins. 
+
+      bool has_comm_ = false;  ///< Flag whether group communicator has been initialised. 
+
+      // The following may differ with rank so defaults are a must. 
+      bool is_active_ = false;          ///< Flag whether the tensor is stored on calling MPI rank. 
+      MPI_Comm gcomm_ = MPI_COMM_NULL;  ///< Communicator that contains exactly one copy of the tensor. 
+      int gid_ = 0;                     ///< Rank ID within current group. 
+  };
+
   /// General virtual tensor class
   class Tensor {
     public:
       Tensor() = delete;
       Tensor(const Tensor&) = delete;
       virtual ~Tensor() = default;
-
-      /// @brief Tensor broadcaster class responsible for handling how tensor is shared in distributed memory. 
-      struct Broadcaster {
-        const QTNHEnv& env;   ///< Environment to use MPI/OpenMP in. 
-        qtnh::uint base;      ///< Base distributed size of the tensor. 
-
-        qtnh::uint str;       ///< Number of times each local tensor chunk is repeated across contiguous processes. 
-        qtnh::uint cyc;       ///< Number of times the entire tensor structure is repeated. 
-        qtnh::uint off;       ///< Number of empty processes before the tensor begins. 
-
-        // The following may differ with rank so defaults are a must. 
-        bool active = false;                  ///< Flag whether the tensor is stored on calling MPI rank. 
-        MPI_Comm group_comm = MPI_COMM_NULL;  ///< Communicator that contains exactly one copy of the tensor. 
-        int group_id = 0;                     ///< Rank ID within current group. 
-
-        Broadcaster() = delete;
-        Broadcaster(const QTNHEnv& env, qtnh::uint base, BcParams params);
-        Broadcaster(const QTNHEnv& env, qtnh::uint base, BcParams params, bool create_comm);
-        ~Broadcaster();
-
-        Broadcaster& operator=(Broadcaster&& b) noexcept;
-
-        /// @brief Helper to return all params at once. 
-        /// @return Broadcaster parameters struct. 
-        constexpr BcParams params() { return { str, cyc, off }; }
-        /// @brief Helper to calculate span of the entire tensor across contiguous ranks. 
-        /// @return Number of contiguous ranks that store the tensor. 
-        constexpr qtnh::uint span() { return str * base * cyc; }
-        /// @brief Helper to calculate between which ranks the tensor is contained. 
-        /// @return A tuple containing first and last rank that store the tensor. 
-        constexpr std::pair<qtnh::uint, qtnh::uint> range() { return { off, off + span() }; }
-
-        bool has_comm = false;
-        void create_comm();
-        void delete_comm();
-      };
 
       // This can be made constexpr in C++ 20
       virtual TT type() const noexcept { return TT::tensor; }
@@ -116,6 +132,8 @@ namespace qtnh {
       
       qtnh::tidx_tup locDims() const noexcept { return loc_dims_; }
       qtnh::tidx_tup disDims() const noexcept { return dis_dims_; }
+      
+      Broadcaster& bc() noexcept { return bc_; }
       const Broadcaster& bc() const noexcept { return bc_; }
       
       /// @brief Helper to access complete tensor dimensions. 
@@ -169,13 +187,8 @@ namespace qtnh {
       /// Because of the broadcast, it is inefficient to use it too often. 
       virtual qtnh::tel fetch(qtnh::tidx_tup tot_idxs) const;
 
-      void activate() {
-        if (!bc_.has_comm) bc_.create_comm();
-      }
-
-      void deactivate() {
-        bc_.delete_comm();
-      }
+      void activate() { if (!bc_.hasComm()) bc_.createComm(); }
+      void deactivate() { bc_.deleteComm(); }
 
       /// @brief Swap indices on current tensor. 
       /// @param tp Ownership of tptr to tensor to swap. 
@@ -272,6 +285,8 @@ namespace qtnh {
   namespace ops {
     /// Print tensor elements via std::cout. 
     std::ostream& operator<<(std::ostream&, const Tensor&);
+    std::ostream& operator<<(std::ostream&, const Broadcaster&);
+    bool operator==(const BcParams& p1,const BcParams& p2);
   }
 }
 

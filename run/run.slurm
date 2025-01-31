@@ -13,8 +13,9 @@
 #SBATCH --qos=standard
 #SBATCH --output=out/%j.out
 
-if [ "$MPI_IMPL" == "ucx" ]; then
-  echo "Changing to UCX MPI implementation"
+# Set MPI implementation
+: ${MPI_IMPL=OFI}
+if [ "$MPI_IMPL" == "UCX" ]; then
   module load craype-network-ucx &> /dev/null
   module load cray-mpich-ucx &> /dev/null
 fi
@@ -34,18 +35,42 @@ echo "SLURM_JOB_ID=${SLURM_JOB_ID}"
 echo "SLURM_JOB_NAME=${SLURM_JOB_NAME}"
 echo "SLURM_JOB_NUM_NODES=${SLURM_JOB_NUM_NODES}"
 echo "SLURM_NTASKS=${SLURM_NTASKS}"
-echo "OMP_NUM_THREADS=${OMP_NUM_THREADS}"
+echo "MPI_IMPL=${MPI_IMPL}"
+echo
+
+# Print git info
+echo "Git info: "
+echo "Abbr. hash: $(git log -n 1 --format=%h)"
+echo "Commit message: $(git log -n 1 --format=%s)"
+echo "Commit date: $(git log -n 1 --format=%cs)"
+echo "Branch: $(git branch --show-current)"
 echo
 
 # Set launch parameters
-PROG=permute
+: ${PROG=permute}
+: ${NQUBITS=26}
+: ${DQUBITS=8}
+: ${NITER=100}
 DIR=../build/examples/bench
-NQUBITS=26
-DQUBITS=8
-NITER=100
 EXE="$DIR/$PROG $NQUBITS $DQUBITS $NITER"
 MPI_ARGS="--distribution=block:block --hint=nomultithread"
 
 # Launch the parallel job
 echo "Running ${EXE}: "
 srun $MPI_ARGS $EXE
+echo "Finished running"
+echo
+
+# Wait for job stats
+sleep 10
+
+# Stats for pretty printing
+PRETTY_STATS=jobid,jobname,state,exitcode,elapsed,consumedenergy,ReqCPUFreqMax
+
+# Print useful job stats
+echo "Job stats:"
+sacct -j $SLURM_JOB_ID.0 --format=$PRETTY_STATS
+echo
+
+# Write all stats to file
+sacct -j $SLURM_JOB_ID --json > out/jobinfo/$SLURM_JOB_ID.json

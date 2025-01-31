@@ -55,6 +55,7 @@ docs/
 **/.ipynb_checkpoints/
 
 # SLURM job outputs
+**/jobinfo/*
 *.out
 *.err
 

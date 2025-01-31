@@ -6,6 +6,10 @@
 #include "tensor/tensor.hpp"
 #include "tensor/indexing.hpp"
 
+#ifndef AUTO_COMM_INIT
+#define AUTO_COMM_INIT 0
+#endif
+
 namespace qtnh {
   Tensor::Tensor(const QTNHEnv& env) 
     : Tensor(env, qtnh::tidx_tup(), qtnh::tidx_tup()) {}
@@ -14,7 +18,8 @@ namespace qtnh {
     : Tensor(env, dis_dims, loc_dims, BcParams { 1, 1, 0 }) {}
 
   Tensor::Tensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, BcParams params)
-    : dis_dims_(dis_dims), loc_dims_(loc_dims), bc_(env, qtnh::uint(utils::dims_to_size(dis_dims)), params, true) {}
+    : dis_dims_(dis_dims), loc_dims_(loc_dims), 
+      bc_(env, qtnh::uint(utils::dims_to_size(dis_dims)), params, AUTO_COMM_INIT) {}
 
   template<> 
   bool Tensor::canConvert<DenseTensor>() {
@@ -30,22 +35,22 @@ namespace qtnh {
   }
 
   bool Tensor::has(qtnh::tidx_tup tot_idxs) const {
-    if (!bc_.active) return false;
+    if (!bc_.isActive()) return false;
 
     auto [dis_idxs, loc_idxs] = utils::split_dims(tot_idxs, dis_dims_.size());
 
     (void)loc_idxs; // unused
-    return (int)utils::idxs_to_i(dis_idxs, dis_dims_) == bc_.group_id;
+    return (int)utils::idxs_to_i(dis_idxs, dis_dims_) == bc_.gid();
   }
 
   qtnh::tel Tensor::fetch(qtnh::tidx_tup tot_idxs) const {
     auto [dis_idxs, loc_idxs] = utils::split_dims(tot_idxs, dis_dims_.size());
 
     auto i = utils::idxs_to_i(dis_idxs, dis_dims_);
-    auto r = i * bc_.str + bc_.off;
+    auto r = i * bc_.params().str + bc_.params().off;
 
     qtnh::tel el;
-    if (bc_.env.proc_id == r)
+    if (bc_.env().proc_id == r)
       el = (*this)[loc_idxs];
     
     MPI_Bcast(&el, 1, MPI_C_DOUBLE_COMPLEX, int(r), MPI_COMM_WORLD);
@@ -53,44 +58,52 @@ namespace qtnh {
     return el;
   }
 
-  Tensor::Broadcaster::Broadcaster(const QTNHEnv &env, qtnh::uint base, BcParams params)
-    : Broadcaster(env, base, params, true) {}
-
-  Tensor::Broadcaster::Broadcaster(const QTNHEnv &env, qtnh::uint base, BcParams params, bool communicate) 
-    : env(env), base(base), str(params.str), cyc(params.cyc), off(params.off) {
-    int rel_id = env.proc_id - off; // ! relative ID may be negative
-    active = (rel_id >= 0) && (rel_id < (int)(str * cyc * base));
-
-    if (communicate) {
-      create_comm();
-    }
+  Broadcaster::Broadcaster(Broadcaster&& b)
+    : Broadcaster(b.env_, b.base_, b.params(), false) {
+    std::swap(gcomm_, b.gcomm_);
+    std::swap(has_comm_, b.has_comm_);
   }
 
-  Tensor::Broadcaster& Tensor::Broadcaster::operator=(Broadcaster&& b) noexcept {
-    base = b.base;
-    str = b.str;
-    cyc = b.cyc;
-    off = b.off;
+  Broadcaster::Broadcaster(const QTNHEnv &env, qtnh::uint base, BcParams params)
+    : Broadcaster(env, base, params, true) {}
 
-    if (group_comm != MPI_COMM_NULL)
-      MPI_Comm_free(&group_comm);
+  Broadcaster::Broadcaster(const QTNHEnv &env, qtnh::uint base, BcParams params, bool communicate) 
+    : env_(env), base_(base), str_(params.str), cyc_(params.cyc), off_(params.off) {
+    int rel_id = env.proc_id - off_; // ! relative ID may be negative
+    is_active_ = (rel_id >= 0) && (rel_id < (int)(str_ * cyc_ * base_));
+    if (is_active_) gid_ = (rel_id / str_) % base_;
+    if (communicate) createComm();
+    // if (env.proc_id == 0) std::cout << "Communicate: " << communicate << "\n";
+  }
 
-    group_comm = MPI_COMM_NULL;
-    std::swap(group_comm, b.group_comm);
+  Broadcaster& Broadcaster::operator=(Broadcaster&& b) noexcept {
+    std::swap(base_, b.base_);
+    std::swap(str_, b.str_);
+    std::swap(cyc_, b.cyc_);
+    std::swap(off_, b.off_);
 
-    group_id = b.group_id;
-    active = false;
-    std::swap(active, b.active);
+    std::swap(gid_, b.gid_);
+    std::swap(is_active_, b.is_active_);
+
+    // ! The moved broadcaster should be deleted. 
+    // ! Swapping communicators will hopefully free the old one. 
+    std::swap(gcomm_, b.gcomm_);
+    std::swap(has_comm_, b.has_comm_);
 
     return *this;
   }
-  
+
   // In case there is a limited communicator pool, they should be actively freed
-  Tensor::Broadcaster::~Broadcaster() {
-    delete_comm();
+  Broadcaster::~Broadcaster() {
+    deleteComm();
   }
 
-  void Tensor::Broadcaster::create_comm() {
+  const MPI_Comm& Broadcaster::gcomm() {
+    if (!has_comm_) createComm();
+    return gcomm_;
+  }
+
+  void Broadcaster::createComm() {
     #ifdef DEBUG
       if (utils::is_root()) std::cout << "CREATING GROUP_COMM\n";
     #endif
@@ -99,20 +112,27 @@ namespace qtnh {
     MPI_Comm_group(MPI_COMM_WORLD, &world_group);
 
     // Create a group with active ranks. 
-    std::vector<int> active_ids(str * cyc * base);
-    std::iota(active_ids.begin(), active_ids.end(), off);
+    std::vector<int> active_ids(str_ * cyc_ * base_);
+    std::iota(active_ids.begin(), active_ids.end(), off_);
     MPI_Group active_group;
     MPI_Group_incl(world_group, int(active_ids.size()), active_ids.data(), &active_group);
 
     // Group communicator can be set up only on active ranks. 
-    if (active) {
+    if (is_active_) {
       MPI_Comm active_comm;
       MPI_Comm_create_group(MPI_COMM_WORLD, active_group, 0, &active_comm);
 
-      int rel_id = env.proc_id - off;
-      int colour = (rel_id / (base * str)) * str + rel_id % str;
-      MPI_Comm_split(active_comm, colour, rel_id, &group_comm);
-      MPI_Comm_rank(group_comm, &group_id);
+      int rel_id = env_.proc_id - off_;
+      int colour = (rel_id / (base_ * str_)) * str_ + rel_id % str_;
+      MPI_Comm_split(active_comm, colour, rel_id, &gcomm_);
+
+      // TODO: Remove if everything works well. 
+      int test_gid;
+      MPI_Comm_rank(gcomm_, &test_gid);
+      if (gid_ != test_gid) {
+        std::cout << "gid = " << gid_ << " but should be " << test_gid << "\n";
+        MPI_Abort(gcomm_, 25);
+      }
 
       MPI_Comm_free(&active_comm);
     }
@@ -121,23 +141,23 @@ namespace qtnh {
     MPI_Group_free(&active_group);
 
     ++QTNHEnv::num_comms;
-    has_comm = true;
+    has_comm_ = true;
   }
 
-  void Tensor::Broadcaster::delete_comm() {
+  void Broadcaster::deleteComm() {
     #ifdef DEBUG
       if (utils::is_root()) std::cout << "FREEING GROUP_COMM\n";
     #endif
     
-    if (group_comm != MPI_COMM_NULL) MPI_Comm_free(&group_comm);
+    if (gcomm_ != MPI_COMM_NULL) MPI_Comm_free(&gcomm_);
 
-    if (has_comm) --QTNHEnv::num_comms;
-    has_comm = false;
+    if (has_comm_) --QTNHEnv::num_comms;
+    has_comm_ = false;
   }
 
   namespace ops {
     std::ostream& operator<<(std::ostream& out, const Tensor& o) {
-      if (!o.bc().active) {
+      if (!o.bc().isActive()) {
         out << "Inactive";
         return out;
       }
@@ -155,6 +175,18 @@ namespace qtnh {
       }
 
       return out;
+    }
+
+    std::ostream& operator<<(std::ostream& out, const Broadcaster& o) {
+      out << "Bcaster [base: " << o.base() << ", ";
+      out << "params: { " << o.params().str << ", " << o.params().cyc << ", " << o.params().off;
+      out << " }]";
+
+      return out;
+    }
+
+    bool operator==(const BcParams& p1,const BcParams& p2) {
+      return (p1.str == p2.str) && (p1.cyc == p2.cyc) && (p1.off == p2.off);
     }
   }
 }

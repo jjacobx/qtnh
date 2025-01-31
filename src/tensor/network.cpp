@@ -164,7 +164,7 @@ namespace qtnh {
       #ifdef DEBUG
         utils::barrier();
         auto& t = *tensors_.at(tid);
-        if (t.bc().active) {
+        if (t.bc().isActive()) {
           using namespace ops;
           std::cout << t.bc().env.proc_id << " | T (result) = " << t << "\n";
         }
@@ -172,6 +172,7 @@ namespace qtnh {
       #endif
 
       if (utils::is_root()) {
+        // if (utils::is_root()) std::cout << "Communicators: " << tp1->bc().env().num_comms << "\n";
         std::cout << "Contracted " << bond_counter - bonds_.size() << "/" << bond_counter << " bonds\n";
       }
     }

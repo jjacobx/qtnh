@@ -1,0 +1,125 @@
+---
+title: "QTNH Benchmarking"
+author: "Jakub Adamski"
+date: '`r Sys.Date()`'
+knit: (\(inputFile, encoding) {
+        out_dir <- "rmd";
+        inputFile |> rmarkdown::render(
+          encoding = encoding, 
+          output_dir= file.path(dirname(inputFile), out_dir)
+        )
+      })
+output:
+  html_document: 
+    theme:
+      base_font:
+        google: Prompt
+      heading_font:
+        google: Proza Libre
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+setwd("~/Documents/phd/repos/qtnh/misc")
+
+library(glue)
+library(latex2exp)
+library(patchwork)
+library(tidyverse)
+
+palettes <- list(
+  presentation = RColorBrewer::brewer.pal(4, "Set1"), 
+  poster = c("#B60061", "#B68D00", "#005435", "#008AB6"), 
+  thesis = c("#B60061", "#B68D00", "#005435", "#008AB6")
+)
+bkgs <- list(
+  presentation = "#A9D3CD", 
+  poster = "#C9DC87", 
+  thesis = "#C9DC87"
+)
+
+MODE <- "thesis"
+SAVE <- FALSE
+```
+
+```{r setup-plotting, include=FALSE}
+default_theme <- theme_gray() + 
+  theme(rect = element_rect(fill = "transparent", linewidth = 0), 
+        panel.background = element_rect(fill = bkgs[[MODE]], linewidth = 0), 
+        legend.key = element_rect(fill = bkgs[[MODE]]), 
+        legend.position = "top")
+```
+
+```{r read-data}
+permute_laptop <- read_delim("res/permute-laptop.csv", delim = ',')
+permute_laptop <- select(permute_laptop, -`8p`) |>  
+  rename(`1` = `1p`, `2` = `2p`, `4` = `4p`) |> 
+  pivot_longer(`1`:`4`, names_to = "nproc", values_to = "t") |> 
+  transmute(n = qubits, nproc, t = t / 100)
+
+permute_archer2 <- read_delim("res/permute-archer2.csv", delim = ',')
+permute_archer2 <- transmute(
+  permute_archer2, 
+  n = n, 
+  t = t / 100, 
+  pe = 200 * t[[2]] / (n * t)
+)
+
+print(permute_laptop)
+print(permute_archer2)
+```
+
+```{r qtnh_laptop}
+ggplot(permute_laptop) + 
+  geom_smooth(aes(x = n, y = t, colour = nproc), fill = "gray97", level = 0, 
+              linewidth = .5, method='lm', formula = y ~ x) + 
+  geom_point(aes(x = n, y = t, colour = nproc), size = 1.6) + 
+  scale_x_continuous(breaks = 20:28, minor_breaks = 20:28) + 
+  scale_y_log10(breaks = 10 ^ (0:4), 
+                minor_breaks = c((1:9) %o% 10 ^ (0:3))) + 
+  scale_colour_manual(values = palettes[[MODE]], name = "MPI ranks") + 
+  xlab("Number of qubits") + 
+  ylab("Runtime per permute [ms]") + 
+  default_theme
+
+
+if (SAVE) {
+  ggsave(glue("plt/{MODE}/permute-runtime.pdf"), width = 5, height = 5, 
+         units = "in", scale = 1.00)
+  ggsave(glue("plt/{MODE}/permute-runtime.svg"), width = 5, height = 5, 
+         units = "in", scale = 1.00)
+}
+```
+
+```{r plot-permute-archer2}
+ggplot(permute_archer2) + 
+  geom_smooth(aes(x = n, y = t), fill = "gray97", linewidth = .5, 
+              colour = palettes[[MODE]][[1]], 
+              method='lm', formula = y ~ x) +
+  geom_point(aes(x = n, y = t), size = 1.6, colour = palettes[[MODE]][[1]]) +
+  xlab("Number of processes") + 
+  ylab("Runtime per permute [ms]") + 
+  scale_x_log10(breaks = 2 ^ (0:7), minor_breaks = 4 * (1:40)) + 
+  scale_y_log10(breaks = c(c(1, 5) %o% 10 ^ (1:3)), 
+                minor_breaks = c((1:9) %o% 10 ^ (1:3))) + 
+  default_theme
+
+ggplot(permute_archer2) + 
+  geom_line(aes(x = n, y = pe), linewidth = .5, 
+            colour = palettes[[MODE]][[1]]) + 
+  geom_point(aes(x = n, y = pe), size = 1.6, colour = palettes[[MODE]][[1]]) + 
+  xlab("Number of processes") + 
+  ylab("Parallel efficiency [%]") + 
+  ylim(c(0, 100)) + 
+  scale_x_log10(breaks = 2 ^ c(0:7), minor_breaks = 4 * (1:40)) + 
+  default_theme
+
+# if (SAVE) {
+#   ggsave(glue("plt/{MODE}/permute-runtime.pdf"), width = 5, height = 5, 
+#          units = "in", scale = 1.00)
+#   ggsave(glue("plt/{MODE}/permute-runtime.svg"), width = 5, height = 5, 
+#          units = "in", scale = 1.00)
+# }
+```
+
+

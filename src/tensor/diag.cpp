@@ -24,7 +24,7 @@ namespace qtnh {
       return true;
     }
 
-    auto dis_idxs = utils::i_to_idxs(bc_.group_id, dis_dims_);
+    auto dis_idxs = utils::i_to_idxs(bc_.gid(), dis_dims_);
     auto [dis_idxs_in, dis_idxs_out] = utils::split_dims(dis_idxs, dis_idxs.size() / 2);
     auto dis_dims_in = utils::split_dims(dis_dims_, dis_dims_.size() / 2).first;
 
@@ -48,7 +48,7 @@ namespace qtnh {
       }
     }
 
-    auto curr_dis_idxs = utils::i_to_idxs(bc_.group_id, dis_dims_);
+    auto curr_dis_idxs = utils::i_to_idxs(bc_.gid(), dis_dims_);
 
     // ! This is broken for now, as diagonal tensors are not yet implemented. 
     TIndexing ti(utils::halve_dims(locDims()));
@@ -57,7 +57,7 @@ namespace qtnh {
       els.push_back(this->at(idxs));
     }
 
-    return new DiagTensor(bc_.env, dis_dims_, loc_dims_, truncated_, std::move(els), { bc_.str, bc_.cyc, bc_.off });
+    return new DiagTensor(bc_.env(), dis_dims_, loc_dims_, truncated_, std::move(els), bc_.params());
   }
 
 
@@ -89,12 +89,12 @@ namespace qtnh {
 
   std::unique_ptr<Tensor> DiagTensor::copy() const noexcept {
     auto els = diagonal_.loc_els_;
-    auto tp = new DiagTensor(bc_.env, dis_dims_, loc_dims_, truncated_, std::move(els));
+    auto tp = new DiagTensor(bc_.env(), dis_dims_, loc_dims_, truncated_, std::move(els));
     return std::unique_ptr<DiagTensor>(tp);
   }
 
   qtnh::tel DiagTensor::operator[](qtnh::tidx_tup loc_idxs) const {
-    auto dis_idxs = utils::i_to_idxs(bc_.group_id, dis_dims_);
+    auto dis_idxs = utils::i_to_idxs(bc_.gid(), dis_dims_);
     auto [dis_idxs_in, dis_idxs_out] = utils::split_dims(dis_idxs, dis_idxs.size() / 2);
     auto [loc_idxs_in, loc_idxs_out] = utils::split_dims(loc_idxs, loc_idxs.size() / 2);
 
@@ -150,8 +150,8 @@ namespace qtnh {
     diagonal_._rebcast_internal(&diagonal_, diag_params);
 
     // Update broadcasters
-    diagonal_.bc_ = { diagonal_.bc_.env, diagonal_.bc_.base, diag_params };
-    bc_ = { bc_.env, bc_.base, params };
+    diagonal_.bc_ = { diagonal_.bc_.env(), diagonal_.bc_.base(), diag_params };
+    bc_ = { bc_.env(), bc_.base(), params };
 
     return this;
   }
@@ -167,8 +167,9 @@ namespace qtnh {
       diagonal_.loc_dims_.insert(diagonal_.loc_dims_.begin(), loc_dims2.begin(), loc_dims2.end());
       diagonal_.dis_dims_.erase(diagonal_.dis_dims_.end() + offset, diagonal_.dis_dims_.end());
 
-      BcParams out_params { diagonal_.bc_.str * shift, diagonal_.bc_.cyc, diagonal_.bc_.off };
-      diagonal_.bc_ = { diagonal_.bc_.env, (qtnh::uint)diagonal_.disSize(), out_params };
+      auto out_params = diagonal_.bc_.params();
+      out_params.str *= shift;
+      diagonal_.bc_ = { diagonal_.bc_.env(), (qtnh::uint)diagonal_.disSize(), out_params };
     } else if (offset > 0) {
       auto dis_dims2 = qtnh::tidx_tup(diagonal_.loc_dims_.begin(), diagonal_.loc_dims_.begin() + offset);
       auto shift = utils::dims_to_size(dis_dims2);
@@ -177,11 +178,13 @@ namespace qtnh {
       diagonal_.dis_dims_.insert(diagonal_.dis_dims_.end(), dis_dims2.begin(), dis_dims2.end());
 
       // Resize base of broadcaster first. Have to re-create the communicator. 
-      diagonal_.bc_ = { diagonal_.bc_.env, (qtnh::uint)diagonal_.disSize(), diagonal_.bc_.params() };
+      diagonal_.bc_ = { diagonal_.bc_.env(), (qtnh::uint)diagonal_.disSize(), diagonal_.bc_.params() };
 
-      BcParams out_params { (qtnh::uint)std::max(1UL, diagonal_.bc_.str / shift), diagonal_.bc_.cyc * (qtnh::uint)shift, diagonal_.bc_.off };
+      auto out_params = diagonal_.bc_.params();
+      out_params.str = (qtnh::uint)std::max(1UL, out_params.str / shift);
+      out_params.cyc *= (qtnh::uint)shift;
       diagonal_._rebcast_internal(&diagonal_, out_params);
-      diagonal_.bc_ = { diagonal_.bc_.env, (qtnh::uint)diagonal_.disSize(), out_params };
+      diagonal_.bc_ = { diagonal_.bc_.env(), (qtnh::uint)diagonal_.disSize(), out_params };
     }
 
     dis_dims_ = utils::concat_dims(diagonal_.disDims(), diagonal_.disDims());
@@ -195,7 +198,7 @@ namespace qtnh {
       dis_size *= dis_size;
     }
 
-    bc_ = { bc_.env, (qtnh::uint)dis_size, params };
+    bc_ = { bc_.env(), (qtnh::uint)dis_size, params };
     
     return this;
   }
@@ -207,7 +210,7 @@ namespace qtnh {
     diag_params.cyc /= qtnh::uint(diagonal_.disSize());
 
     diagonal_._rebcast_internal(&diagonal_, diag_params);
-    diagonal_.bc_ = { diagonal_.bc_.env, diagonal_.bc_.base, diag_params };
+    diagonal_.bc_ = { diagonal_.bc_.env(), diagonal_.bc_.base(), diag_params };
 
     truncated_ = true;
     return this;
@@ -220,7 +223,7 @@ namespace qtnh {
     diag_params.cyc *= qtnh::uint(diagonal_.disSize());
 
     diagonal_._rebcast_internal(&diagonal_, diag_params);
-    diagonal_.bc_ = { diagonal_.bc_.env, diagonal_.bc_.base, diag_params };
+    diagonal_.bc_ = { diagonal_.bc_.env(), diagonal_.bc_.base(), diag_params };
 
     truncated_ = false;
     return this;
@@ -233,12 +236,12 @@ namespace qtnh {
     : DiagTensorBase(env, dis_dims, loc_dims, truncated, params) {}
 
   std::unique_ptr<Tensor> IdenTensor::copy() const noexcept {
-    auto tp = new IdenTensor(bc_.env, dis_dims_, loc_dims_, truncated_, { bc_.str, bc_.cyc, bc_.off });
+    auto tp = new IdenTensor(bc_.env(), dis_dims_, loc_dims_, truncated_, bc_.params());
     return std::unique_ptr<IdenTensor>(tp);
   }
 
   qtnh::tel IdenTensor::operator[](qtnh::tidx_tup loc_idxs) const {
-    auto dis_idxs = utils::i_to_idxs(bc_.group_id, dis_dims_);
+    auto dis_idxs = utils::i_to_idxs(bc_.gid(), dis_dims_);
     auto tot_idxs = utils::concat_dims(dis_idxs, loc_idxs);
 
     auto [idxs1, idxs2] = utils::split_dims(tot_idxs, tot_idxs.size() / 2);
@@ -261,7 +264,7 @@ namespace qtnh {
   }
 
   IdenTensor* IdenTensor::rebcast(BcParams params) {
-    Broadcaster new_bc(bc_.env, bc_.base, params);
+    Broadcaster new_bc(bc_.env(), bc_.base(), params);
     bc_ = std::move(new_bc);
 
     return this;
