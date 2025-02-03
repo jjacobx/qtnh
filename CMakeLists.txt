@@ -28,6 +28,9 @@ find_library(MATH_LIBRARY m REQUIRED)
 # MPI
 find_package(MPI COMPONENTS CXX REQUIRED)
 
+# ScaLAPACK
+find_package(ScaLAPACK REQUIRED)
+
 ## GTNH
 add_subdirectory(src)
 
@@ -47,4 +50,3 @@ endif()
 
 ## Examples
 add_subdirectory(examples)
-add_subdirectory(examples/bench)
