@@ -15,6 +15,7 @@ endif()
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(BUILD_SHARED_LIBS "Build shared library" ON)
+option(SKIP_ARCHER2_LIBS "Skips libraries that don't require linking on ARCHER2" OFF)
 
 
 ## Dependencies
@@ -29,9 +30,11 @@ find_library(MATH_LIBRARY m REQUIRED)
 find_package(MPI COMPONENTS CXX REQUIRED)
 
 # ScaLAPACK
-find_package(ScaLAPACK REQUIRED)
+if (NOT SKIP_ARCHER2_LIBS)
+  find_package(ScaLAPACK REQUIRED)
+endif()
 
-## GTNH
+## QTNH
 add_subdirectory(src)
 
 ## Tests
