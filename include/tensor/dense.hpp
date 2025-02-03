@@ -73,6 +73,8 @@ namespace qtnh {
       /// @param ptup Permutation tuple of the same size as total dimensions, and each entry unique. 
       /// @return Pointer to permuted tensor, which might be of a different derived type. 
       virtual Tensor* permute(std::vector<qtnh::tidx_tup_st> ptup) override;
+      // TODO: Documentation. 
+      virtual std::pair<Tensor*, Tensor*> decompose(qtnh::tidx_tup_st split) override;
   };
 
   /// Writable dense tensor class, which allows direct access to all elements. 
@@ -205,6 +207,8 @@ namespace qtnh {
       /// @param ptup Permutation tuple of the same size as total dimensions, and each entry unique. 
       /// @return Pointer to permuted tensor, which might be of a different derived type. 
       virtual DenseTensor* permute(std::vector<qtnh::tidx_tup_st> ptup) override;
+      // TODO: Documentation. 
+      virtual std::pair<Tensor*, Tensor*> decompose(qtnh::tidx_tup_st split) override;
   };
 
   /// Rank-2 rescatter tensor, which can be used to scatter/gather specific indices. 
