@@ -22,6 +22,7 @@ namespace qtnh {
 
 #include "tensor/dense.hpp"
 #include "tensor/diag.hpp"
+#include "tensor/scalapack.hpp"
 #include "tensor/indexing.hpp"
 #include "tensor/network.hpp"
 #include "tensor/symm.hpp"
