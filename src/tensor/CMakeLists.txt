@@ -4,6 +4,7 @@ target_sources(qtnh
   diag.cpp
   indexing.cpp
   network.cpp
+  scalapack.cpp
   symm.cpp
   tensor.cpp
 )
