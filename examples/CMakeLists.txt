@@ -1,3 +1,6 @@
+add_subdirectory(bench)
+add_subdirectory(test)
+
 add_executable(simple-tensor simple-tensor.cpp)
 add_dependencies(simple-tensor qtnh)
 target_link_libraries(simple-tensor qtnh)
@@ -14,26 +17,10 @@ target_compile_options(new-tensor
   -Wall
 )
 
-add_executable(mpi-tests mpi-tests.cpp)
-add_dependencies(mpi-tests qtnh)
-target_link_libraries(mpi-tests qtnh)
-target_compile_options(mpi-tests
-  PRIVATE
-  -Wall
-)
-
 add_executable(qft qft.cpp)
 add_dependencies(qft qtnh)
 target_link_libraries(qft qtnh)
 target_compile_options(qft
-  PRIVATE
-  -Wall
-)
-
-add_executable(distribution distribution.cpp)
-add_dependencies(distribution qtnh)
-target_link_libraries(distribution qtnh)
-target_compile_options(distribution
   PRIVATE
   -Wall
 )
