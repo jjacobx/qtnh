@@ -68,15 +68,17 @@ int main() {
 
   if (ictxt != -1) decomp::blacs_gridexit_(&ictxt);
 
-  els = std::vector<tel>(utils::dims_to_size(dims), 0);
-  tp = DenseTensor::make(env, {}, dims, std::move(els));
+  tidx_tup dims2 { 2, 2, 2, 2, 2, 2, 2 };
+  els = std::vector<tel>(utils::dims_to_size(dims2), 0);
+  std::iota(els.begin(), els.end(), 0);
+  tp = DenseTensor::make(env, {}, dims2, std::move(els));
   tp = Tensor::rescatter(std::move(tp), 3);
 
   // Create block matrix structure
-  // (2, 2, 2) (2, 2, 2, 2, 2) -> (2, 2; 2) (2, 2; 2, 2, 2)
-  // 2 -> 4; 0 1 3 4 2 5 6 7
+  // (2, 2, 2) (2, 2, 2, 2) -> (2, 2; 2) (2, 2; 2, 2)
+  // 2 -> 4; 0 1 3 4 2 5 6
 
-  std::vector<tidx_tup_st> ptup1(8, 0);
+  std::vector<tidx_tup_st> ptup1(7, 0);
   std::iota(ptup1.begin(), ptup1.end(), 0);
   auto pel = ptup1.at(2);
   ptup1.erase(ptup1.begin() + 2);
@@ -85,29 +87,62 @@ int main() {
   tp = Tensor::permute(std::move(tp), ptup1);
   
   // Switch to column-major form
-  // 0 1 3 4 2 5 6 7 -> 0 1 3 5 6 7 4 2
+  // 0 1 3 4 2 5 6 -> 0 1 3 5 6 4 2
 
-  std::vector<tidx_tup_st> ptup2(8, 0);
+  std::vector<tidx_tup_st> ptup2(7, 0);
   std::iota(ptup2.begin(), ptup2.end(), 0);
   auto pels = std::vector<tidx_tup_st>(ptup2.begin() + 3, ptup2.begin() + 4);
   ptup2.erase(ptup2.begin() + 3, ptup2.begin() + 4);
   ptup2.insert(ptup2.end(), pels.begin(), pels.end());
 
   tp = Tensor::permute(std::move(tp), ptup2);
+  auto dtp = Tensor::convert<DenseTensor>(std::move(tp));
+  auto mels = dtp->locElsP();
 
+  using namespace ops;
+  std::cout << "P" << env.proc_id << ": " << *dtp << "\n";
+  utils::barrier();
   
   using namespace lalg;
-
   ProcGrid pgrid(4, 2);
 
-  BlockMatrix bm(pgrid, 16, 16);
+  BlockMatrix bm(pgrid, 16, 8, mels);
   auto desc = bm.descriptor();
 
   std::cout << "P" << env.proc_id << ": ";
   for (auto i = 0UL; i < 9; ++i) {
     std::cout << desc.at(i) << ", ";
   }
-  std::cout << "\n";
+  std::cout << bm.grid().active() << "\n";
+
+  auto mdims = bm.totDims();
+  std::vector<tel> svals(8);
+
+  BlockMatrix bm_u(pgrid, 16, 8);
+  BlockMatrix bm_v(pgrid, 8, 8);
+
+  auto one = 1;
+
+  tel work2[10000];
+  int lwork2 = 10000;
+  double rwork2[10000];
+  auto info2 = -1;
+
+  if (bm.grid().active()) {
+    // Won't be modified, so must const cast. 
+    auto a_desc = bm.descriptor();
+    auto a_desc_d = const_cast<int*>(a_desc.data());
+    auto u_desc = bm_u.descriptor();
+    auto u_desc_d = const_cast<int*>(u_desc.data());
+    auto v_desc = bm_v.descriptor();
+    auto v_desc_d = const_cast<int*>(v_desc.data());
+    pzgesvd_(&jobu, &jobvt, &mdims.first, &mdims.second, bm.data(), &one, &one, a_desc_d, svals.data(), 
+            bm_u.data(), &one, &one, u_desc_d, bm_v.data(), &one, &one, v_desc_d, 
+            work2, &lwork2, rwork2, &info2);
+  }
+
+  // Needed to prevent double-freeing. 
+  bm.extractEls().release();
 
   return 0;
 }
