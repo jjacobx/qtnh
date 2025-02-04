@@ -1,4 +1,5 @@
 #include <iostream>
+#include <numeric>
 #include "qtnh.hpp"
 
 using namespace qtnh;
@@ -64,6 +65,49 @@ int main() {
   std::cout << info << "\n";
   std::cout << u_c[0] << ", " << u_c[1] << ", " << u_c[2] << ", " << u_c[3] << "\n";
   std::cout << vt_c[0] << ", " << vt_c[1] << ", " << vt_c[2] << ", " << vt_c[3] << "\n";
+
+  if (ictxt != -1) decomp::blacs_gridexit_(&ictxt);
+
+  els = std::vector<tel>(utils::dims_to_size(dims), 0);
+  tp = DenseTensor::make(env, {}, dims, std::move(els));
+  tp = Tensor::rescatter(std::move(tp), 3);
+
+  // Create block matrix structure
+  // (2, 2, 2) (2, 2, 2, 2, 2) -> (2, 2; 2) (2, 2; 2, 2, 2)
+  // 2 -> 4; 0 1 3 4 2 5 6 7
+
+  std::vector<tidx_tup_st> ptup1(8, 0);
+  std::iota(ptup1.begin(), ptup1.end(), 0);
+  auto pel = ptup1.at(2);
+  ptup1.erase(ptup1.begin() + 2);
+  ptup1.insert(ptup1.begin() + 4, pel);
+
+  tp = Tensor::permute(std::move(tp), ptup1);
+  
+  // Switch to column-major form
+  // 0 1 3 4 2 5 6 7 -> 0 1 3 5 6 7 4 2
+
+  std::vector<tidx_tup_st> ptup2(8, 0);
+  std::iota(ptup2.begin(), ptup2.end(), 0);
+  auto pels = std::vector<tidx_tup_st>(ptup2.begin() + 3, ptup2.begin() + 4);
+  ptup2.erase(ptup2.begin() + 3, ptup2.begin() + 4);
+  ptup2.insert(ptup2.end(), pels.begin(), pels.end());
+
+  tp = Tensor::permute(std::move(tp), ptup2);
+
+  
+  using namespace lalg;
+
+  ProcGrid pgrid(4, 2);
+
+  BlockMatrix bm(pgrid, 16, 16);
+  auto desc = bm.descriptor();
+
+  std::cout << "P" << env.proc_id << ": ";
+  for (auto i = 0UL; i < 9; ++i) {
+    std::cout << desc.at(i) << ", ";
+  }
+  std::cout << "\n";
 
   return 0;
 }
