@@ -23,9 +23,6 @@ option(SKIP_ARCHER2_LIBS "Skips libraries that don't require linking on ARCHER2"
 # Math
 find_library(MATH_LIBRARY m REQUIRED)
 
-# OpenMP
-# find_package(OpenMP)
-
 # MPI
 find_package(MPI COMPONENTS CXX REQUIRED)
 
@@ -38,14 +35,13 @@ endif()
 add_subdirectory(src)
 
 ## Tests
-find_package(Catch2 3.1.0 REQUIRED)
-enable_testing()
-include(CTest)
-include(Catch)
-
 option(BUILD_TESTS "Build tests" ON)
 
 if (BUILD_TESTS)
+  find_package(Catch2 3.1.0 REQUIRED)
+  enable_testing()
+  include(CTest)
+  include(Catch)
   add_subdirectory(tests)
 else()
   message(STATUS "Skipping tests")
