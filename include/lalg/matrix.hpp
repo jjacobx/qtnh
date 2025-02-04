@@ -35,7 +35,7 @@ namespace qtnh {
 
         const ProcGrid& grid() const { return grid_; }
         qtnh::tel* data() { return loc_els_p_->data(); }
-        
+
         constexpr std::pair<int, int> totDims() const { return { nrows_, ncols_ }; }
         constexpr std::pair<int, int> locDims() const { 
           return { 
@@ -46,15 +46,15 @@ namespace qtnh {
         
         constexpr std::array<int, 9> const descriptor() {
           return { 
-            1,                          // DTYPE
-            grid_.context(),            // CTXT
-            nrows_,                     // M
-            ncols_,                     // N
-            nrows_ / locDims().first,   // MB
-            ncols_ / locDims().second,  // NB
-            1,                          // RSRC
-            1,                          // CSRC
-            nrows_ / locDims().first    // LLD
+            1,                // DTYPE
+            grid_.context(),  // CTXT
+            nrows_,           // M
+            ncols_,           // N
+            locDims().first,  // MB
+            locDims().second, // NB
+            0,                // RSRC
+            0,                // CSRC
+            locDims().first   // LLD
           };
         }
 
