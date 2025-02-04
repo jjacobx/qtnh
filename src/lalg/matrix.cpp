@@ -3,25 +3,26 @@
 
 namespace qtnh {
   namespace lalg {
-    BlockMatrix::BlockMatrix(int nrows, int ncols, int nprows, int npcols)
-      : BlockMatrix(nrows, ncols, nprows, npcols, nullptr) {
-      auto loc_size = (nrows * ncols) / (nprows * npcols);
+    ProcGrid::ProcGrid(int nprows, int npcols) 
+      : nprows_(nprows), npcols_(npcols) {
+      sl_init_(&context_, &nprows_, &npcols_);
+      active_ = (context_ != -1);
+
+      blacs_gridinfo_(&context_, &nprows_, &npcols_, &row_, &col_);
+    }
+
+    ProcGrid::~ProcGrid() {
+      if (active_) blacs_gridexit_(&context_);
+    }
+
+    BlockMatrix::BlockMatrix(const ProcGrid& grid, int nrows, int ncols)
+      : BlockMatrix(grid, nrows, ncols, nullptr) {
+      auto proc_dims = grid.procDims();
+      auto loc_size = (nrows * ncols) / (proc_dims.first * proc_dims.second);
       loc_els_p_ = std::make_unique<cvec>(loc_size);
     }
     
-    BlockMatrix::BlockMatrix(int nrows, int ncols, int nprows, int npcols, cvec* loc_els_p)
-      : nrows_(nrows), ncols_(ncols), nprows_(nprows), npcols_(npcols), loc_els_p_(loc_els_p) {
-      auto context = -1;
-      sl_init_(&context, &nprows_, &npcols_);
-
-      auto row = -1, col = -1;
-      blacs_gridinfo_(&context, &nprows_, &npcols_, &row, &col);
-
-      grid_ = { context, row, col };
-    }
-
-    BlockMatrix::~BlockMatrix() {
-      blacs_gridexit_(&grid_.context);
-    }
+    BlockMatrix::BlockMatrix(const ProcGrid& grid, int nrows, int ncols, cvec* loc_els_p)
+      : grid_(grid), nrows_(nrows), ncols_(ncols), loc_els_p_(loc_els_p) {}
   }
 }
