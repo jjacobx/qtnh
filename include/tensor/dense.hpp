@@ -171,6 +171,8 @@ namespace qtnh {
       /// The index update will do nothing on ranks that do not contain the element on given indices. 
       void put(qtnh::tidx_tup tot_idxs, qtnh::tel el);
 
+      /// TODO: this is temporary, should be changed later. 
+      std::vector<qtnh::tel>* locElsP() { return &loc_els_; }
     
     protected:
       /// @brief Construct empty tensor with given local and distributed dimensions within environment with default distribution parameters. 
