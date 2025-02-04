@@ -1,8 +1,9 @@
 add_library(qtnh)
 
-add_subdirectory(core)
-add_subdirectory(tensor)
 add_subdirectory(con)
+add_subdirectory(core)
+add_subdirectory(lalg)
+add_subdirectory(tensor)
 
 target_compile_features(qtnh
   PUBLIC

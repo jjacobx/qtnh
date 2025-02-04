@@ -20,6 +20,9 @@ namespace qtnh {
 #include "core/typedefs.hpp"
 #include "core/utils.hpp"
 
+#include "lalg/matrix.hpp"
+#include "lalg/routines.hpp"
+
 #include "tensor/dense.hpp"
 #include "tensor/diag.hpp"
 #include "tensor/scalapack.hpp"
