@@ -172,7 +172,7 @@ namespace qtnh {
       void put(qtnh::tidx_tup tot_idxs, qtnh::tel el);
 
       /// TODO: this is temporary, should be changed later. 
-      std::vector<qtnh::tel>* locElsP() { return &loc_els_; }
+      std::vector<qtnh::tel>&& extractEls() { return std::move(loc_els_); }
     
     protected:
       /// @brief Construct empty tensor with given local and distributed dimensions within environment with default distribution parameters. 

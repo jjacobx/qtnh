@@ -16,13 +16,13 @@ namespace qtnh {
     }
 
     BlockMatrix::BlockMatrix(const ProcGrid& grid, int nrows, int ncols)
-      : BlockMatrix(grid, nrows, ncols, nullptr) {
+      : BlockMatrix(grid, nrows, ncols, {}) {
       auto proc_dims = grid.procDims();
       auto loc_size = (nrows * ncols) / (proc_dims.first * proc_dims.second);
-      loc_els_p_ = std::make_unique<cvec>(loc_size);
+      loc_els_p_ = cvec(loc_size);
     }
     
-    BlockMatrix::BlockMatrix(const ProcGrid& grid, int nrows, int ncols, cvec* loc_els_p)
+    BlockMatrix::BlockMatrix(const ProcGrid& grid, int nrows, int ncols, cvec&& loc_els_p)
       : grid_(grid), nrows_(nrows), ncols_(ncols), loc_els_p_(loc_els_p) {}
   }
 }

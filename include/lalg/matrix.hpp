@@ -30,18 +30,18 @@ namespace qtnh {
       public:
         BlockMatrix() = delete;
         BlockMatrix(const ProcGrid& grid, int nrows, int ncols);
-        BlockMatrix(const ProcGrid& grid, int nrows, int ncols, cvec* loc_els_p);
+        BlockMatrix(const ProcGrid& grid, int nrows, int ncols, cvec&& loc_els_p);
         ~BlockMatrix() = default;
 
         const ProcGrid& grid() const { return grid_; }
-        qtnh::tel* data() { return loc_els_p_->data(); }
+        qtnh::tel* data() { return loc_els_p_.data(); }
 
         constexpr std::pair<int, int> totDims() const { return { nrows_, ncols_ }; }
         constexpr std::pair<int, int> locDims() const { 
           return { 
             nrows_ / grid_.procDims().first, 
             ncols_ / grid_.procDims().second 
-          }; 
+          };
         }
         
         constexpr std::array<int, 9> const descriptor() {
@@ -58,7 +58,7 @@ namespace qtnh {
           };
         }
 
-        std::unique_ptr<cvec> extractEls() { return std::move(loc_els_p_); }
+        cvec&& extractEls() { return std::move(loc_els_p_); }
       
       private:
         const ProcGrid& grid_;
@@ -67,7 +67,7 @@ namespace qtnh {
         int ncols_;
 
         // Remember the elements need to be in column-major order. 
-        std::unique_ptr<cvec> loc_els_p_;        
+        cvec loc_els_p_;        
     };
   }
 }
