@@ -211,6 +211,8 @@ namespace qtnh {
       virtual DenseTensor* permute(std::vector<qtnh::tidx_tup_st> ptup) override;
       // TODO: Documentation. 
       virtual std::pair<Tensor*, Tensor*> decompose(qtnh::tidx_tup_st split) override;
+
+      virtual lalg::BlockMatrix* toBlockMatrix(qtnh::tidx_tup_st dis_sep, qtnh::tidx_tup_st loc_sep) override;
   };
 
   /// Rank-2 rescatter tensor, which can be used to scatter/gather specific indices. 

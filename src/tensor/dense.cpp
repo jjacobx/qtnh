@@ -3,6 +3,7 @@
 
 #include "tensor/dense.hpp"
 #include "tensor/indexing.hpp"
+#include "tensor/ptuple.hpp"
 
 namespace qtnh {
   DenseTensorBase::DenseTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims)
@@ -16,6 +17,32 @@ namespace qtnh {
   std::unique_ptr<DenseTensor> Tensor::convert<DenseTensor>(tptr tp) {
     auto p = tp->toDense();
     return utils::one_unique(std::move(tp), p);
+  }
+
+  lalg::BlockMatrix* DenseTensor::toBlockMatrix(qtnh::tidx_tup_st dis_sep, qtnh::tidx_tup_st loc_sep) {
+    PTuple ptup(totDims().size());
+    ptup.at(dis_sep, dis_dims_.size()) >> int(loc_sep);
+    auto [rtup, ctup] = utils::split_vec(ptup.tup(), dis_sep + loc_sep);
+
+    IndexGroup ig({"r", "c"}, { rtup, ctup });
+    for (auto i = 0UL; i < loc_sep; ++i) {
+      auto rd = dis_sep;
+      auto cd = dis_dims_.size() - dis_sep;
+      std::swap(ig.at("r", rd + i), ig.at("c", cd + i));
+    }
+
+    bc_ = _permute_internal(this, ig.ptup().tup());
+
+    auto [rdd, cdd] = utils::split_dims(dis_dims_, dis_sep);
+    auto [rld, cld] = utils::split_dims(loc_dims_, loc_sep);
+    lalg::ProcGrid grid(int(utils::dims_to_size(rdd)), int(utils::dims_to_size(cdd)));
+
+    auto m = int(utils::dims_to_size(rdd) * utils::dims_to_size(rld));
+    auto n = int(utils::dims_to_size(cdd) * utils::dims_to_size(cld));
+
+    // ! This doesn't work yet, grid becomes a deleted reference
+    // ! Can heap allocate grid, but that would be a memory leak
+    return new lalg::BlockMatrix(grid, m, n, std::move(loc_els_));
   }
 
   DenseTensor* DenseTensorBase::toDense() noexcept {

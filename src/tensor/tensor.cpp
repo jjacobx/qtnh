@@ -23,15 +23,15 @@ namespace qtnh {
 
   template<> 
   bool Tensor::canConvert<DenseTensor>() {
-    return isDense(); 
+    return isDense();
   }
   template<> 
   bool Tensor::canConvert<SymmTensor>() {
-    return isSymm(); 
+    return isSymm();
   }
   template<> 
   bool Tensor::canConvert<DiagTensor>() {
-    return isDiag(); 
+    return isDiag();
   }
 
   bool Tensor::has(qtnh::tidx_tup tot_idxs) const {
