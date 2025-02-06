@@ -1,3 +1,6 @@
+#ifndef __LALG_MATRIX__
+#define __LALG_MATRIX__
+
 #include <memory>
 #include "core/typedefs.hpp"
 
@@ -71,3 +74,5 @@ namespace qtnh {
     };
   }
 }
+
+#endif

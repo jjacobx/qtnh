@@ -1,3 +1,6 @@
+#ifndef __LALG_ROUTINES__
+#define __LALG_ROUTINES__
+
 #include "core/typedefs.hpp"
 
 namespace qtnh {
@@ -17,3 +20,5 @@ namespace qtnh {
                              qtnh::tel* work, int* lwork, double* rwork, int* info);
   }
 }
+
+#endif
