@@ -5,6 +5,8 @@ namespace qtnh {
     std::iota(tup_.begin(), tup_.end(), 0);
   }
 
+  PTuple::PTuple(tup_t tup) : tup_(tup) {}
+
   PTuple PTuple::operator*(const PTuple& ptup) {
     auto& tup1 = tup_;
     auto& tup2 = ptup.tup_;
@@ -14,10 +16,7 @@ namespace qtnh {
       tup3.at(i) = tup2.at(tup1.at(i));
     }
 
-    PTuple ptup_res(tup_.size());
-    ptup_res.tup_ = tup3;
-
-    return ptup_res;
+    return PTuple(tup3);
   }
 
   PTuple PTuple::inv() {
@@ -31,10 +30,7 @@ namespace qtnh {
       }
     }
 
-    PTuple ptup_res(tupi.size());
-    ptup_res.tup_ = tupi;
-
-    return ptup_res;
+    return PTuple(tupi);
   }
 
   PTuple::shifter::shifter(std::vector<qtnh::tidx_tup_st>& tup, std::size_t pos)
@@ -59,5 +55,31 @@ namespace qtnh {
 
   PTuple::shifter PTuple::at(std::size_t from, std::size_t to) {
     return shifter(tup_, from, to);
+  }
+
+  IndexGroup::IndexGroup(std::vector<std::string> labels, std::vector<tup_t> groups)
+    : labels_(labels), groups_() {
+    for (auto i = 0UL; i < labels.size(); ++i) {
+      groups_.insert({labels.at(i), groups.at(i)});
+    }
+  }
+
+  PTuple IndexGroup::ptup() const {
+    tup_t tup;
+    for (auto i = 0UL; i < labels_.size(); ++i) {
+      auto& group = groups_.at(labels_.at(i));
+      tup.insert(tup.end(), group.begin(), group.end());
+    }
+    
+    return PTuple(tup);
+  }
+
+  void IndexGroup::reorder(std::vector<std::string> labels) {
+    labels_ = labels;
+  }
+
+  // Usage: std::swap(ig.at("a", 1), ig.at("b", 2));
+  qtnh::tidx_tup_st& IndexGroup::at(std::string k, std::size_t i) {
+    return groups_.at(k).at(i);
   }
 }
