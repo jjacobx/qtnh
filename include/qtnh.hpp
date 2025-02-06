@@ -28,6 +28,7 @@ namespace qtnh {
 #include "tensor/scalapack.hpp"
 #include "tensor/indexing.hpp"
 #include "tensor/network.hpp"
+#include "tensor/ptuple.hpp"
 #include "tensor/symm.hpp"
 #include "tensor/tensor.hpp"
 
