@@ -20,18 +20,14 @@ namespace qtnh {
   }
 
   lalg::BlockMatrix* DenseTensor::toBlockMatrix(qtnh::tidx_tup_st dis_sep, qtnh::tidx_tup_st loc_sep) {
-    PTuple ptup(totDims().size());
-    ptup.at(dis_sep, dis_dims_.size()) >> int(loc_sep);
-    auto [rtup, ctup] = utils::split_vec(ptup.tup(), dis_sep + loc_sep);
-
-    IndexGroup ig({"r", "c"}, { rtup, ctup });
-    for (auto i = 0UL; i < loc_sep; ++i) {
-      auto rd = dis_sep;
-      auto cd = dis_dims_.size() - dis_sep;
-      std::swap(ig.at("r", rd + i), ig.at("c", cd + i));
-    }
-
-    bc_ = _permute_internal(this, ig.ptup().tup());
+    PTupleSrc ptup(totDims().size());
+    auto [tup_r, tup_c] = utils::split_vec(ptup.tup(), dis_sep + loc_sep);
+    auto [tup_rd, tup_rb] = utils::split_vec(tup_r, dis_sep);
+    auto [tup_cd, tup_cb] = utils::split_vec(tup_c, dis_dims_.size() - dis_sep);
+    
+    // Distributed first, blocks column-major. 
+    IndexGroup ig({ "rd", "cd", "cb", "rb" }, { tup_rd, tup_cd, tup_rb, tup_cb });
+    bc_ = _permute_internal(this, ig.ptup().toTar().tup());
 
     auto [rdd, cdd] = utils::split_dims(dis_dims_, dis_sep);
     auto [rld, cld] = utils::split_dims(loc_dims_, loc_sep);
