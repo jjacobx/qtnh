@@ -5,7 +5,6 @@ target_sources(qtnh
   indexing.cpp
   network.cpp
   ptuple.cpp
-  scalapack.cpp
   symm.cpp
   tensor.cpp
 )
