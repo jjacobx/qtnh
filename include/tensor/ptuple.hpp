@@ -7,6 +7,9 @@
 namespace qtnh {
   using tup_t = std::vector<qtnh::tidx_tup_st>;
 
+  class PTupleTar;
+  class PTupleSrc;
+
   class PTuple {
     public:
       PTuple() = delete;
@@ -15,9 +18,6 @@ namespace qtnh {
       ~PTuple() = default;
 
       const auto& tup() const noexcept { return tup_; }
-
-      PTuple operator*(const PTuple& ptup);
-      PTuple inv();
 
       class shifter {
         public:
@@ -38,9 +38,35 @@ namespace qtnh {
       shifter at(std::size_t pos);
       shifter at(std::size_t from, std::size_t to);
 
+      virtual PTupleTar toTar() const = 0;
+      virtual PTupleSrc toSrc() const = 0;
+
     private:
       tup_t tup_;
+  };
 
+  class PTupleTar : public PTuple {
+    public:
+      using PTuple::PTuple;
+      ~PTupleTar() = default;
+
+      virtual PTupleTar toTar() const override;
+      virtual PTupleSrc toSrc() const override;
+
+      PTupleTar operator*(const PTupleTar& ptup) const;
+      PTupleTar inv() const;
+  };
+
+  class PTupleSrc : public PTuple {
+    public:
+    using PTuple::PTuple;
+      ~PTupleSrc() = default;
+
+      virtual PTupleTar toTar() const override;
+      virtual PTupleSrc toSrc() const override;
+
+      PTupleSrc operator*(const PTupleSrc& ptup) const;
+      PTupleSrc inv() const;
   };
 
   class IndexGroup {
@@ -50,7 +76,7 @@ namespace qtnh {
       ~IndexGroup() = default;
 
       const std::vector<std::string>& labels() const noexcept { return labels_; }
-      PTuple ptup() const;
+      PTupleSrc ptup() const;
 
       qtnh::tidx_tup_st& at(std::string k, std::size_t i);
       void reorder(std::vector<std::string> labels);

@@ -1,4 +1,5 @@
 #include "tensor/ptuple.hpp"
+#include <iostream>
 
 namespace qtnh {
   PTuple::PTuple(std::size_t len) : tup_(len) {
@@ -7,30 +8,27 @@ namespace qtnh {
 
   PTuple::PTuple(tup_t tup) : tup_(tup) {}
 
-  PTuple PTuple::operator*(const PTuple& ptup) {
-    auto& tup1 = tup_;
-    auto& tup2 = ptup.tup_;
-    auto tup3 = ptup.tup_;
-
-    for (auto i = 0UL; i < tup_.size(); ++i) {
+  tup_t _prod(tup_t tup1, tup_t tup2) {
+    auto tup3 = tup_t(tup1.size());
+    for (auto i = 0UL; i < tup1.size(); ++i) {
       tup3.at(i) = tup2.at(tup1.at(i));
     }
 
-    return PTuple(tup3);
+    return tup3;
   }
 
-  PTuple PTuple::inv() {
-    auto tupi = tup_;
-
-    for (auto i = 0UL; i < tupi.size(); ++i) {
-      auto j = tupi.at(i);
-      while (tupi.at(j) != i) {
-        std::swap(i, tupi.at(j));
-        std::swap(i, j);
+  tup_t _inv(tup_t tup) {
+    auto tupi = tup_t(tup.size(), X);
+    for (auto i = 0UL; i < tup.size(); ++i) {
+      auto j = tup.at(i);
+      while (tupi.at(j) == X) {
+        tupi.at(j) = i;
+        i = j;
+        j = tup.at(j);
       }
     }
 
-    return PTuple(tupi);
+    return tupi;
   }
 
   PTuple::shifter::shifter(std::vector<qtnh::tidx_tup_st>& tup, std::size_t pos)
@@ -57,6 +55,38 @@ namespace qtnh {
     return shifter(tup_, from, to);
   }
 
+  PTupleTar PTupleTar::toTar() const {
+    return PTupleTar(tup());
+  }
+
+  PTupleSrc PTupleTar::toSrc() const {
+    return PTupleSrc(_inv(tup()));
+  }
+
+  PTupleTar PTupleTar::operator*(const PTupleTar& ptup) const {
+    return PTupleTar(_prod(ptup.tup(), tup()));
+  }
+
+  PTupleTar PTupleTar::inv() const {
+    return PTupleTar(_inv(tup()));
+  }
+
+  PTupleTar PTupleSrc::toTar() const {
+    return PTupleTar(_inv(tup()));
+  }
+
+  PTupleSrc PTupleSrc::toSrc() const {
+    return PTupleSrc(tup());
+  }
+
+  PTupleSrc PTupleSrc::operator*(const PTupleSrc& ptup) const {
+    return PTupleSrc(_prod(tup(), ptup.tup()));
+  }
+
+  PTupleSrc PTupleSrc::inv() const {
+    return PTupleSrc(_inv(tup()));
+  }
+
   IndexGroup::IndexGroup(std::vector<std::string> labels, std::vector<tup_t> groups)
     : labels_(labels), groups_() {
     for (auto i = 0UL; i < labels.size(); ++i) {
@@ -64,14 +94,14 @@ namespace qtnh {
     }
   }
 
-  PTuple IndexGroup::ptup() const {
+  PTupleSrc IndexGroup::ptup() const {
     tup_t tup;
     for (auto i = 0UL; i < labels_.size(); ++i) {
       auto& group = groups_.at(labels_.at(i));
       tup.insert(tup.end(), group.begin(), group.end());
     }
     
-    return PTuple(tup);
+    return PTupleSrc(tup);
   }
 
   void IndexGroup::reorder(std::vector<std::string> labels) {
