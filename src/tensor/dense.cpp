@@ -152,7 +152,6 @@ namespace qtnh {
 
     // Update dimensions
     if (offset < 0) {
-      std::cout << "Rescatter complete" << "\n";
       auto loc_dims2 = qtnh::tidx_tup(dis_dims_.end() + offset, dis_dims_.end());
       loc_dims_.insert(loc_dims_.begin(), loc_dims2.begin(), loc_dims2.end());
       dis_dims_.erase(dis_dims_.end() + offset, dis_dims_.end());
