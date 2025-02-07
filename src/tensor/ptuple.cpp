@@ -108,7 +108,10 @@ namespace qtnh {
     labels_ = labels;
   }
 
-  // Usage: std::swap(ig.at("a", 1), ig.at("b", 2));
+  tup_t& IndexGroup::at(std::string k) {
+    return groups_.at(k);
+  }
+
   qtnh::tidx_tup_st& IndexGroup::at(std::string k, std::size_t i) {
     return groups_.at(k).at(i);
   }

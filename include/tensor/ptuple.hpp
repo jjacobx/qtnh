@@ -78,6 +78,7 @@ namespace qtnh {
       const std::vector<std::string>& labels() const noexcept { return labels_; }
       PTupleSrc ptup() const;
 
+      tup_t& at(std::string k);
       qtnh::tidx_tup_st& at(std::string k, std::size_t i);
       void reorder(std::vector<std::string> labels);
 
