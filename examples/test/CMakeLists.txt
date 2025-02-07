@@ -21,3 +21,11 @@ target_compile_options(mpi-test
   PRIVATE
   -Wall
 )
+
+add_executable(svd-test svd.cpp)
+add_dependencies(svd-test qtnh)
+target_link_libraries(svd-test qtnh)
+target_compile_options(svd-test
+  PRIVATE
+  -Wall
+)
