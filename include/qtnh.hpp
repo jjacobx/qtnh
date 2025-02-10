@@ -8,6 +8,8 @@ namespace qtnh {
   namespace ops {}
   /// Namespace for helper functions. 
   namespace utils {}
+  /// Namespace for linear algebra routines. 
+  namespace lalg {}
 }
 
 #include "con/base.hpp"
