@@ -7,6 +7,7 @@
 namespace qtnh {
   namespace lalg {
     using cvec = std::vector<qtnh::tel>;
+    using mtup = std::pair<int, int>;
 
     class ProcGrid {
       public:
@@ -14,8 +15,8 @@ namespace qtnh {
         ProcGrid(int nprows, int npcols);
         ~ProcGrid();
 
-        constexpr std::pair<int, int> procDims() const { return { nprows_, npcols_ }; }
-        constexpr std::pair<int, int> procIdxs() const { return { row_, col_ }; }
+        constexpr mtup procDims() const { return { nprows_, npcols_ }; }
+        constexpr mtup procIdxs() const { return { row_, col_ }; }
         constexpr bool active() const { return active_; }
         constexpr bool context() const { return context_; }
 
@@ -39,8 +40,8 @@ namespace qtnh {
         const ProcGrid& grid() const { return grid_; }
         qtnh::tel* data() { return loc_els_p_.data(); }
 
-        constexpr std::pair<int, int> totDims() const { return { nrows_, ncols_ }; }
-        constexpr std::pair<int, int> locDims() const { 
+        constexpr mtup totDims() const { return { nrows_, ncols_ }; }
+        constexpr mtup locDims() const { 
           return { 
             nrows_ / grid_.procDims().first, 
             ncols_ / grid_.procDims().second 
@@ -83,8 +84,8 @@ namespace qtnh {
         const ProcGrid& grid() const { return grid_; }
         qtnh::tel* data() { return loc_els_p_.data(); }
 
-        constexpr std::pair<int, int> totDims() const { return { nrows_, ncols_ }; }
-        constexpr std::pair<int, int> cycDims() const { 
+        constexpr mtup totDims() const { return { nrows_, ncols_ }; }
+        constexpr mtup cycDims() const { 
           return { 
             nrows_ / grid_.procDims().first / nblock_, 
             ncols_ / grid_.procDims().second / nblock_ 
