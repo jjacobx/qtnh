@@ -13,6 +13,7 @@ namespace qtnh {
 }
 
 #include "con/base.hpp"
+#include "con/decomp.hpp"
 #include "con/pair.hpp"
 #include "con/pair-defs.hpp"
 #include "con/self.hpp"
