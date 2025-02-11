@@ -8,9 +8,11 @@
 
 namespace qtnh {
   struct DecParams {
-    lalg::mtup cyc_dims;
-    lalg::mtup dis_dims;
-    lalg::mtup loc_dims;
+    using split_pair = std::pair<qtnh::tidx_tup_st, qtnh::tidx_tup_st>;
+
+    split_pair cyc_splits;
+    split_pair dis_splits;
+    split_pair loc_splits;
   };
 
   class Decomposer {
@@ -21,6 +23,10 @@ namespace qtnh {
       ~Decomposer() = default;
 
       void decompose();
+
+      std::tuple<qtnh::tptr, qtnh::tptr, qtnh::tptr> extract_results() {
+        return { std::move(tp_u_), std::move(tp_s_), std::move(tp_v_) };
+      }
 
     private:
       qtnh::tptr tp_m_;
