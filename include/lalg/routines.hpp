@@ -21,6 +21,7 @@ namespace qtnh {
                              qtnh::tel* work, int* lwork, double* rwork, int* info);
 
     std::tuple<BlockMatrix, cvec, BlockMatrix> PZGESVD(BlockMatrix&& matrix);
+    std::tuple<BlockCyclicMatrix, cvec, BlockCyclicMatrix> PZGESVD(BlockCyclicMatrix&& matrix);
   }
 }
 
