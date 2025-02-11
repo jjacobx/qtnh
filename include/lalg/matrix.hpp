@@ -44,7 +44,7 @@ namespace qtnh {
         constexpr mtup locDims() const { 
           return { 
             nrows_ / grid_.procDims().first, 
-            ncols_ / grid_.procDims().second 
+            ncols_ / grid_.procDims().second
           };
         }
         
@@ -71,7 +71,7 @@ namespace qtnh {
         int ncols_;
 
         // Remember the elements need to be in column-major order. 
-        cvec loc_els_p_;        
+        cvec loc_els_p_;
     };
 
     class BlockCyclicMatrix {
@@ -88,7 +88,7 @@ namespace qtnh {
         constexpr mtup cycDims() const { 
           return { 
             nrows_ / grid_.procDims().first / nblock_, 
-            ncols_ / grid_.procDims().second / nblock_ 
+            ncols_ / grid_.procDims().second / nblock_
           };
         }
         constexpr int nBlock() const { return nblock_; }
@@ -117,7 +117,7 @@ namespace qtnh {
         int nblock_;
 
         // Remember the elements need to be in column-major order. 
-        cvec loc_els_p_;   
+        cvec loc_els_p_;
     };
   }
 }
