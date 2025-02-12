@@ -67,5 +67,22 @@ int main() {
   std::cout << "P" << env.proc_id << ": USV = " << *tp_usv << "\n";
   utils::barrier();
 
+  dims = tidx_tup { 2, 2, 2, 2, 2, 2, 2 };
+  els = std::vector<tel>(utils::dims_to_size(dims), 0);
+  std::iota(els.begin(), els.end(), 0);
+
+  tp = DenseTensor::make(env, {}, dims, std::move(els));
+  tp = Tensor::rescatter(std::move(tp), 2);
+
+  DecParams dp {{ 2, 1 }, { 1, 1 }, { 1, 1 }};
+  Decomposer dec(std::move(tp), dp);
+  dec.decompose();
+
+  auto [tu, ts, tv] = dec.extract_results();
+
+  std::cout << "P" << env.proc_id << ": U = " << *tu << "\n";
+  std::cout << "P" << env.proc_id << ": S = " << *ts << "\n";
+  std::cout << "P" << env.proc_id << ": V = " << *tv << "\n";
+
   return 0;
 }
