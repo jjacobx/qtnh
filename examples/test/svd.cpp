@@ -83,6 +83,30 @@ int main() {
   std::cout << "P" << env.proc_id << ": U = " << *tu << "\n";
   std::cout << "P" << env.proc_id << ": S = " << *ts << "\n";
   std::cout << "P" << env.proc_id << ": V = " << *tv << "\n";
+  
+  ts = DiagTensor::make(env, {}, utils::concat_dims(ts->totDims(), ts->totDims()), false, ts->cast<DenseTensor>()->extractEls());
+  ts = Tensor::convert<DenseTensor>(std::move(ts));
+  
+  PTupleSrc s_ptup(ts->totDims().size());
+  auto [tup1, tup_r1] = utils::split_dims(s_ptup.tup(), 1);
+  auto [tup2, tup_r2] = utils::split_dims(tup_r1, 2);
+  auto [tup3, tup4] = utils::split_dims(tup_r2, 1);
+  IndexGroup igs({ "d1", "l1", "d2", "l2" }, { tup1, tup2, tup3, tup4 });
+  igs.reorder({ "d1", "d2", "l1", "l2" });
+
+  ts = Tensor::permute(std::move(ts), igs.ptup().toTar().tup());
+  ts = Tensor::rescatter(std::move(ts), 2);
+
+  params = ConParams({{ 1, 0 }, { 4, 2 }, { 5, 3 }});
+  con = pcon(std::move(ts), std::move(tv), params);
+  auto tsv = con.contract();
+
+  params = ConParams({{ 1, 0 }, { 5, 2 }, { 6, 3 }});
+  con = pcon(std::move(tu), std::move(tsv), params);
+  auto tusv = con.contract();
+  tusv = Tensor::rebcast(std::move(tusv), { 1, 1, 0 });
+
+  std::cout << "P" << env.proc_id << ": USV = " << *tusv << "\n";
 
   return 0;
 }
