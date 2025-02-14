@@ -136,8 +136,8 @@ namespace qtnh {
     IndexGroup ig_v2({ "rc", "rd", "rb", "cc", "cd", "cb" }, tups_v2);
     ig_v2.reorder({ "rd", "cd", "cc", "cb", "rc", "rb" });
 
-    auto tup_u = (ig_u2.ptup() * ig_u1.ptup()).inv().tup();
-    auto tup_v = (ig_v2.ptup() * ig_v1.ptup()).inv().tup();
+    auto tup_u = (ig_u2.ptup() * ig_u1.ptup()).inv().toTar().tup();
+    auto tup_v = (ig_v2.ptup() * ig_v1.ptup()).inv().toTar().tup();
 
     tp_u_ = Tensor::permute(std::move(tp_u_), tup_u);
     tp_v_ = Tensor::permute(std::move(tp_v_), tup_v);
