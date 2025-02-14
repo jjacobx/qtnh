@@ -1,6 +1,8 @@
 #include "con/decomp.hpp"
 #include "lalg/routines.hpp"
 
+#include <iostream>
+
 namespace qtnh {
   std::vector<qtnh::tup_t> _split_tensor(Tensor* t, std::vector<qtnh::tidx_tup_st> rel_splits) {
     std::vector<qtnh::tup_t> tups(rel_splits.size());
@@ -61,7 +63,7 @@ namespace qtnh {
     auto size_cd = utils::dims_to_size(dims_cd);
     
     using namespace lalg;
-    ProcGrid pg (static_cast<int>(size_rd), static_cast<int>(size_cd));
+    ProcGrid pg(static_cast<int>(size_rd), static_cast<int>(size_cd));
 
     // Fortran layout means rows and columns are inverted. 
     auto loc_split = params_.cyc_splits.second + params_.loc_splits.second;
@@ -87,5 +89,57 @@ namespace qtnh {
     tp_u_ = DenseTensor::make(env, dis_dims, loc_dims_u, u.extractEls());
     tp_s_ = DenseTensor::make(env, {}, loc_dims_s, std::move(s));
     tp_v_ = DenseTensor::make(env, dis_dims, loc_dims_v, v.extractEls());
+    
+    // Everything below is book-keeping to restore right index order. 
+    // TODO: Wrap repeated parts into a function. 
+    auto params_u = params_;
+    auto params_v = params_;
+    if (ncols > nrows) {
+      params_u.cyc_splits.second = params_u.cyc_splits.first;
+      params_u.in_dis_splits.second = params_u.in_dis_splits.first;
+      params_u.in_loc_splits.second = params_u.in_loc_splits.first;
+    } else {
+      params_v.cyc_splits.first = params_v.cyc_splits.second;
+      params_v.in_dis_splits.first = params_v.in_dis_splits.second;
+      params_v.in_loc_splits.first = params_v.in_loc_splits.second;
+    }
+
+    std::vector<qtnh::tidx_tup_st> rel_splits_u1 {
+      params_u.in_dis_splits.first, params_u.in_dis_splits.second, 
+      params_u.in_loc_splits.first, params_u.in_loc_splits.second
+    };
+    std::vector<qtnh::tidx_tup_st> rel_splits_u2 {
+      params_u.cyc_splits.first, params_u.dis_splits.first, params_u.loc_splits.first, 
+      params_u.cyc_splits.second, params_u.dis_splits.second, params_u.loc_splits.second
+    };
+    std::vector <qtnh::tidx_tup_st> rel_splits_v1 {
+      params_v.in_dis_splits.first, params_v.in_dis_splits.second, 
+      params_v.in_loc_splits.first, params_v.in_loc_splits.second
+    };
+    std::vector<qtnh::tidx_tup_st> rel_splits_v2 {
+      params_v.cyc_splits.first, params_v.dis_splits.first, params_v.loc_splits.first, 
+      params_v.cyc_splits.second, params_v.dis_splits.second, params_v.loc_splits.second
+    };
+
+    auto tups_u1 = _split_tensor(tp_u_.get(), rel_splits_u1);
+    auto tups_u2 = _split_tensor(tp_u_.get(), rel_splits_u2);
+    auto tups_v1 = _split_tensor(tp_v_.get(), rel_splits_v1);
+    auto tups_v2 = _split_tensor(tp_v_.get(), rel_splits_v2);
+
+    IndexGroup ig_u1({ "d1", "d2", "l1", "l2" }, tups_u1);
+    ig_u1.reorder({ "d1", "l1", "d2", "l2" });
+    IndexGroup ig_u2({ "rc", "rd", "rb", "cc", "cd", "cb" }, tups_u2);
+    ig_u2.reorder({ "rd", "cd", "cc", "cb", "rc", "rb" });
+
+    IndexGroup ig_v1({ "d1", "d2", "l1", "l2" }, tups_v1);
+    ig_v1.reorder({ "d1", "l1", "d2", "l2" });
+    IndexGroup ig_v2({ "rc", "rd", "rb", "cc", "cd", "cb" }, tups_v2);
+    ig_v2.reorder({ "rd", "cd", "cc", "cb", "rc", "rb" });
+
+    auto tup_u = (ig_u2.ptup() * ig_u1.ptup()).inv().tup();
+    auto tup_v = (ig_v2.ptup() * ig_v1.ptup()).inv().tup();
+
+    tp_u_ = Tensor::permute(std::move(tp_u_), tup_u);
+    tp_v_ = Tensor::permute(std::move(tp_v_), tup_v);
   }
 }
