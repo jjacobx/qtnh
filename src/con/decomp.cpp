@@ -2,23 +2,43 @@
 #include "lalg/routines.hpp"
 
 namespace qtnh {
+  std::vector<qtnh::tup_t> _split_tensor(Tensor* t, std::vector<qtnh::tidx_tup_st> rel_splits) {
+    std::vector<qtnh::tup_t> tups(rel_splits.size());
+    auto next_tup = PTupleSrc(t->totDims().size()).tup();
+
+    for (auto i = 0UL; i < rel_splits.size(); ++i) {
+      auto [tup1, tup2] = utils::split_vec(next_tup, rel_splits.at(i));
+      tups.at(i) = tup1;
+      next_tup = tup2;
+    }
+
+    return tups;
+  };
+
   Decomposer::Decomposer(qtnh::tptr tp, DecParams params) 
   : tp_m_(std::move(tp))
   , params_(params)
   , ptup_(tp_m_->totDims().size()) 
   {
-    auto [tup_rc, tup_r1] = utils::split_vec(ptup_.tup(), params_.cyc_splits.first);
-    auto [tup_rd, tup_r2] = utils::split_vec(tup_r1, params_.dis_splits.first);
-    auto [tup_rb, tup_r3] = utils::split_vec(tup_r2, params_.loc_splits.first);
-    auto [tup_cc, tup_r4] = utils::split_vec(tup_r3, params_.cyc_splits.second);
-    auto [tup_cd, tup_cb] = utils::split_vec(tup_r4, params_.dis_splits.second);
-    
-    std::vector<std::string> labels { "rc", "rd", "rb", "cc", "cd", "cb" };
-    std::vector<qtnh::tup_t> groups { tup_rc, tup_rd, tup_rb, tup_cc, tup_cd, tup_cb };
-    IndexGroup ig(labels, groups);
+    std::vector<qtnh::tidx_tup_st> rel_splits1 {
+      params_.in_dis_splits.first, params_.in_dis_splits.second, 
+      params_.in_loc_splits.first, params_.in_loc_splits.second
+    };
 
-    ig.reorder({ "rd", "cd", "cc", "cb", "rc", "rb" });
-    ptup_ = ig.ptup();
+    auto tups1 = _split_tensor(tp_m_.get(), rel_splits1);
+    IndexGroup ig1({ "d1", "d2", "l1", "l2" }, tups1);
+    ig1.reorder({ "d1", "l1", "d2", "l2" });
+
+    std::vector<qtnh::tidx_tup_st> rel_splits2 {
+      params_.cyc_splits.first, params_.dis_splits.first, params_.loc_splits.first, 
+      params_.cyc_splits.second, params_.dis_splits.second, params_.loc_splits.second
+    };
+    
+    auto tups2 = _split_tensor(tp_m_.get(), rel_splits2);
+    IndexGroup ig2({ "rc", "rd", "rb", "cc", "cd", "cb" }, tups2);
+    ig2.reorder({ "rd", "cd", "cc", "cb", "rc", "rb" });
+
+    ptup_ = ig2.ptup() * ig1.ptup();
   }
   
   Decomposer::Decomposer(qtnh::tptr tp, DecParams params, PTupleSrc init_ptup)

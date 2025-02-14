@@ -10,9 +10,18 @@ namespace qtnh {
   struct DecParams {
     using split_pair = std::pair<qtnh::tidx_tup_st, qtnh::tidx_tup_st>;
 
+    split_pair in_dis_splits;
+    split_pair in_loc_splits;
+
     split_pair cyc_splits;
     split_pair dis_splits;
     split_pair loc_splits;
+
+    // TODO: Derive above from parameters below and given tensor. 
+    // qtnh::tidx_tup_st dis_split;
+    // qtnh::tidx_tup_st loc_split;
+    // std::size_t dis_block_size;
+    // std::size_t loc_block_size;
   };
 
   class Decomposer {

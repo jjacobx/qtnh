@@ -74,7 +74,7 @@ int main() {
   tp = DenseTensor::make(env, {}, dims, std::move(els));
   tp = Tensor::rescatter(std::move(tp), 2);
 
-  DecParams dp {{ 2, 1 }, { 1, 1 }, { 1, 1 }};
+  DecParams dp {{ 1, 1 }, { 3, 2 }, { 2, 1 }, { 1, 1 }, { 1, 1 }};
   Decomposer dec(std::move(tp), dp);
   dec.decompose();
 
