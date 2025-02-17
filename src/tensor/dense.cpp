@@ -19,28 +19,6 @@ namespace qtnh {
     return utils::one_unique(std::move(tp), p);
   }
 
-  lalg::BlockMatrix* DenseTensor::toBlockMatrix(qtnh::tidx_tup_st dis_sep, qtnh::tidx_tup_st loc_sep) {
-    PTupleSrc ptup(totDims().size());
-    auto [tup_r, tup_c] = utils::split_vec(ptup.tup(), dis_sep + loc_sep);
-    auto [tup_rd, tup_rb] = utils::split_vec(tup_r, dis_sep);
-    auto [tup_cd, tup_cb] = utils::split_vec(tup_c, dis_dims_.size() - dis_sep);
-    
-    // Distributed first, blocks column-major. 
-    IndexGroup ig({ "rd", "cd", "cb", "rb" }, { tup_rd, tup_cd, tup_rb, tup_cb });
-    bc_ = _permute_internal(this, ig.ptup().toTar().tup());
-
-    auto [rdd, cdd] = utils::split_dims(dis_dims_, dis_sep);
-    auto [rld, cld] = utils::split_dims(loc_dims_, loc_sep);
-    lalg::ProcGrid grid(int(utils::dims_to_size(rdd)), int(utils::dims_to_size(cdd)));
-
-    auto m = int(utils::dims_to_size(rdd) * utils::dims_to_size(rld));
-    auto n = int(utils::dims_to_size(cdd) * utils::dims_to_size(cld));
-
-    // ! This doesn't work yet, grid becomes a deleted reference
-    // ! Can heap allocate grid, but that would be a memory leak
-    return new lalg::BlockMatrix(grid, m, n, std::move(loc_els_));
-  }
-
   DenseTensor* DenseTensorBase::toDense() noexcept {
     std::vector<qtnh::tel> els;
     els.reserve(locSize());

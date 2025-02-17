@@ -230,10 +230,6 @@ namespace qtnh {
         return { qtnh::tptr(p1), qtnh::tptr(p2) };
       }
 
-      static std::unique_ptr<lalg::BlockMatrix> toBlockMatrix(qtnh::tptr tp, qtnh::tidx_tup_st dis_sep, qtnh::tidx_tup_st loc_sep) {
-        return std::unique_ptr<lalg::BlockMatrix>(tp->toBlockMatrix(dis_sep, loc_sep));
-      }
-
     protected:
       /// @brief Construct empty tensor of zero size within environment and with default distribution parameters. 
       /// @param env Environment to use for construction. 
@@ -258,8 +254,6 @@ namespace qtnh {
       virtual DenseTensor* toDense() noexcept { return nullptr; }
       virtual SymmTensor* toSymm() noexcept { return nullptr; }
       virtual DiagTensor* toDiag() noexcept { return nullptr; }
-
-      virtual lalg::BlockMatrix* toBlockMatrix(qtnh::tidx_tup_st dis_sep, qtnh::tidx_tup_st loc_sep) { return nullptr; }
 
       virtual bool isDense() const noexcept { return false; }
       virtual bool isSymm() const noexcept { return false; }
