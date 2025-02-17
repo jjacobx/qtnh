@@ -1,8 +1,9 @@
 add_library(qtnh)
 
-add_subdirectory(core)
-add_subdirectory(tensor)
 add_subdirectory(con)
+add_subdirectory(core)
+add_subdirectory(lalg)
+add_subdirectory(tensor)
 
 target_compile_features(qtnh
   PUBLIC
@@ -11,7 +12,6 @@ target_compile_features(qtnh
 
 target_compile_options(qtnh
   PRIVATE
-  # -fext-numeric-literals # – next time when compiling with clang
   -Wall
   -Wextra
   #-Wshadow # - unfixable warnings
@@ -94,6 +94,14 @@ if(MPI_FOUND)
   target_link_libraries(qtnh
     PUBLIC
     MPI::MPI_CXX
+  )
+endif()
+
+if (ScaLAPACK_FOUND)
+  message(STATUS "Linking ScaLAPACK.")
+  target_link_libraries(qtnh
+    PUBLIC
+    scalapack
   )
 endif()
 

@@ -8,9 +8,12 @@ namespace qtnh {
   namespace ops {}
   /// Namespace for helper functions. 
   namespace utils {}
+  /// Namespace for linear algebra routines. 
+  namespace lalg {}
 }
 
 #include "con/base.hpp"
+#include "con/decomp.hpp"
 #include "con/pair.hpp"
 #include "con/pair-defs.hpp"
 #include "con/self.hpp"
@@ -20,10 +23,14 @@ namespace qtnh {
 #include "core/typedefs.hpp"
 #include "core/utils.hpp"
 
+#include "lalg/matrix.hpp"
+#include "lalg/routines.hpp"
+
 #include "tensor/dense.hpp"
 #include "tensor/diag.hpp"
 #include "tensor/indexing.hpp"
 #include "tensor/network.hpp"
+#include "tensor/ptuple.hpp"
 #include "tensor/symm.hpp"
 #include "tensor/tensor.hpp"
 

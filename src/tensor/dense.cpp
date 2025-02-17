@@ -3,6 +3,7 @@
 
 #include "tensor/dense.hpp"
 #include "tensor/indexing.hpp"
+#include "tensor/ptuple.hpp"
 
 namespace qtnh {
   DenseTensorBase::DenseTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims)
@@ -52,6 +53,10 @@ namespace qtnh {
 
   Tensor* DenseTensorBase::permute(std::vector<qtnh::tidx_tup_st> ptup) {
     return this->toDense()->permute(ptup);
+  }
+
+  std::pair<Tensor*, Tensor*> DenseTensorBase::decompose(qtnh::tidx_tup_st split) {
+    return this->toDense()->decompose(split);
   }
 
   DenseTensor::DenseTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, std::vector<qtnh::tel>&& els)
@@ -125,7 +130,6 @@ namespace qtnh {
 
     // Update dimensions
     if (offset < 0) {
-      std::cout << "Rescatter complete" << "\n";
       auto loc_dims2 = qtnh::tidx_tup(dis_dims_.end() + offset, dis_dims_.end());
       loc_dims_.insert(loc_dims_.begin(), loc_dims2.begin(), loc_dims2.end());
       dis_dims_.erase(dis_dims_.end() + offset, dis_dims_.end());
@@ -149,6 +153,19 @@ namespace qtnh {
 
     if (!invariant) bc_ = _permute_internal(this, ptup);
     return this;
+  }
+
+  std::pair<Tensor*, Tensor*> DenseTensor::decompose(qtnh::tidx_tup_st split) {
+    auto [dims1, dims2] = utils::split_dims(totDims(), split);
+    auto [dis_dims1, loc_dims1] = utils::split_dims(dims1, utils::dims_to_size(dis_dims_));
+
+    std::vector<qtnh::tel> els1(loc_els_.begin(), loc_els_.begin() + utils::dims_to_size(loc_dims1));
+    auto* p1 = new DenseTensor(bc_.env(), dis_dims1, loc_dims1, std::move(els1));
+
+    std::vector<qtnh::tel> els2(loc_els_.begin(), loc_els_.begin() + utils::dims_to_size(dims2));
+    auto* p2 = new DenseTensor(bc_.env(), {}, dims2, std::move(els2));
+
+    return { p1, p2 };
   }
 
   Broadcaster TIDense::_swap_internal(Tensor* target, qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) {

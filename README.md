@@ -180,6 +180,35 @@ Some tensor contractions have different default dimension replacement policies. 
 Self-contractions (i.e. within a single tensor) are not yet supported. 
 
 
+#### Decomposition
+
+A tensor can be decomposed into two potentially smaller tensors using *singular value decomposition (SVD)*. To do this, a `Decomposer` class is used, which is an interface to distributed linear algebra library **ScaLAPACK**. As a result, the tensors need to be converted into a different data structure - a *block-cyclic matrix representation*. This can be achieved with a series of permutations. The decomposer class accepts a `DecParams` struct, which stores five tuples that describe the conversion process: 
+* in_dis_splits - how to split distributed dimensions of the original tensor. 
+* in_loc_splits - how to split local dimensions of the original tensor. 
+* cyc_splits - how many cycle dimensions in rows and columns of the target matrix. 
+* dis_splits - how many distributed block dimensions in rows and columns of the target matrix. 
+* loc_splits - how many local block dimensions in rows and columns of the target matrix. 
+
+The decomposition tensors have the same order of dimensions as the input, but distributed and local indices are split individually (to make it easier not to break index pairings in an underlying tensor network). It returns three tensors (U, S, V), the middle of which stores singular values. For now it needs to be manually truncated and contracted with one of the others, but in the future this should be implemented as a part of the decomposer. 
+
+```c++
+// Create a tensor with consecutive elements. 
+auto dims = tidx_tup { 2, 2, 2, 2, 2, 2, 2 };
+auto els = std::vector<tel>(128, 0);
+std::iota(els.begin(), els.end(), 0);
+
+tptr tp_m = DenseTensor::make(env, {}, dims, std::move(els));
+tp_m = Tensor::rescatter(std::move(tp_m), 2);
+
+// Decompose using (1,3)(1,2) -> (2,1,1)(1,1,1) representation. 
+DecParams dp {{ 1, 1 }, { 3, 2 }, { 2, 1 }, { 1, 1 }, { 1, 1 }};
+Decomposer dec(std::move(tp_m), dp);
+dec.decompose();
+
+// Extract decomposition tensors. 
+auto [tp_u, tp_s, tp_v] = dec.extract_results();
+```
+
 ### Indexing
 
 Indexing defines a coordinate system that can be used to iterate through tensor elements, and is implemented in a class `TIndexing`. It consists of dimensions (`tidx_tup`) and index flags (vector of `TIFlag`, each of which contains a string label and integer tag). Index flags are useful when iterating only certain dimensions (while keeping the others constant) and for specifying iteration order (from largest to smallest tag). 

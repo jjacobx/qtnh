@@ -4,6 +4,7 @@ target_sources(qtnh
   diag.cpp
   indexing.cpp
   network.cpp
+  ptuple.cpp
   symm.cpp
   tensor.cpp
 )

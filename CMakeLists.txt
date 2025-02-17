@@ -15,6 +15,7 @@ endif()
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(BUILD_SHARED_LIBS "Build shared library" ON)
+option(SKIP_ARCHER2_LIBS "Skips libraries that don't require linking on ARCHER2" OFF)
 
 
 ## Dependencies
@@ -22,24 +23,25 @@ option(BUILD_SHARED_LIBS "Build shared library" ON)
 # Math
 find_library(MATH_LIBRARY m REQUIRED)
 
-# OpenMP
-# find_package(OpenMP)
-
 # MPI
 find_package(MPI COMPONENTS CXX REQUIRED)
 
-## GTNH
+# ScaLAPACK
+if (NOT SKIP_ARCHER2_LIBS)
+  find_package(ScaLAPACK REQUIRED)
+endif()
+
+## QTNH
 add_subdirectory(src)
 
 ## Tests
-find_package(Catch2 3.1.0 REQUIRED)
-enable_testing()
-include(CTest)
-include(Catch)
-
 option(BUILD_TESTS "Build tests" ON)
 
 if (BUILD_TESTS)
+  find_package(Catch2 3.1.0 REQUIRED)
+  enable_testing()
+  include(CTest)
+  include(Catch)
   add_subdirectory(tests)
 else()
   message(STATUS "Skipping tests")
@@ -47,4 +49,3 @@ endif()
 
 ## Examples
 add_subdirectory(examples)
-add_subdirectory(examples/bench)
