@@ -224,11 +224,6 @@ namespace qtnh {
         auto p = tp->permute(ptup);
         return utils::one_unique(std::move(tp), p);
       }
-      // TODO: Documentation
-      static std::pair<qtnh::tptr, qtnh::tptr> decompose(qtnh::tptr tp, qtnh::tidx_tup_st split) {
-        auto [p1, p2] = tp->decompose(split);
-        return { qtnh::tptr(p1), qtnh::tptr(p2) };
-      }
 
     protected:
       /// @brief Construct empty tensor of zero size within environment and with default distribution parameters. 
@@ -277,8 +272,6 @@ namespace qtnh {
       /// @param ptup Permutation tuple of the same size as total dimensions, and each entry unique. 
       /// @return Pointer to permuted tensor, which might be of a different derived type. 
       virtual Tensor* permute(std::vector<qtnh::tidx_tup_st> ptup) = 0;
-      // TODO: Documentation
-      virtual std::pair<Tensor*, Tensor*> decompose(qtnh::tidx_tup_st split) = 0;
   };
 
   // Specialised template declarations must be outside class scope. 
