@@ -53,5 +53,20 @@ int main() {
 
   std::cout << "P" << env.proc_id << ": USV = " << *tp_usv << "\n";
 
+  dims = tidx_tup { 2, 4, 2, 4, 2 };
+  els = std::vector<tel>(utils::dims_to_size(dims), 0);
+  std::iota(els.begin(), els.end(), 0);
+
+  tptr tp = DenseTensor::make(env, {}, dims, std::move(els));
+  tp = Tensor::rescatter(std::move(tp), 2);
+
+  tp = Tensor::truncate(std::move(tp), 1, 3);
+  tp = Tensor::truncate(std::move(tp), 3, 3);
+
+  std::cout << "P" << env.proc_id << ": T = " << *tp << "\n";
+
+  utils::barrier();
+  if (utils::is_root()) std::cout << tp->totDims() << "\n";
+
   return 0;
 }
