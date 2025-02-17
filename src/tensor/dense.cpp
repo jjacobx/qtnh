@@ -148,6 +148,13 @@ namespace qtnh {
     }
 
     if (!invariant) bc_ = _permute_internal(this, ptup);
+
+    // Update dimensions. 
+    auto dims = PTupleTar(ptup).apply(totDims());
+    auto [dis_dims, loc_dims] = utils::split_dims(dims, dis_dims_.size());
+    dis_dims_ = dis_dims;
+    loc_dims_ = loc_dims;
+
     return this;
   }
 
@@ -488,7 +495,8 @@ namespace qtnh {
       old_loc_it++, new_dis_it++;
     }
 
-    auto new_dis_idxs = utils::i_to_idxs(new_bc.gid(), old_dis_dims);
+    // ! Possible error: old_dis_dims instead of new_dis_dims. 
+    auto new_dis_idxs = utils::i_to_idxs(new_bc.gid(), new_dis_dims);
     qtnh::tidx_tup recv_dis_idxs(ndis);
     for (std::size_t i = 0; i < ndis; ++i) {
       auto j = ptup.at(i);
