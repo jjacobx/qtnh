@@ -55,6 +55,16 @@ namespace qtnh {
 
       PTupleTar operator*(const PTupleTar& ptup) const;
       PTupleTar inv() const;
+    
+      template<typename T>
+      std::vector<T> apply(const std::vector<T>& vec) const {
+        auto res = vec;
+        for (auto i = 0UL; i < res.size(); ++i) {
+          res.at(tup().at(i)) = vec.at(i);
+        }
+
+        return res;
+      };
   };
 
   class PTupleSrc : public PTuple {
@@ -67,6 +77,16 @@ namespace qtnh {
 
       PTupleSrc operator*(const PTupleSrc& ptup) const;
       PTupleSrc inv() const;
+
+      template<typename T>
+      std::vector<T> apply(const std::vector<T>& vec) const {
+        auto res = vec;
+        for (auto i = 0UL; i < res.size(); ++i) {
+          res.at(i) = vec.at(tup().at(i));
+        }
+
+        return res;
+      };
   };
 
   class IndexGroup {
