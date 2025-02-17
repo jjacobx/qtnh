@@ -217,7 +217,7 @@ int main() {
   std::cout << env.proc_id << " | T1 (diagonal rebcast) = " << *tp1 << "\n";
 
   utils::barrier();
-  tp1 = DiagTensorBase::truncate(std::move(tp1));
+  tp1 = DiagTensorBase::shrink(std::move(tp1));
   if (env.proc_id == 4) {
     std::cout << env.proc_id << " | T1 has { 1, 1, 1, 1 }: " << tp1->cast<DiagTensor>()->has({ 1, 1, 1, 1 }) << "\n";
     std::cout << env.proc_id << " | T1 available { 1, 1, 1, 1 }: " << tp1->cast<DiagTensor>()->available({ 1, 1, 1, 1 }) << "\n";
@@ -230,7 +230,7 @@ int main() {
     std::cout << env.proc_id << " | T1 available { 1, 1, 1, 1 }: " << tp1->cast<DiagTensor>()->available({ 1, 1, 1, 1 }) << "\n";
   }
   if (env.proc_id >= 1 && env.proc_id <= 4) {
-    std::cout << env.proc_id << " | T1 (diagonal truncated) = " << (*tp1)[0] << ", " << (*tp1)[1] << "\n";
+    std::cout << env.proc_id << " | T1 (diagonal shrunk) = " << (*tp1)[0] << ", " << (*tp1)[1] << "\n";
   }
 
   MPI_Barrier(MPI_COMM_WORLD);
