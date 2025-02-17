@@ -224,6 +224,15 @@ namespace qtnh {
         auto p = tp->permute(ptup);
         return utils::one_unique(std::move(tp), p);
       }
+      /// @brief Truncate tensor index down to a given dimension. 
+      /// @param tp Ownership of tptr to tensor to truncate. 
+      /// @param idx Index to truncate. 
+      /// @param size Target size of the index. 
+      /// @return Ownership of tptr to truncated tensor. 
+      static qtnh::tptr truncate(qtnh::tptr tp, qtnh::tidx_tup_st idx, std::size_t size) {
+        auto p = tp->truncate(idx, size);
+        return utils::one_unique(std::move(tp), p);
+      }
 
     protected:
       /// @brief Construct empty tensor of zero size within environment and with default distribution parameters. 
@@ -272,6 +281,12 @@ namespace qtnh {
       /// @param ptup Permutation tuple of the same size as total dimensions, and each entry unique. 
       /// @return Pointer to permuted tensor, which might be of a different derived type. 
       virtual Tensor* permute(std::vector<qtnh::tidx_tup_st> ptup) = 0;
+      /// @brief Truncate tensor index down to a given dimension. 
+      /// @param idx Index to truncate. 
+      /// @param size Target size of the index. 
+      /// @return Pointer to truncated tensor, which might be of a different derived type. 
+      virtual Tensor* truncate(qtnh::tidx_tup_st idx, std::size_t size) = 0;
+
   };
 
   // Specialised template declarations must be outside class scope. 

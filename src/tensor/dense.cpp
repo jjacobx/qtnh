@@ -55,6 +55,10 @@ namespace qtnh {
     return this->toDense()->permute(ptup);
   }
 
+  Tensor* DenseTensorBase::truncate(qtnh::tidx_tup_st idx, std::size_t size) {
+    return this->toDense()->truncate(idx, size);
+  }
+
   DenseTensor::DenseTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, std::vector<qtnh::tel>&& els)
     : DenseTensorBase(env, dis_dims, loc_dims), TIDense(std::move(els)) {}
 
@@ -155,6 +159,34 @@ namespace qtnh {
     dis_dims_ = dis_dims;
     loc_dims_ = loc_dims;
 
+    return this;
+  }
+
+  DenseTensor* DenseTensor::truncate(qtnh::tidx_tup_st idx, std::size_t size) {
+    PTupleSrc ptup(totDims().size());
+    auto n_dis_dims = dis_dims_.size();
+
+    auto shift = (idx < n_dis_dims) ? idx : (idx - n_dis_dims);
+    ptup.at(idx) << int(shift);
+
+    // Naive implementation using permutation. 
+    permute(ptup.toTar().tup());
+
+    if (idx < n_dis_dims) {
+      BcParams params { bc_.params().str, 1, bc_.params().off };
+      rebcast(params);
+      dis_dims_.at(0) = size;
+      if (bc_.gid() > int(disSize())) loc_els_.clear();
+
+      // Update broadcaster base. 
+      Broadcaster new_bc(bc_.env(), qtnh::uint(disSize()), params);
+      bc_ = std::move(new_bc);
+    } else {
+      loc_dims_.at(0) = size;
+      loc_els_.resize(loc_els_.size());
+    }
+
+    permute(ptup.inv().toTar().tup());
     return this;
   }
 
