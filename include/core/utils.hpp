@@ -2,6 +2,7 @@
 #define _CORE__UTILS_HPP
 
 #include <memory>
+#include <string>
 
 #include "tensor/indexing.hpp"
 #include "typedefs.hpp"
@@ -18,6 +19,8 @@ namespace qtnh {
 
     /// @brief Call MPI Barrier. 
     void barrier();
+
+    void report(std::string s = "");
 
     /// @brief Convert tensor index dimensions tuple to tensor size. 
     /// @param dims Tensor index dimensions. 
