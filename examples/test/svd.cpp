@@ -61,7 +61,8 @@ int main() {
   tp = Tensor::rescatter(std::move(tp), 2);
 
   tp = Tensor::truncate(std::move(tp), 1, 3);
-  tp = Tensor::truncate(std::move(tp), 3, 3);
+  tp = Tensor::truncate(std::move(tp), 3, 1);
+  tp->reshape(tp->disDims(), { 2, 2 });
 
   std::cout << "P" << env.proc_id << ": T = " << *tp << "\n";
 

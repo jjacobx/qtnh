@@ -191,6 +191,13 @@ namespace qtnh {
       void activate() { if (!bc_.hasComm()) bc_.createComm(); }
       void deactivate() { bc_.deleteComm(); }
 
+      /// @brief Reshape distributed and local dimensions of a tensor. 
+      /// @param dis_dims New distributed dimensions. 
+      /// @param loc_dims New local dimensions. 
+      ///
+      /// Both distributed and local dimensions must be compatible with the old values. 
+      virtual void reshape(qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims);
+
       /// @brief Swap indices on current tensor. 
       /// @param tp Ownership of tptr to tensor to swap. 
       /// @param idx1 First index to swap. 

@@ -58,8 +58,19 @@ namespace qtnh {
     return el;
   }
 
-  Broadcaster::Broadcaster(Broadcaster&& b)
-    : Broadcaster(b.env_, b.base_, b.params(), false) {
+  void Tensor::reshape(qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims) {
+    if (utils::compatible(dis_dims, dis_dims_) && utils::compatible(loc_dims, loc_dims_)) {
+      dis_dims_ = dis_dims;
+      loc_dims_ = loc_dims;
+    } else {
+      throw std::invalid_argument("Incompatible new dimensions.");
+    }
+  }
+
+
+  Broadcaster::Broadcaster(Broadcaster &&b)
+      : Broadcaster(b.env_, b.base_, b.params(), false)
+  {
     std::swap(gcomm_, b.gcomm_);
     std::swap(has_comm_, b.has_comm_);
   }
