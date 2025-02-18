@@ -7,12 +7,15 @@
 #include "con/self-defs.hpp"
 
 namespace qtnh {
-  TensorNetwork::TensorNetwork() : 
-    tensors_(std::unordered_map<qtnh::uint, std::unique_ptr<Tensor>>()), 
-    bonds_(std::unordered_map<qtnh::uint, Bond>()) {}
+  TensorNetwork::TensorNetwork()
+  : tensors_(std::unordered_map<qtnh::uint, std::unique_ptr<Tensor>>())
+  , bonds_(std::unordered_map<qtnh::uint, Bond>())
+  {}
   
-  TensorNetwork::Bond::Bond(std::pair<qtnh::uint, qtnh::uint> tids, std::vector<qtnh::wire> ws) : 
-    tensor_ids(tids), wires(ws) {}
+  TensorNetwork::Bond::Bond(std::pair<qtnh::uint, qtnh::uint> tids, std::vector<qtnh::wire> ws)
+  : tensor_ids(tids)
+  , wires(ws)
+  {}
   
   Tensor* TensorNetwork::tensor(qtnh::uint tid) {
     return tensors_.at(tid).get();

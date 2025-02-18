@@ -191,6 +191,13 @@ namespace qtnh {
       void activate() { if (!bc_.hasComm()) bc_.createComm(); }
       void deactivate() { bc_.deleteComm(); }
 
+      /// @brief Reshape distributed and local dimensions of a tensor. 
+      /// @param dis_dims New distributed dimensions. 
+      /// @param loc_dims New local dimensions. 
+      ///
+      /// Both distributed and local dimensions must be compatible with the old values. 
+      virtual void reshape(qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims);
+
       /// @brief Swap indices on current tensor. 
       /// @param tp Ownership of tptr to tensor to swap. 
       /// @param idx1 First index to swap. 
@@ -224,10 +231,14 @@ namespace qtnh {
         auto p = tp->permute(ptup);
         return utils::one_unique(std::move(tp), p);
       }
-      // TODO: Documentation
-      static std::pair<qtnh::tptr, qtnh::tptr> decompose(qtnh::tptr tp, qtnh::tidx_tup_st split) {
-        auto [p1, p2] = tp->decompose(split);
-        return { qtnh::tptr(p1), qtnh::tptr(p2) };
+      /// @brief Truncate tensor index down to a given dimension. 
+      /// @param tp Ownership of tptr to tensor to truncate. 
+      /// @param idx Index to truncate. 
+      /// @param size Target size of the index. 
+      /// @return Ownership of tptr to truncated tensor. 
+      static qtnh::tptr truncate(qtnh::tptr tp, qtnh::tidx_tup_st idx, std::size_t size) {
+        auto p = tp->truncate(idx, size);
+        return utils::one_unique(std::move(tp), p);
       }
 
     protected:
@@ -277,8 +288,12 @@ namespace qtnh {
       /// @param ptup Permutation tuple of the same size as total dimensions, and each entry unique. 
       /// @return Pointer to permuted tensor, which might be of a different derived type. 
       virtual Tensor* permute(std::vector<qtnh::tidx_tup_st> ptup) = 0;
-      // TODO: Documentation
-      virtual std::pair<Tensor*, Tensor*> decompose(qtnh::tidx_tup_st split) = 0;
+      /// @brief Truncate tensor index down to a given dimension. 
+      /// @param idx Index to truncate. 
+      /// @param size Target size of the index. 
+      /// @return Pointer to truncated tensor, which might be of a different derived type. 
+      virtual Tensor* truncate(qtnh::tidx_tup_st idx, std::size_t size) = 0;
+
   };
 
   // Specialised template declarations must be outside class scope. 

@@ -1,6 +1,7 @@
 #include <functional>
-#include <numeric>
+#include <iostream>
 #include <mpi.h>
+#include <numeric>
 
 #include "core/utils.hpp"
 
@@ -18,6 +19,11 @@ namespace qtnh {
 
     void barrier() {
       MPI_Barrier(MPI_COMM_WORLD);
+    }
+
+    void report(std::string s) {
+      static auto global_counter = 0UL;
+      if (is_root()) std::cout << "REPORTING " << s << " AT " << global_counter++ << "\n";
     }
 
     std::size_t dims_to_size(qtnh::tidx_tup dims) { 
@@ -56,7 +62,8 @@ namespace qtnh {
     }
 
     std::pair<qtnh::tidx_tup, qtnh::tidx_tup> split_dims(qtnh::tidx_tup dims, qtnh::tidx_tup_st n) {
-      return { qtnh::tidx_tup(dims.begin(), dims.begin() + n), qtnh::tidx_tup(dims.begin() + n, dims.end()) };
+      return { qtnh::tidx_tup(dims.begin(), dims.begin() + n), 
+               qtnh::tidx_tup(dims.begin() + n, dims.end()) };
     }
 
     qtnh::tidx_tup halve_dims(qtnh::tidx_tup dims) {

@@ -28,17 +28,24 @@ namespace qtnh {
     std::vector<std::size_t> maps(ifls.size());
     std::iota(maps.begin(), maps.end(), 0);
 
-    std::stable_sort(maps.begin(), maps.end(), [&](std::size_t i, std::size_t j){ return ifls.at(i).tag < ifls.at(j).tag; });
+    std::stable_sort(
+      maps.begin(), maps.end(), 
+      [&](std::size_t i, std::size_t j){ return ifls.at(i).tag < ifls.at(j).tag; }
+    );
     std::reverse(maps.begin(), maps.end());
 
     return maps;
   }
 
-  TIndexing::TIndexing(qtnh::tidx_tup dims) 
-    : TIndexing(dims, std::vector<TIFlag>(dims.size(), { "default", 0 })) {}
+  TIndexing::TIndexing(qtnh::tidx_tup dims)
+  : TIndexing(dims, std::vector<TIFlag>(dims.size(), { "default", 0 }))
+  {}
 
   TIndexing::TIndexing(qtnh::tidx_tup dims, std::vector<TIFlag> ifls)
-    : dims_(dims), ifls_(ifls), maps_(_generate_maps(ifls_)) {}
+  : dims_(dims)
+  , ifls_(ifls)
+  , maps_(_generate_maps(ifls_))
+  {}
 
   bool TIndexing::isValid(qtnh::tidx_tup idxs) const {
     if (idxs.size() != dims_.size()) {
@@ -162,8 +169,13 @@ namespace qtnh {
     return new_ti;
   }
 
-  TIndexing::TupIterator::TupIterator(qtnh::tidx_tup dims, std::vector<std::size_t> order, qtnh::tidx_tup start, bool is_end)
-    : dims_(dims), order_(order), current_(start), is_end_(is_end) {}
+  TIndexing::TupIterator::TupIterator(qtnh::tidx_tup dims, std::vector<std::size_t> order, 
+                                      qtnh::tidx_tup start, bool is_end)
+  : dims_(dims)
+  , order_(order)
+  , current_(start)
+  , is_end_(is_end)
+  {}
 
   TIndexing::TupIterator TIndexing::TupIterator::begin() {
     auto new_start = current_;
@@ -206,8 +218,14 @@ namespace qtnh {
     return current_;
   }
 
-  TIndexing::NumIterator::NumIterator(qtnh::tidx_tup dims, std::vector<std::size_t> incrs, std::size_t zero, qtnh::tidx_tup current_idxs, bool is_end)
-    : dims_(dims), incrs_(incrs), zero_(zero), current_idxs_(current_idxs), is_end_(is_end) {}
+  TIndexing::NumIterator::NumIterator(qtnh::tidx_tup dims, std::vector<std::size_t> incrs, 
+                                      std::size_t zero, qtnh::tidx_tup current_idxs, bool is_end)
+  : dims_(dims)
+  , incrs_(incrs)
+  , zero_(zero)
+  , current_idxs_(current_idxs)
+  , is_end_(is_end)
+  {}
 
   TIndexing::NumIterator TIndexing::NumIterator::begin() {
     return NumIterator(dims_, incrs_, zero_, qtnh::tidx_tup(current_idxs_.size(), 0), false);

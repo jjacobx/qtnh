@@ -5,11 +5,14 @@
 #include "tensor/indexing.hpp"
 
 namespace qtnh {
-  SymmTensorBase::SymmTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims) 
-    : DenseTensorBase(env, dis_dims, loc_dims) {}
+  SymmTensorBase::SymmTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims)
+  : DenseTensorBase(env, dis_dims, loc_dims)
+  {}
 
-  SymmTensorBase::SymmTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, BcParams params) 
-    : DenseTensorBase(env, dis_dims, loc_dims, params) {}
+  SymmTensorBase::SymmTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, 
+                                 BcParams params)
+  : DenseTensorBase(env, dis_dims, loc_dims, params)
+  {}
 
   // Specialised convert template from tensor header requires full class definition. 
   template<> 
@@ -27,7 +30,10 @@ namespace qtnh {
       ifls.at(i) = { "distributed", 0 };
     }
 
-    auto curr_idxs = utils::concat_dims(utils::i_to_idxs(bc_.gid(), dis_dims_), qtnh::tidx_tup(loc_dims_.size(), 0));
+    auto curr_idxs = utils::concat_dims(
+      utils::i_to_idxs(bc_.gid(), dis_dims_), 
+      qtnh::tidx_tup(loc_dims_.size(), 0)
+    );
 
     TIndexing ti(totDims(), ifls);
     for (auto idxs : ti.tup("local", curr_idxs)) {
@@ -37,6 +43,15 @@ namespace qtnh {
     return new SymmTensor(bc_.env(), dis_dims_, loc_dims_, std::move(els), bc_.params());
   }
 
+  void SymmTensorBase::reshape(qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims) {
+    auto [dis_in_dims, dis_out_dims] = utils::split_dims(dis_dims, dis_dims.size() / 2);
+    auto [loc_in_dims, loc_out_dims] = utils::split_dims(loc_dims, loc_dims.size() / 2);
+    if ((dis_in_dims == dis_out_dims) && (loc_in_dims == loc_out_dims)) {
+      Tensor::reshape(dis_dims, loc_dims);
+    } else {
+      throw std::invalid_argument("Invalid symmetric dimensions.");
+    }
+  }
 
   Tensor* SymmTensorBase::swapIO(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) {
     return toSymm()->swap(idx1, idx2);
@@ -54,11 +69,17 @@ namespace qtnh {
     return this->toSymm()->permute(ptup);
   }
 
-  SymmTensor::SymmTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, std::vector<qtnh::tel>&& els) 
-    : SymmTensorBase(env, dis_dims, loc_dims), TIDense(std::move(els)) {}
+  SymmTensor::SymmTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, 
+                         std::vector<qtnh::tel>&& els)
+  : SymmTensorBase(env, dis_dims, loc_dims)
+  , TIDense(std::move(els))
+  {}
 
-  SymmTensor::SymmTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, std::vector<qtnh::tel>&& els, BcParams params) 
-    : SymmTensorBase(env, dis_dims, loc_dims, params), TIDense(std::move(els)) {}
+  SymmTensor::SymmTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, 
+                         std::vector<qtnh::tel>&& els, BcParams params)
+  : SymmTensorBase(env, dis_dims, loc_dims, params)
+  , TIDense(std::move(els))
+  {}
 
   std::unique_ptr<Tensor> SymmTensor::copy() const noexcept {
     auto els = loc_els_;
@@ -150,7 +171,11 @@ namespace qtnh {
 
     if (offset < 0) {
       std::iota(ptup.begin(), ptup.end(), 0);
-      std::rotate(ptup.begin() + dis_size + offset, ptup.begin() + dis_size, ptup.begin() + 2 * dis_size + offset);
+      std::rotate(
+        ptup.begin() + dis_size + offset, 
+        ptup.begin() + dis_size, 
+        ptup.begin() + 2 * dis_size + offset
+      );
       _permute_internal(this, ptup);
       _rescatter_internal(this, 2 * offset);
 
@@ -168,12 +193,20 @@ namespace qtnh {
 
       // ! This works for now, but might be necessary to update broadcaster once again in some cases. 
       std::iota(ptup.begin(), ptup.end(), 0);
-      std::rotate(ptup.begin() + 2 * dis_size + offset, ptup.begin() + 2 * dis_size, ptup.end() - loc_size);
+      std::rotate(
+        ptup.begin() + 2 * dis_size + offset, 
+        ptup.begin() + 2 * dis_size, 
+        ptup.end() - loc_size
+      );
       _permute_internal(this, ptup);
     } 
     else if (offset > 0) {
       std::iota(ptup.begin(), ptup.end(), 0);
-      std::rotate(ptup.rbegin() + loc_size - offset, ptup.rbegin() + loc_size, ptup.rbegin() + 2 * loc_size - offset);
+      std::rotate(
+        ptup.rbegin() + loc_size - offset, 
+        ptup.rbegin() + loc_size, 
+        ptup.rbegin() + 2 * loc_size - offset
+      );
       _permute_internal(this, ptup);
       _rescatter_internal(this, 2 * offset);
 
@@ -190,7 +223,11 @@ namespace qtnh {
 
       // ! This works for now, but might be necessary to update broadcaster once again in some cases. 
       std::iota(ptup.begin(), ptup.end(), 0);
-      std::rotate(ptup.rbegin() + 2 * loc_size - offset, ptup.rbegin() + 2 * loc_size, ptup.rend() - dis_size);
+      std::rotate(
+        ptup.rbegin() + 2 * loc_size - offset, 
+        ptup.rbegin() + 2 * loc_size, 
+        ptup.rend() - dis_size
+      );
       _permute_internal(this, ptup);
     }
 
@@ -237,10 +274,12 @@ namespace qtnh {
   }
 
   SwapTensor::SwapTensor(const QTNHEnv& env, std::size_t n, std::size_t d)
-    : SymmTensorBase(env, qtnh::tidx_tup(2 * d, n), qtnh::tidx_tup(4 - 2 * d, n)) {}
+  : SymmTensorBase(env, qtnh::tidx_tup(2 * d, n), qtnh::tidx_tup(4 - 2 * d, n))
+  {}
 
   SwapTensor::SwapTensor(const QTNHEnv& env, std::size_t n, std::size_t d, BcParams params)
-    : SymmTensorBase(env, qtnh::tidx_tup(2 * d, n), qtnh::tidx_tup(4 - 2 * d, n), params) {}
+  : SymmTensorBase(env, qtnh::tidx_tup(2 * d, n), qtnh::tidx_tup(4 - 2 * d, n), params)
+  {}
 
   std::unique_ptr<Tensor> SwapTensor::copy() const noexcept {
     auto n = dis_dims_.size() > 0 ? dis_dims_.at(0) : loc_dims_.at(0);

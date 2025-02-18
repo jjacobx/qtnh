@@ -32,10 +32,14 @@ namespace qtnh {
   }
 
   PTuple::shifter::shifter(std::vector<qtnh::tidx_tup_st>& tup, std::size_t pos)
-    : shifter(tup, pos, pos + 1) {}
+  : shifter(tup, pos, pos + 1)
+  {}
 
   PTuple::shifter::shifter(std::vector<qtnh::tidx_tup_st>& tup, std::size_t from, std::size_t to)
-    : tup_(tup), from_(from), to_(to) {}
+  : tup_(tup)
+  , from_(from)
+  , to_(to)
+  {}
   
   void PTuple::shifter::operator>>(int n) {
     std::vector<qtnh::tidx_tup_st> sub_tup(tup_.begin() + from_, tup_.begin() + to_);
@@ -88,7 +92,9 @@ namespace qtnh {
   }
 
   IndexGroup::IndexGroup(std::vector<std::string> labels, std::vector<tup_t> groups)
-    : labels_(labels), groups_() {
+  : labels_(labels)
+  , groups_()
+  {
     for (auto i = 0UL; i < labels.size(); ++i) {
       groups_.insert({labels.at(i), groups.at(i)});
     }

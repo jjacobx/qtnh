@@ -8,7 +8,8 @@
 
 
 namespace qtnh {
-  void _local_contraction(Tensor* tp1, Tensor* tp2, DenseTensor* tp3, TIndexing ti1, TIndexing ti2, TIndexing ti3) {
+  void _local_contraction(Tensor* tp1, Tensor* tp2, DenseTensor* tp3, 
+                          TIndexing ti1, TIndexing ti2, TIndexing ti3) {
     auto it3 = ti3.keep("local").num("local").begin();
     for (auto idxs1 : ti1.tup("local")) {
       for (auto idxs2 : ti2.tup("local")) {
@@ -230,7 +231,8 @@ namespace qtnh {
         // ! Can be performed multiple times with offset for larger arrays. 
         MPI_Comm allr_comm;
         MPI_Comm_split(t3.bc().gcomm(), colour, t3.bc().gid(), &allr_comm);
-        MPI_Allreduce(MPI_IN_PLACE, t3.loc_els_.data(), int(loc_size), MPI_C_DOUBLE_COMPLEX, MPI_SUM, allr_comm);
+        MPI_Allreduce(MPI_IN_PLACE, t3.loc_els_.data(), int(loc_size), 
+                      MPI_C_DOUBLE_COMPLEX, MPI_SUM, allr_comm);
         MPI_Comm_free(&allr_comm);
       }
     }
@@ -266,7 +268,10 @@ namespace qtnh {
 
     std::size_t input_count = 0;
     for (auto w : params_.wires) {
-      if (w.second < (tp2_->disDims().size() / 2) || ((w.second >= tp2_->disDims().size()) && (w.second < (tp2_->disDims().size() + tp2_->locDims().size() / 2)))) {
+      auto is_input_dis = w.second < (tp2_->disDims().size() / 2);
+      auto is_input_loc = (w.second >= tp2_->disDims().size()) && 
+                          (w.second < (tp2_->disDims().size() + tp2_->locDims().size() / 2));
+      if (is_input_dis || is_input_loc) {
         ++input_count;
       }
     }

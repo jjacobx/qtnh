@@ -18,6 +18,13 @@ namespace qtnh {
 
       virtual TT type() const noexcept override { return TT::symmTensorBase; }
 
+      /// @brief Reshape distributed and local dimensions of a tensor. 
+      /// @param dis_dims New distributed dimensions. 
+      /// @param loc_dims New local dimensions. 
+      ///
+      /// Both distributed and local dimensions must be compatible with the old values. 
+      virtual void reshape(qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims) override;
+
       /// @brief Swap both input and output indices on symmetric tensor. 
       /// @param tp Ownership of tptr to tensor to swap. 
       /// @param idx1 First index to swap. 
