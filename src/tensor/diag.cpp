@@ -37,6 +37,17 @@ namespace qtnh {
     return utils::idxs_to_i(dis_idxs_in, dis_dims_in) == 0;
   }
 
+  void DiagTensor::reshape(qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims) {
+    auto [dis_in_dims, dis_out_dims] = utils::split_dims(dis_dims, dis_dims.size() / 2);
+    auto [loc_in_dims, loc_out_dims] = utils::split_dims(loc_dims, loc_dims.size() / 2);
+    if ((dis_in_dims == dis_out_dims) && (loc_in_dims == loc_out_dims)) {
+      diagonal_.reshape(dis_out_dims, loc_out_dims);
+      Tensor::reshape(dis_dims, loc_dims);
+    } else {
+      throw std::invalid_argument("Invalid symmetric dimensions.");
+    }
+  }
+
   DiagTensor* DiagTensorBase::toDiag() noexcept {
     std::vector<qtnh::tel> els;
     els.reserve(utils::dims_to_size(utils::halve_dims(locDims())));

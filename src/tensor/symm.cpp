@@ -43,6 +43,15 @@ namespace qtnh {
     return new SymmTensor(bc_.env(), dis_dims_, loc_dims_, std::move(els), bc_.params());
   }
 
+  void SymmTensorBase::reshape(qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims) {
+    auto [dis_in_dims, dis_out_dims] = utils::split_dims(dis_dims, dis_dims.size() / 2);
+    auto [loc_in_dims, loc_out_dims] = utils::split_dims(loc_dims, loc_dims.size() / 2);
+    if ((dis_in_dims == dis_out_dims) && (loc_in_dims == loc_out_dims)) {
+      Tensor::reshape(dis_dims, loc_dims);
+    } else {
+      throw std::invalid_argument("Invalid symmetric dimensions.");
+    }
+  }
 
   Tensor* SymmTensorBase::swapIO(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) {
     return toSymm()->swap(idx1, idx2);

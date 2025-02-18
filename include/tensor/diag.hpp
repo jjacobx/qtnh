@@ -160,6 +160,13 @@ namespace qtnh {
       /// The index update will do nothing on ranks that do not contain the element on given indices. 
       void put(qtnh::tidx_tup tot_idxs, qtnh::tel el);
 
+      /// @brief Reshape distributed and local dimensions of a tensor. 
+      /// @param dis_dims New distributed dimensions. 
+      /// @param loc_dims New local dimensions. 
+      ///
+      /// Both distributed and local dimensions must be compatible with the old values. 
+      virtual void reshape(qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims) override;
+
     protected: 
       /// @brief Construct diagonal tensor with default distribution parameters. 
       /// @param env Environment to use for construction. 
