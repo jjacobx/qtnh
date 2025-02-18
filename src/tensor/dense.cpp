@@ -7,10 +7,13 @@
 
 namespace qtnh {
   DenseTensorBase::DenseTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims)
-    : Tensor(env, dis_dims, loc_dims) {}
+  : Tensor(env, dis_dims, loc_dims) 
+  {}
 
-  DenseTensorBase::DenseTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, BcParams params)
-    : Tensor(env, dis_dims, loc_dims, params) {}
+  DenseTensorBase::DenseTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, 
+                                   BcParams params)
+  : Tensor(env, dis_dims, loc_dims, params) 
+  {}
 
   // Specialised convert template from tensor header requires full class definition. 
   template<> 
@@ -28,7 +31,10 @@ namespace qtnh {
       ifls.at(i) = { "distributed", 0 };
     }
 
-    auto curr_idxs = utils::concat_dims(utils::i_to_idxs(bc_.gid(), dis_dims_), qtnh::tidx_tup(loc_dims_.size(), 0));
+    auto curr_idxs = utils::concat_dims(
+      utils::i_to_idxs(bc_.gid(), dis_dims_), 
+      qtnh::tidx_tup(loc_dims_.size(), 0)
+    );
 
     TIndexing ti(totDims(), ifls);
     for (auto idxs : ti.tup("local", curr_idxs)) {
@@ -59,11 +65,17 @@ namespace qtnh {
     return this->toDense()->truncate(idx, size);
   }
 
-  DenseTensor::DenseTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, std::vector<qtnh::tel>&& els)
-    : DenseTensorBase(env, dis_dims, loc_dims), TIDense(std::move(els)) {}
+  DenseTensor::DenseTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, 
+                           std::vector<qtnh::tel>&& els)
+  : DenseTensorBase(env, dis_dims, loc_dims)
+  , TIDense(std::move(els)) 
+  {}
 
-  DenseTensor::DenseTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, std::vector<qtnh::tel>&& els, BcParams params)
-    : DenseTensorBase(env, dis_dims, loc_dims, params), TIDense(std::move(els)) {}
+  DenseTensor::DenseTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, 
+                           std::vector<qtnh::tel>&& els, BcParams params)
+  : DenseTensorBase(env, dis_dims, loc_dims, params)
+  , TIDense(std::move(els)) 
+  {}
 
   qtnh::tptr DenseTensor::copy() const noexcept {
     auto els = loc_els_;
@@ -267,7 +279,8 @@ namespace qtnh {
       for (auto i = 0UL; i < dims.at(idx1); ++i) {
         // TODO: Consider MPI message size limit. 
         // * A scatter might already take it into account
-        MPI_Scatter(loc_els_.data(), 1, restrided, new_els.data() + int(i * block_length), 1, restrided, int(i), swap_comm);
+        MPI_Scatter(loc_els_.data(), 1, restrided, new_els.data() + int(i * block_length), 1, 
+                    restrided, int(i), swap_comm);
       }
 
       // ! new_els should not be copied, and original loc_els should be destroyed. 
@@ -287,7 +300,8 @@ namespace qtnh {
       std::vector<qtnh::tel> new_els(loc_els_.size());
       // TODO: Consider MPI message size limit – not a scatter. 
       MPI_Sendrecv(loc_els_.data(), int(loc_els_.size()), MPI_C_DOUBLE_COMPLEX, int(target_i), 0, 
-                   new_els.data(), int(new_els.size()), MPI_C_DOUBLE_COMPLEX, int(target_i), 0, bc.gcomm(), MPI_STATUS_IGNORE);
+                   new_els.data(), int(new_els.size()), MPI_C_DOUBLE_COMPLEX, int(target_i), 0, 
+                   bc.gcomm(), MPI_STATUS_IGNORE);
       
       // ! new_els should not be copied, and original loc_els should be destroyed
       loc_els_ = std::move(new_els);
@@ -320,7 +334,8 @@ namespace qtnh {
       // TODO: optimisation where if data is already present at target, it is not sent. 
       if ((int)bc.env().proc_id == send_sources.at(0)) {
         for (std::size_t i = 0; i < send_targets.size(); ++i) {
-          MPI_Isend(loc_els_.data(), int(loc_els_.size()), MPI_C_DOUBLE_COMPLEX, send_targets.at(i), 0, MPI_COMM_WORLD, &send_reqs.at(i));
+          MPI_Isend(loc_els_.data(), int(loc_els_.size()), MPI_C_DOUBLE_COMPLEX, send_targets.at(i), 0, 
+                    MPI_COMM_WORLD, &send_reqs.at(i));
         }
       }
     }
@@ -329,7 +344,8 @@ namespace qtnh {
     if (new_bc.isActive()) {
       new_els.resize(target->locSize());
       int recv_source = new_bc.gid() * bc.params().str + bc.params().off;
-      MPI_Recv(new_els.data(), int(new_els.size()), MPI_C_DOUBLE_COMPLEX, recv_source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      MPI_Recv(new_els.data(), int(new_els.size()), MPI_C_DOUBLE_COMPLEX, recv_source, 0, 
+               MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
 
     MPI_Waitall(int(send_reqs.size()), send_reqs.data(), MPI_STATUSES_IGNORE);
@@ -374,7 +390,8 @@ namespace qtnh {
       auto bc2 = _rebcast_internal(target, params);
 
       if (bc2.isActive()) {
-        auto split_id = (((bc2.env().proc_id - params.off) % (bc2.base() * params.str)) / (params.str / shift)) % shift;
+        auto split_id = (((bc2.env().proc_id - params.off) % 
+          (bc2.base() * params.str)) / (params.str / shift)) % shift;
         loc_els_.erase(loc_els_.begin(), loc_els_.begin() + target->locSize() / shift * split_id);
         loc_els_.erase(loc_els_.begin() + target->locSize() / shift, loc_els_.end());
       }
@@ -403,7 +420,8 @@ namespace qtnh {
     }
 
     // Vectors for temporary datatypes. Size 128 should be enough for any realistic dense tensor. 
-    std::vector<MPI_Datatype> send_types(128, MPI_C_DOUBLE_COMPLEX), recv_types(128, MPI_C_DOUBLE_COMPLEX);
+    std::vector<MPI_Datatype> send_types(128, MPI_C_DOUBLE_COMPLEX);
+    std::vector<MPI_Datatype> recv_types(128, MPI_C_DOUBLE_COMPLEX);
     auto ext1 = sizeof(qtnh::tel), ext2 = sizeof(qtnh::tel);
     auto new_ext1 = sizeof(qtnh::tel), new_ext2 = sizeof(qtnh::tel);
     auto count1 = 1UL, count2 = 1UL;
@@ -572,7 +590,8 @@ namespace qtnh {
     return Broadcaster(std::move(new_bc));
   }
 
-  Broadcaster TIDense::_shift_internal(Tensor* target, qtnh::tidx_tup_st from, qtnh::tidx_tup_st to, int offset) {
+  Broadcaster TIDense::_shift_internal(Tensor* target, qtnh::tidx_tup_st from, qtnh::tidx_tup_st to, 
+                                       int offset) {
     auto& bc = target->bc();
     
     qtnh::tidx_tup_st n = to - from;
@@ -590,11 +609,13 @@ namespace qtnh {
     return Broadcaster(std::move(bc));
   }
 
-  RescTensor::RescTensor(const QTNHEnv& env, std::size_t n) : 
-    DenseTensorBase(env, { n }, { n }) {}
+  RescTensor::RescTensor(const QTNHEnv& env, std::size_t n) 
+  : DenseTensorBase(env, { n }, { n }) 
+  {}
 
-  RescTensor::RescTensor(const QTNHEnv& env, std::size_t n, BcParams params) : 
-    DenseTensorBase(env, { n }, { n }, params) {}
+  RescTensor::RescTensor(const QTNHEnv& env, std::size_t n, BcParams params) 
+  : DenseTensorBase(env, { n }, { n }, params) 
+  {}
   
   qtnh::tptr RescTensor::copy() const noexcept {
     auto tp = new RescTensor(bc_.env(), dis_dims_.at(0), bc_.params());

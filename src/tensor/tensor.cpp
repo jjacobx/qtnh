@@ -11,15 +11,18 @@
 #endif
 
 namespace qtnh {
-  Tensor::Tensor(const QTNHEnv& env) 
-    : Tensor(env, qtnh::tidx_tup(), qtnh::tidx_tup()) {}
+  Tensor::Tensor(const QTNHEnv& env)
+  : Tensor(env, qtnh::tidx_tup(), qtnh::tidx_tup()) {}
 
   Tensor::Tensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims)
-    : Tensor(env, dis_dims, loc_dims, BcParams { 1, 1, 0 }) {}
+  : Tensor(env, dis_dims, loc_dims, BcParams { 1, 1, 0 }) {}
 
-  Tensor::Tensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, BcParams params)
-    : dis_dims_(dis_dims), loc_dims_(loc_dims), 
-      bc_(env, qtnh::uint(utils::dims_to_size(dis_dims)), params, AUTO_COMM_INIT) {}
+  Tensor::Tensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, 
+                 BcParams params)
+  : dis_dims_(dis_dims)
+  , loc_dims_(loc_dims)
+  , bc_(env, qtnh::uint(utils::dims_to_size(dis_dims)), params, AUTO_COMM_INIT)
+  {}
 
   template<> 
   bool Tensor::canConvert<DenseTensor>() {
@@ -69,17 +72,23 @@ namespace qtnh {
 
 
   Broadcaster::Broadcaster(Broadcaster &&b)
-      : Broadcaster(b.env_, b.base_, b.params(), false)
+  : Broadcaster(b.env_, b.base_, b.params(), false)
   {
     std::swap(gcomm_, b.gcomm_);
     std::swap(has_comm_, b.has_comm_);
   }
 
   Broadcaster::Broadcaster(const QTNHEnv &env, qtnh::uint base, BcParams params)
-    : Broadcaster(env, base, params, true) {}
+  : Broadcaster(env, base, params, true)
+  {}
 
-  Broadcaster::Broadcaster(const QTNHEnv &env, qtnh::uint base, BcParams params, bool communicate) 
-    : env_(env), base_(base), str_(params.str), cyc_(params.cyc), off_(params.off) {
+  Broadcaster::Broadcaster(const QTNHEnv &env, qtnh::uint base, BcParams params, bool communicate)
+  : env_(env)
+  , base_(base)
+  , str_(params.str)
+  , cyc_(params.cyc)
+  , off_(params.off) 
+  {
     int rel_id = env.proc_id - off_; // ! relative ID may be negative
     is_active_ = (rel_id >= 0) && (rel_id < (int)(str_ * cyc_ * base_));
     if (is_active_) gid_ = (rel_id / str_) % base_;
