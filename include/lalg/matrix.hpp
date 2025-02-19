@@ -49,12 +49,28 @@ namespace qtnh {
         }
         constexpr int nBlock() const { return nblock_; }
 
-        constexpr std::array<int, 9> const descriptor() {
+        constexpr std::array<int, 9> const descSVD() {
           return { 
             1,                          // DTYPE
             grid_.context(),            // CTXT
             nrows_,                     // M
             ncols_,                     // N
+            nblock_,                    // MB
+            nblock_,                    // NB
+            0,                          // RSRC
+            0,                          // CSRC
+            nblock_ * cycDims().first   // LLD
+          };
+        }
+
+        constexpr std::array<int, 11> const descMM() {
+          return { 
+            1,                          // DTYPE
+            grid_.context(),            // CTXT
+            nrows_,                     // M
+            ncols_,                     // N
+            nblock_,                    // IMB
+            nblock_,                    // INB
             nblock_,                    // MB
             nblock_,                    // NB
             0,                          // RSRC

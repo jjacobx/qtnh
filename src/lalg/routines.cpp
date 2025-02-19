@@ -9,13 +9,13 @@ namespace qtnh {
       auto dims_m = m.totDims();
       auto chi = std::min(dims_m.first, dims_m.second);
   
-      std::vector<double> s(static_cast<std::size_t>(chi));
-      BlockCyclicMatrix m_u(m.grid(), dims_m.first, chi, m.nBlock());
-      BlockCyclicMatrix m_v(m.grid(), chi, dims_m.second, m.nBlock());
+      std::vector<double> sd(static_cast<std::size_t>(chi));
+      BlockCyclicMatrix u(m.grid(), dims_m.first, chi, m.nBlock());
+      BlockCyclicMatrix v(m.grid(), chi, dims_m.second, m.nBlock());
 
       auto one = 1;
       
-      char jobu = 'V', jobvt = 'V';
+      char job_u = 'V', job_vt = 'V';
       int lwork = -1, lrwork = -1;
       std::vector<qtnh::tel> work(1);
       std::vector<double> rwork(1);
@@ -24,13 +24,15 @@ namespace qtnh {
       if (m.grid().active()) {
         // Won't be modified, so must const cast. 
         // Needs two steps because descriptor is constexpr. 
-        auto m_desc = m.descriptor(); auto m_desc_p = const_cast<int*>(m_desc.data());
-        auto u_desc = m_u.descriptor(); auto u_desc_p = const_cast<int*>(u_desc.data());
-        auto v_desc = m_v.descriptor(); auto v_desc_p = const_cast<int*>(v_desc.data());
+        auto desc_m = m.descSVD(); auto desc_mp = const_cast<int*>(desc_m.data());
+        auto desc_u = u.descSVD(); auto desc_up = const_cast<int*>(desc_u.data());
+        auto desc_v = v.descSVD(); auto desc_vp = const_cast<int*>(desc_v.data());
         
         // Query size of the work array. 
-        pzgesvd_(&jobu, &jobvt, &dims_m.first, &dims_m.second, m.data(), &one, &one, m_desc_p, 
-                 s.data(), m_u.data(), &one, &one, u_desc_p, m_v.data(), &one, &one, v_desc_p, 
+        pzgesvd_(&job_u, &job_vt, &dims_m.first, &dims_m.second, 
+                 m.data(), &one, &one, desc_mp, sd.data(), 
+                 u.data(), &one, &one, desc_up, 
+                 v.data(), &one, &one, desc_vp, 
                  work.data(), &lwork, rwork.data(), &info);
 
         lwork = static_cast<int>(work.at(0).real());
@@ -45,19 +47,21 @@ namespace qtnh {
           }
        #endif
 
-        pzgesvd_(&jobu, &jobvt, &dims_m.first, &dims_m.second, m.data(), &one, &one, m_desc_p, 
-                 s.data(), m_u.data(), &one, &one, u_desc_p, m_v.data(), &one, &one, v_desc_p, 
-                 work.data(), &lwork, rwork.data(), &info);
+       pzgesvd_(&job_u, &job_vt, &dims_m.first, &dims_m.second, 
+                m.data(), &one, &one, desc_mp, sd.data(), 
+                u.data(), &one, &one, desc_up, 
+                v.data(), &one, &one, desc_vp, 
+                work.data(), &lwork, rwork.data(), &info);
       }
 
-      cvec s_c(static_cast<std::size_t>(chi));
-      for (auto i = 0UL; i < s_c.size(); ++i) {
-        s_c.at(i) = qtnh::tel(s.at(i));
+      cvec sc(static_cast<std::size_t>(chi));
+      for (auto i = 0UL; i < sc.size(); ++i) {
+        sc.at(i) = qtnh::tel(sd.at(i));
       }
 
       // Moves to prevent copying large object. 
       // This is likely not suitable for NRVO. 
-      return { std::move(m_u), std::move(s_c), std::move(m_v) };
+      return { std::move(u), std::move(sc), std::move(v) };
     }
   }
 }
