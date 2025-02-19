@@ -63,5 +63,36 @@ namespace qtnh {
       // This is likely not suitable for NRVO. 
       return { std::move(u), std::move(sc), std::move(v) };
     }
+
+    BlockCyclicMatrix PZGEMM(BlockCyclicMatrix&& a, BlockCyclicMatrix&& b) {
+      auto dims_a = a.totDims();
+      auto dims_b = b.totDims();
+
+      if (dims_a.second != dims_b.first) {
+        throw std::invalid_argument("Incompatible matrices");
+      }
+
+      BlockCyclicMatrix c(a.grid(), dims_a.first, dims_b.second, a.nBlock());
+
+      auto one = 1;
+
+      char transa = 'N', transb = 'N';
+      qtnh::tel alpha = 1, beta = 0;
+      
+      if (a.grid().active()) {
+        // Won't be modified, so must const cast. 
+        // Needs two steps because descriptor is constexpr. 
+        auto desc_a = a.descSVD(); auto desc_ap = const_cast<int*>(desc_a.data());
+        auto desc_b = b.descSVD(); auto desc_bp = const_cast<int*>(desc_b.data());
+        auto desc_c = c.descSVD(); auto desc_cp = const_cast<int*>(desc_c.data());
+
+        pzgemm_(&transa, &transb, &dims_a.first, &dims_b.second, &dims_a.second, &alpha, 
+                a.data(), &one, &one, desc_ap, 
+                b.data(), &one, &one, desc_bp, &beta, 
+                c.data(), &one, &one, desc_cp);
+      }
+
+      return c;
+    }
   }
 }

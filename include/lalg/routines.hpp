@@ -28,6 +28,7 @@ namespace qtnh {
                              
     // Wrappers. 
     std::tuple<BlockCyclicMatrix, cvec, BlockCyclicMatrix> PZGESVD(BlockCyclicMatrix&& matrix);
+    BlockCyclicMatrix PZGEMM(BlockCyclicMatrix&& a, BlockCyclicMatrix&& b);
   }
 }
 
