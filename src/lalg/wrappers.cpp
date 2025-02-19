@@ -2,6 +2,7 @@
 
 #include "core/utils.hpp"
 #include "lalg/routines.hpp"
+#include "lalg/wrappers.hpp"
 
 namespace qtnh {
   namespace lalg {
