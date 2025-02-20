@@ -92,6 +92,23 @@ namespace qtnh {
       return { std::vector<T>(vec.begin(), vec.begin() + n), std::vector<T>(vec.begin() + n, vec.end()) };
     }
 
+    // TODO: Restrict types: each of Ns must be size_t
+    template <typename T, typename... Ns>
+    auto split_vec_rel(std::vector<T> vec, Ns... ns) {
+      const auto NSPLITS = sizeof...(ns);
+      std::array<std::size_t, NSPLITS> splits { ns... };
+      std::array<std::vector<T>, NSPLITS + 1> vecs;
+
+      auto delta = 0UL;
+      for (auto i = 0UL; i < NSPLITS; ++i) {
+        vecs.at(i) = std::vector<T>(vec.begin() + delta, vec.begin() + delta + splits.at(i));
+        delta += splits.at(i);
+      }
+
+      vecs.at(NSPLITS) = std::vector<T>(vec.begin() + delta, vec.end());
+      return vecs;
+    }
+
     template <typename T>
     std::vector<T> permute_vec(std::vector<T> vec, std::vector<qtnh::tidx_tup_st> ptup) {
       auto vec_perm = vec;
