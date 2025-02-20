@@ -21,3 +21,11 @@ target_compile_options(svd-test
   PRIVATE
   -Wall
 )
+
+add_executable(gemm-test gemm.cpp)
+add_dependencies(gemm-test qtnh)
+target_link_libraries(gemm-test qtnh)
+target_compile_options(gemm-test
+  PRIVATE
+  -Wall
+)
