@@ -14,14 +14,14 @@ int main() {
   std::iota(els_a.begin(), els_a.end(), 0);
   
   tptr tp_a = DenseTensor::make(env, {}, dims_a, std::move(els_a));
-  tp_a = Tensor::rescatter(std::move(tp_a), 2);
+  tp_a = Tensor::rescatter(std::move(tp_a), 3);
 
   auto dims_b = tidx_tup { 2, 2, 2, 2, 2, 2 };
   auto els_b = std::vector<tel>(utils::dims_to_size(dims_b), 0);
   std::iota(els_b.begin(), els_b.end(), 0);
 
   tptr tp_b = DenseTensor::make(env, {}, dims_b, std::move(els_b));
-  tp_b = Tensor::rescatter(std::move(tp_b), 2);
+  tp_b = Tensor::rescatter(std::move(tp_b), 3);
 
   std::cout << "P" << env.proc_id << ": A = " << *tp_a << "\n";
   std::cout << "P" << env.proc_id << ": B = " << *tp_b << "\n";
@@ -29,11 +29,11 @@ int main() {
   // Permute tensors into matrix-like form. 
   IndexGroup ig_a(
     { "rc", "rd", "rb", "cc", "cd", "cb" }, 
-    {{ 0 }, { 1 }, { 2 }, { 3 }, { 4 }, { 5 }}
+    {{}, { 0, 1 }, { 2 }, { 3 }, { 4 }, { 5 }}
   );
   IndexGroup ig_b(
     { "rc", "rd", "rb", "cc", "cd", "cb" }, 
-    {{ 0 }, { 1 }, { 2 }, { 3 }, { 4 }, { 5 }}
+    {{}, { 0, 1 }, { 2 }, { 3 }, { 4 }, { 5 }}
   );
 
   ig_a.reorder({ "rd", "cd", "cc", "cb", "rc", "rb" });
@@ -44,21 +44,21 @@ int main() {
 
   // Convert tensors to BC matrices and multiply. 
   using namespace lalg;
-  ProcGrid pg(2, 2);
+  ProcGrid pg(4, 2);
 
   BlockCyclicMatrix a(pg, 8, 8, 2, tp_a->cast<DenseTensor>()->extractEls());
   BlockCyclicMatrix b(pg, 8, 8, 2, tp_a->cast<DenseTensor>()->extractEls());
 
-  auto c = PZGEMM(std::move(a), std::move(b));
+  auto c = PZGEMM(std::move(a), std::move(b), true);
 
   // Convert output BC matrix back to result. 
-  auto dis_dims_c = tidx_tup { 2, 2 };
-  auto loc_dims_c = tidx_tup { 2, 2, 2, 2 };
+  auto dis_dims_c = tidx_tup { 2, 2, 2 };
+  auto loc_dims_c = tidx_tup { 2, 2, 2 };
   tptr tp_c = DenseTensor::make(env, dis_dims_c, loc_dims_c, c.extractEls());
 
   IndexGroup ig_c(
     { "rc", "rd", "rb", "cc", "cd", "cb" }, 
-    {{ 0 }, { 1 }, { 2 }, { 3 }, { 4 }, { 5 }}
+    {{}, { 0, 1 }, { 2 }, { 3 }, { 4 }, { 5 }}
   );
   ig_c.reorder({ "rd", "cd", "cc", "cb", "rc", "rb" });
 
