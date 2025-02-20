@@ -65,9 +65,13 @@ namespace qtnh {
       return { std::move(u), std::move(sc), std::move(v) };
     }
 
-    BlockCyclicMatrix PZGEMM(BlockCyclicMatrix&& a, BlockCyclicMatrix&& b) {
+    BlockCyclicMatrix PZGEMM(BlockCyclicMatrix&& a, BlockCyclicMatrix&& b, bool use_bt) {
       auto dims_a = a.totDims();
       auto dims_b = b.totDims();
+
+      if (use_bt) {
+        dims_b = { dims_b.second, dims_b.first };
+      }
 
       if (dims_a.second != dims_b.first) {
         throw std::invalid_argument("Incompatible matrices");
@@ -76,8 +80,9 @@ namespace qtnh {
       BlockCyclicMatrix c(a.grid(), dims_a.first, dims_b.second, a.nBlock());
 
       auto one = 1;
-
-      char transa = 'N', transb = 'N';
+      
+      // Second matrix transposed to allow non-square process grids. 
+      char trans_a = 'N', trans_b = use_bt ? 'T' : 'N';
       qtnh::tel alpha = 1, beta = 0;
       
       if (a.grid().active()) {
@@ -87,7 +92,7 @@ namespace qtnh {
         auto desc_b = b.descSVD(); auto desc_bp = const_cast<int*>(desc_b.data());
         auto desc_c = c.descSVD(); auto desc_cp = const_cast<int*>(desc_c.data());
 
-        pzgemm_(&transa, &transb, &dims_a.first, &dims_b.second, &dims_a.second, &alpha, 
+        pzgemm_(&trans_a, &trans_b, &dims_a.first, &dims_b.second, &dims_a.second, &alpha, 
                 a.data(), &one, &one, desc_ap, 
                 b.data(), &one, &one, desc_bp, &beta, 
                 c.data(), &one, &one, desc_cp);
