@@ -41,6 +41,7 @@ namespace qtnh {
       const ConParams& params() const noexcept { return this->params_; }
 
       qtnh::tptr contract();
+      qtnh::tptr contract_scalapack();
   };
 
   template<typename T1>
