@@ -66,34 +66,41 @@ namespace qtnh {
     }
 
     BlockCyclicMatrix PZGEMM(BlockCyclicMatrix&& a, BlockCyclicMatrix&& b, bool use_bt) {
-      auto dims_a = a.totDims();
-      auto dims_b = b.totDims();
+      auto tot_dims_a = a.totDims(), tot_dims_b = b.totDims();
+      auto blk_dims_a = a.blkDims(), blk_dims_b = b.blkDims();
+      auto& grid = a.grid();
 
       if (use_bt) {
-        dims_b = { dims_b.second, dims_b.first };
+        tot_dims_b = { tot_dims_b.second, tot_dims_b.first };
+        blk_dims_b = { blk_dims_b.second, blk_dims_b.first };
+      }
+      
+      // Basic checks for distributed matrix multiplication. 
+      if (tot_dims_a.second != tot_dims_b.first) {
+        throw std::invalid_argument("Incompatible matrix dimensions of A and B");
+      }
+      if (std::addressof(a.grid()) != std::addressof(b.grid())) {
+        throw std::invalid_argument("Process grids of A and B are different");
       }
 
-      if (dims_a.second != dims_b.first) {
-        throw std::invalid_argument("Incompatible matrices");
-      }
-
-      BlockCyclicMatrix c(a.grid(), dims_a.first, dims_b.second, 
-                          a.blkDims().first, b.blkDims().second);
+      BlockCyclicMatrix c(grid, tot_dims_a.first, tot_dims_b.second, 
+                          blk_dims_a.first, blk_dims_a.second);
 
       auto one = 1;
       
       // Second matrix transposed to allow non-square process grids. 
       char trans_a = 'N', trans_b = use_bt ? 'T' : 'N';
       qtnh::tel alpha = 1, beta = 0;
+      auto m = tot_dims_a.first, n = tot_dims_b.second, k = tot_dims_a.second;
       
-      if (a.grid().active()) {
+      if (grid.active()) {
         // Won't be modified, so must const cast. 
         // Needs two steps because descriptor is constexpr. 
         auto desc_a = a.descSVD(); auto desc_ap = const_cast<int*>(desc_a.data());
         auto desc_b = b.descSVD(); auto desc_bp = const_cast<int*>(desc_b.data());
         auto desc_c = c.descSVD(); auto desc_cp = const_cast<int*>(desc_c.data());
 
-        pzgemm_(&trans_a, &trans_b, &dims_a.first, &dims_b.second, &dims_a.second, &alpha, 
+        pzgemm_(&trans_a, &trans_b, &m, &n, &k, &alpha, 
                 a.data(), &one, &one, desc_ap, 
                 b.data(), &one, &one, desc_bp, &beta, 
                 c.data(), &one, &one, desc_cp);
