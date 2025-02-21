@@ -109,6 +109,11 @@ namespace qtnh {
       return vecs;
     }
 
+    template <typename T, std::size_t N>
+    std::vector<T> arr_to_vec(std::array<T, N> arr) {
+      return std::vector<T>(std::begin(arr), std::end(arr));
+    }
+
     template <typename T>
     std::vector<T> permute_vec(std::vector<T> vec, std::vector<qtnh::tidx_tup_st> ptup) {
       auto vec_perm = vec;
