@@ -17,20 +17,21 @@ namespace qtnh {
       if (active_) blacs_gridexit_(&context_);
     }
 
-    BlockCyclicMatrix::BlockCyclicMatrix(const ProcGrid& grid, int nrows, int ncols, int nblock)
-    : BlockCyclicMatrix(grid, nrows, ncols, nblock, {})
+    BlockCyclicMatrix::BlockCyclicMatrix(const ProcGrid& grid, int m, int n, int mb, int nb)
+    : BlockCyclicMatrix(grid, m, n, mb, nb, {})
     {
       auto proc_dims = grid.procDims();
-      auto loc_size = (nrows * ncols) / (proc_dims.first * proc_dims.second);
+      auto loc_size = (m * n) / (proc_dims.first * proc_dims.second);
       loc_els_p_ = cvec(loc_size);
     }
 
-    BlockCyclicMatrix::BlockCyclicMatrix(const ProcGrid& grid, int nrows, int ncols,
-                                         int nblock, cvec&& loc_els_p)
+    BlockCyclicMatrix::BlockCyclicMatrix(const ProcGrid& grid, int m, int n, int mb, int nb,
+                                         cvec&& loc_els_p)
     : grid_(grid)
-    , nrows_(nrows)
-    , ncols_(ncols)
-    , nblock_(nblock)
+    , m_(m)
+    , n_(n)
+    , mb_(mb)
+    , nb_(nb)
     , loc_els_p_(loc_els_p)
     {}
   }

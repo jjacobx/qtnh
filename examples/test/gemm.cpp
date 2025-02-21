@@ -46,8 +46,8 @@ int main() {
   using namespace lalg;
   ProcGrid pg(4, 2);
 
-  BlockCyclicMatrix a(pg, 8, 8, 2, tp_a->cast<DenseTensor>()->extractEls());
-  BlockCyclicMatrix b(pg, 8, 8, 2, tp_a->cast<DenseTensor>()->extractEls());
+  BlockCyclicMatrix a(pg, 8, 8, 2, 2, tp_a->cast<DenseTensor>()->extractEls());
+  BlockCyclicMatrix b(pg, 8, 8, 2, 2, tp_a->cast<DenseTensor>()->extractEls());
 
   auto c = PZGEMM(std::move(a), std::move(b), true);
 
