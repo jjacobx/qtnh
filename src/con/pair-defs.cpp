@@ -46,10 +46,10 @@ namespace qtnh {
   }
 
   template<> qtnh::tptr PairContractor<DenseTensor, DenseTensor>::contract_scalapack() {
-    #ifdef DEBUG
+    // #ifdef DEBUG
     if (utils::is_root())
       std::cout << "STARTING DENSE-DENSE CONTRACTION USING SCALAPACK\n";
-    #endif
+    // #endif
 
     auto ws = params_.wires;
 
@@ -123,8 +123,8 @@ namespace qtnh {
     }
 
     // Create matrices and multiply. 
-    BlockCyclicMatrix m1(pg, m, k, sizes1.at(3), sizes1.at(4), std::move(els1));
-    BlockCyclicMatrix m2(pg, k, n, sizes2.at(3), sizes2.at(4), std::move(els2));
+    BlockCyclicMatrix m1(pg, m, k, sizes1.at(2), sizes1.at(3), std::move(els1));
+    BlockCyclicMatrix m2(pg, k, n, sizes2.at(2), sizes2.at(3), std::move(els2));
     auto m3 = PZGEMM(std::move(m1), std::move(m2));
 
     auto dis_dims3 = utils::concat_dims(dims1.at(0), dims2.at(1));
@@ -132,10 +132,12 @@ namespace qtnh {
     tptr tp3 = DenseTensor::make(tp1_->bc().env(), dis_dims3, loc_dims3, m3.extractEls());
 
     // Permute back to row-major. 
-    std::vector<qtnh::tup_t> gs3 { gs1.at(0), gs2.at(1), gs1.at(3), gs2.at(4) };
-    IndexGroup ig3({ "rd", "cd", "rb", "cb" }, gs3);
-    ig3.reorder({ "rd", "cd", "cb", "rb" });
+    PTupleSrc ptup3(tp3->totDims().size());
+    auto gs3 = utils::split_vec_rel(ptup3.tup(), dims1.at(0).size(), dims2.at(1).size(), 
+                                    dims1.at(2).size(), dims2.at(3).size());
 
+    IndexGroup ig3({ "rd", "cd", "rb", "cb" }, utils::arr_to_vec(gs3));
+    ig3.reorder({ "rd", "cd", "cb", "rb" });
     tp3 = Tensor::permute(std::move(tp3), ig3.ptup().inv().toTar().tup());
 
     return tp3;
