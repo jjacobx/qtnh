@@ -45,11 +45,12 @@ int main() {
     std::cout << env.proc_id << " | T1[0] (gather 2) = " << (*tp1)[0] << "\n";
   }
 
-  tp1 = DenseTensor::make(env, {}, { 2, 2, 2 }, std::vector<tel>(els1));
-  tp2 = DenseTensor::make(env, {}, { 4, 2 }, std::vector<tel>(els2));
+  using dpcon = PairContractor<DenseTensor, DenseTensor>;
+  auto tp_d1 = DenseTensor::make(env, {}, { 2, 2, 2 }, std::vector<tel>(els1));
+  auto tp_d2 = DenseTensor::make(env, {}, { 4, 2 }, std::vector<tel>(els2));
 
   params = ConParams(std::vector<wire> {});
-  tp3 = pcon(std::move(tp1), std::move(tp2), params).contract();
+  tp3 = dpcon(std::move(tp_d1), std::move(tp_d2), params).contract_scalapack();
   if (tp3->has({1, 1, 1, 3, 1})) {
     std::cout << env.proc_id << ": T3[(1, 1, 1, 3, 1)] (tensor product) = " << tp3->at({1, 1, 1, 3, 1}) << "\n";
   }
