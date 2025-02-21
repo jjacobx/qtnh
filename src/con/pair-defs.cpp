@@ -4,7 +4,9 @@
 
 #include "con/pair-defs.hpp"
 #include "core/utils.hpp"
+#include "lalg/wrappers.hpp"
 #include "tensor/indexing.hpp"
+#include "tensor/ptuple.hpp"
 
 
 namespace qtnh {
@@ -43,6 +45,101 @@ namespace qtnh {
     }
   }
 
+  template<> qtnh::tptr PairContractor<DenseTensor, DenseTensor>::contract_scalapack() {
+    #ifdef DEBUG
+    if (utils::is_root())
+      std::cout << "STARTING DENSE-DENSE CONTRACTION USING SCALAPACK\n";
+    #endif
+
+    auto ws = params_.wires;
+
+    auto ndis1 = tp1_->disDims().size();
+    auto nloc1 = tp1_->locDims().size();
+    auto ndis2 = tp2_->disDims().size();
+    auto nloc2 = tp2_->locDims().size();
+
+    PTupleSrc ptup1(ndis1 + nloc1);
+    PTupleSrc ptup2(ndis2 + nloc2);
+
+    auto n_dis_ws = 0UL, n_loc_ws = 0UL;
+    for (auto w : ws) {
+      auto [w1, w2] = w;
+      // Get current positions of given indices. 
+      auto i = ptup1.inv().tup().at(w1);
+      auto j = ptup2.inv().tup().at(w2);
+      
+      // Move first tensor dims to back, 
+      // and second tensor dims to front. 
+      if (w1 < ndis1) {
+        ptup1.at(i) >> int(ndis1 - i - 1);
+        ptup2.at(j) << int(j - n_dis_ws++);
+      } else {
+        ptup1.at(i) >> int(ndis1 + nloc1 - i - 1);
+        ptup2.at(j) << int(j - ndis2 - n_loc_ws++);
+      }
+    }
+
+    // Save permuted dims. 
+    auto dims1 = utils::split_vec_rel(tp1_->totDims(), ndis1 - n_dis_ws, n_dis_ws, nloc1 - n_loc_ws);
+    auto dims2 = utils::split_vec_rel(tp2_->totDims(), n_dis_ws, ndis2 - n_dis_ws, n_loc_ws);
+
+    // Convert to column-major. 
+    auto gs1 = utils::split_vec_rel(ptup1.tup(), ndis1 - n_dis_ws, n_dis_ws, nloc1 - n_loc_ws);
+    auto gs2 = utils::split_vec_rel(ptup2.tup(), n_dis_ws, ndis2 - n_dis_ws, n_loc_ws);
+    
+    IndexGroup ig1({ "rd", "cd", "rb", "cb" }, utils::arr_to_vec(gs1));
+    IndexGroup ig2({ "rd", "cd", "rb", "cb" }, utils::arr_to_vec(gs2));
+    ig1.reorder({ "rd", "cd", "cb", "rb" });
+    ig2.reorder({ "rd", "cd", "cb", "rb" });
+
+    tp1_ = Tensor::cast<DenseTensor>(Tensor::permute(std::move(tp1_), ig1.ptup().toTar().tup()));
+    tp2_ = Tensor::cast<DenseTensor>(Tensor::permute(std::move(tp2_), ig2.ptup().toTar().tup()));
+
+    // Calculate matrix parameters. 
+    // TODO: Use B^T if contracted distributed dimensions are larger. 
+    std::array<int, 4> sizes1, sizes2;
+    auto fun = [](auto dims) { return int(utils::dims_to_size(dims)); };
+    std::transform(dims1.begin(), dims1.end(), sizes1.begin(), fun);
+    std::transform(dims2.begin(), dims2.end(), sizes2.begin(), fun);
+
+    auto m = sizes1.at(0) * sizes1.at(2);
+    auto n = sizes2.at(1) * sizes2.at(3);
+    auto k = sizes1.at(1) * sizes1.at(3);
+    auto md = std::max(sizes1.at(0), sizes1.at(1));
+    auto nd = std::max(sizes2.at(0), sizes2.at(1));
+
+    using namespace lalg;
+    ProcGrid pg(md, nd);
+
+    auto els1 = tp1_->extractEls();
+    auto els2 = tp2_->extractEls();
+
+    // Zero-pad inactive processes in the grid. 
+    if (!tp1_->bc().isActive() && pg.active()) {
+      els1 = std::vector<qtnh::tel>(tp1_->locSize(), 0);
+    }
+    if (!tp2_->bc().isActive() && pg.active()) {
+      els2 = std::vector<qtnh::tel>(tp2_->locSize(), 0);
+    }
+
+    // Create matrices and multiply. 
+    BlockCyclicMatrix m1(pg, m, k, sizes1.at(3), sizes1.at(4), std::move(els1));
+    BlockCyclicMatrix m2(pg, k, n, sizes2.at(3), sizes2.at(4), std::move(els2));
+    auto m3 = PZGEMM(std::move(m1), std::move(m2));
+
+    auto dis_dims3 = utils::concat_dims(dims1.at(0), dims2.at(1));
+    auto loc_dims3 = utils::concat_dims(dims1.at(2), dims2.at(3));
+    tptr tp3 = DenseTensor::make(tp1_->bc().env(), dis_dims3, loc_dims3, m3.extractEls());
+
+    // Permute back to row-major. 
+    std::vector<qtnh::tup_t> gs3 { gs1.at(0), gs2.at(1), gs1.at(3), gs2.at(4) };
+    IndexGroup ig3({ "rd", "cd", "rb", "cb" }, gs3);
+    ig3.reorder({ "rd", "cd", "cb", "rb" });
+
+    tp3 = Tensor::permute(std::move(tp3), ig3.ptup().inv().toTar().tup());
+
+    return tp3;
+  }
 
   template<> qtnh::tptr PairContractor<DenseTensor, DenseTensor>::contract() {
     #ifdef DEBUG
