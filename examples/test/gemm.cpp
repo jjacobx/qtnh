@@ -29,11 +29,11 @@ int main() {
   // Permute tensors into matrix-like form. 
   IndexGroup ig_a(
     { "rc", "rd", "rb", "cc", "cd", "cb" }, 
-    {{}, { 0, 1 }, { 2 }, { 3 }, { 4 }, { 5 }}
+    {{}, { 0, 1 }, { 2 }, {}, { 3 }, { 4, 5 }}
   );
   IndexGroup ig_b(
     { "rc", "rd", "rb", "cc", "cd", "cb" }, 
-    {{}, { 0, 1 }, { 2 }, { 3 }, { 4 }, { 5 }}
+    {{}, { 0, 1 }, { 2 }, {}, { 3 }, { 4, 5 }}
   );
 
   ig_a.reorder({ "rd", "cd", "cc", "cb", "rc", "rb" });
@@ -46,8 +46,8 @@ int main() {
   using namespace lalg;
   ProcGrid pg(4, 2);
 
-  BlockCyclicMatrix a(pg, 8, 8, 2, 2, tp_a->cast<DenseTensor>()->extractEls());
-  BlockCyclicMatrix b(pg, 8, 8, 2, 2, tp_a->cast<DenseTensor>()->extractEls());
+  BlockCyclicMatrix a(pg, 8, 8, 2, 4, tp_a->cast<DenseTensor>()->extractEls());
+  BlockCyclicMatrix b(pg, 8, 8, 2, 4, tp_a->cast<DenseTensor>()->extractEls());
 
   auto c = PZGEMM(std::move(a), std::move(b), true);
 
@@ -58,7 +58,7 @@ int main() {
 
   IndexGroup ig_c(
     { "rc", "rd", "rb", "cc", "cd", "cb" }, 
-    {{}, { 0, 1 }, { 2 }, { 3 }, { 4 }, { 5 }}
+    {{}, { 0, 1 }, { 2 }, {}, { 3 }, { 4, 5 }}
   );
   ig_c.reorder({ "rd", "cd", "cc", "cb", "rc", "rb" });
 
