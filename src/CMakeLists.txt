@@ -52,6 +52,10 @@ if (MAP)
     -Wl,--eh-frame-hdr
     -Wl,-rpath=${FORGE_DIR}/map/libs/default/gnu/ofi
   )
+  target_compile_options(qtnh
+    PRIVATE
+    -g
+  )
 endif()
 
 option(FSANITIZE "Turn on fsanitize debug flags" OFF)
