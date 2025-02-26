@@ -122,7 +122,7 @@ namespace qtnh {
     auto nd = std::max(sizes2.at(0), sizes2.at(1));
     auto m = md * sizes1.at(2);
     auto n = nd * sizes2.at(3);
-    auto k = sizes1.at(1) * sizes1.at(3);
+    auto k = md * sizes1.at(3); // ? use max() here?
 
     if (utils::is_root()) {
       using namespace ops;
@@ -149,11 +149,12 @@ namespace qtnh {
 
     // Zero-pad inactive processes in the grid. 
     // TODO: Zero-pad active processes too, to match contracted dimensions. 
-    if (!tp1_->bc().isActive() && pg.active()) {
-      els1 = std::vector<qtnh::tel>(tp1_->locSize(), 0);
-    }
-    if (!tp2_->bc().isActive() && pg.active()) {
-      els2 = std::vector<qtnh::tel>(tp2_->locSize(), 0);
+    // ! Problem: zero-padding columns requires different distribution! 
+    if (pg.active()) {
+      std::cout << tp1_->locSize() << ", " << (m * k) / (md * nd) << "\n";
+      std::cout << tp2_->locSize() << ", " << (k * n) / (md * nd) << "\n";
+      els1.resize((m * k) / (md * nd), 0);
+      els2.resize((k * n) / (md * nd), 0);
     }
 
     // Create matrices and multiply. 
@@ -172,9 +173,21 @@ namespace qtnh {
 
     auto m3 = PZGEMM(std::move(m1), std::move(m2));
 
+    if (utils::is_root()) {
+      using namespace ops;
+      std::cout << "M3.blk = " << m3.blkDims() << "\n";
+      std::cout << "M3.dis = " << m3.disDims() << "\n";
+      std::cout << "M3.cyc = " << m3.cycDims() << "\n";
+    }
+
     auto dis_dims3 = utils::concat_dims(dims1.at(0), dims2.at(1));
     auto loc_dims3 = utils::concat_dims(dims2.at(3), dims1.at(2)); // column-major
-    tptr tp3 = DenseTensor::make(tp1_->bc().env(), dis_dims3, loc_dims3, m3.extractEls());
+    
+    auto new_els = m3.extractEls();
+    using namespace ops;
+    std::cout << tp1_->bc().env().proc_id << " | " << new_els << "\n";
+
+    tptr tp3 = DenseTensor::make(tp1_->bc().env(), dis_dims3, loc_dims3, std::move(new_els));
 
     // Permute back to row-major. 
     PTupleSrc ptup3(tp3->totDims().size());
