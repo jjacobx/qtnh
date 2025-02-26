@@ -29,14 +29,17 @@ namespace qtnh {
             std::cout << "t1[" << *it1 << "] * t2[" << *it2 << "]";
           #endif
 
-          el3 += (*tp1)[*(it1++)] * (*tp2)[*(it2++)];
+          el3 += (*tp1)[*it1] * (*tp2)[*it2];
+          ++it1; ++it2;
 
           #ifdef DEBUG
             if (it1 != it1.end() && it2 != it2.end()) std::cout << " + ";
           #endif
         }
 
-        (*tp3)[*(it3++)] = el3;
+        (*tp3)[*it3] = el3;
+        ++it3;
+
 
         #ifdef DEBUG
           std::cout << " = " << el3  << std::endl;
