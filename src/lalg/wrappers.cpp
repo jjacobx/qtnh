@@ -84,7 +84,7 @@ namespace qtnh {
       }
 
       BlockCyclicMatrix c(grid, tot_dims_a.first, tot_dims_b.second, 
-                          blk_dims_a.first, blk_dims_a.second);
+                          blk_dims_a.first, blk_dims_b.second);
 
       auto one = 1;
       
