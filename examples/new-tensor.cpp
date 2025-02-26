@@ -47,13 +47,24 @@ int main() {
 
   using dpcon = PairContractor<DenseTensor, DenseTensor>;
   auto tp_d1 = DenseTensor::make(env, {}, { 2, 2, 2 }, std::vector<tel>(els1));
-  auto tp_d2 = DenseTensor::make(env, {}, { 4, 2 }, std::vector<tel>(els2));
+  tp_d1 = Tensor::cast<DenseTensor>(Tensor::rescatter(std::move(tp_d1), 1));
+  auto tp_d2 = DenseTensor::make(env, {}, { 2, 4 }, std::vector<tel>(els2));
+  tp_d2 = Tensor::cast<DenseTensor>(Tensor::rescatter(std::move(tp_d2), 1));
 
-  params = ConParams(std::vector<wire> {});
-  tp3 = dpcon(std::move(tp_d1), std::move(tp_d2), params).contract_scalapack();
-  if (tp3->has({1, 1, 1, 3, 1})) {
-    std::cout << env.proc_id << ": T3[(1, 1, 1, 3, 1)] (tensor product) = " << tp3->at({1, 1, 1, 3, 1}) << "\n";
-  }
+  params = ConParams(std::vector<wire> {{ 0, 0 }});
+  auto tp_standard = dpcon(Tensor::cast<DenseTensor>(tp_d1->copy()), 
+                           Tensor::cast<DenseTensor>(tp_d2->copy()), params).contract();
+  auto tp_scalapack = dpcon(Tensor::cast<DenseTensor>(tp_d1->copy()), 
+                            Tensor::cast<DenseTensor>(tp_d2->copy()), params).contract_scalapack();
+  
+  using namespace qtnh::ops;
+  
+  std::cout << env.proc_id << " | T (standard) = " << *tp_standard << "\n";
+  std::cout << env.proc_id << " | T (ScaLAPACK) = " << *tp_scalapack << "\n";
+
+  // if (tp3->has({1, 1, 1, 3, 1})) {
+  //   std::cout << env.proc_id << ": T3[(1, 1, 1, 3, 1)] (tensor product) = " << tp3->at({1, 1, 1, 3, 1}) << "\n";
+  // }
 
   return 0;
 }
