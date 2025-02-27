@@ -7,7 +7,8 @@
 namespace qtnh {
   namespace lalg {
     std::tuple<BlockCyclicMatrix, cvec, BlockCyclicMatrix> PZGESVD(BlockCyclicMatrix&& matrix);
-    BlockCyclicMatrix PZGEMM(BlockCyclicMatrix&& a, BlockCyclicMatrix&& b, bool use_bt = false);
+    BlockCyclicMatrix PZGEMM(BlockCyclicMatrix&& a, BlockCyclicMatrix&& b, 
+                             bool use_at = false, bool use_bt = false);
   }
 }
 

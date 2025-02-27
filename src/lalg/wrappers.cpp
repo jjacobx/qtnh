@@ -65,14 +65,18 @@ namespace qtnh {
       return { std::move(u), std::move(sc), std::move(v) };
     }
 
-    BlockCyclicMatrix PZGEMM(BlockCyclicMatrix&& a, BlockCyclicMatrix&& b, bool use_bt) {
+    BlockCyclicMatrix PZGEMM(BlockCyclicMatrix&& a, BlockCyclicMatrix&& b, bool use_at, bool use_bt) {
       auto tot_dims_a = a.totDims(), tot_dims_b = b.totDims();
       auto blk_dims_a = a.blkDims(), blk_dims_b = b.blkDims();
       auto& grid = a.grid();
 
+      if (use_at) {
+        std::swap(tot_dims_a.first, tot_dims_a.second);
+        std::swap(blk_dims_a.first, blk_dims_a.second);
+      }
       if (use_bt) {
-        tot_dims_b = { tot_dims_b.second, tot_dims_b.first };
-        blk_dims_b = { blk_dims_b.second, blk_dims_b.first };
+        std::swap(tot_dims_b.first, tot_dims_b.second);
+        std::swap(blk_dims_b.first, blk_dims_b.second);
       }
       
       // Basic checks for distributed matrix multiplication. 
@@ -89,7 +93,8 @@ namespace qtnh {
       auto one = 1;
       
       // Second matrix transposed to allow non-square process grids. 
-      char trans_a = 'N', trans_b = use_bt ? 'T' : 'N';
+      char trans_a = use_at ? 'T' : 'N'; 
+      char trans_b = use_bt ? 'T' : 'N';
       qtnh::tel alpha = 1, beta = 0;
       auto m = tot_dims_a.first, n = tot_dims_b.second, k = tot_dims_a.second;
       
