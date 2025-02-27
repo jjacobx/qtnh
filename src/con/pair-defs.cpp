@@ -55,6 +55,7 @@ namespace qtnh {
     // #endif
 
     auto ws = params_.wires;
+    auto& env = tp1_->bc().env();
 
     auto ndis1 = tp1_->disDims().size();
     auto nloc1 = tp1_->locDims().size();
@@ -123,6 +124,26 @@ namespace qtnh {
     auto m = md * sizes1.at(2);
     auto n = md * sizes2.at(3);
     auto k = nd * sizes1.at(3);
+
+    // TODO: Implement below directly with MPI Routines
+    // TODO: e.g. _pad_els(els, nd_rows, nd_cols, to_rows, to_cols)
+    // auto params1 = tp1_->bc().params();
+    // params1.str = qtnh::uint(sizes1.at(1));
+    // auto tp_tmp = DenseTensor::make(env, { std::size_t(sizes1.at(0)) }, 
+    //                                 { std::size_t(sizes1.at(2) * sizes1.at(3)) }, 
+    //                                 tp1_->extractEls(), params1);
+    // params1.str = qtnh::uint(nd);
+    // tp_tmp = Tensor::cast<DenseTensor>(Tensor::rebcast(std::move(tp_tmp), params1));
+    // auto els1 = tp_tmp->extractEls();
+
+    // auto params2 = tp2_->bc().params();
+    // params2.str = qtnh::uint(sizes2.at(0));
+    // auto tp_tmp = DenseTensor::make(env, { std::size_t(sizes2.at(1)) }, 
+    //                                 { std::size_t(sizes2.at(2) * sizes2.at(3)) }, 
+    //                                 tp2_->extractEls(), params2);
+    // params2.str = qtnh::uint(nd);
+    // tp_tmp = Tensor::cast<DenseTensor>(Tensor::rebcast(std::move(tp_tmp), params2));
+    // auto els2 = tp_tmp->extractEls();
 
     if (utils::is_root()) {
       using namespace ops;
