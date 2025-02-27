@@ -97,7 +97,7 @@ namespace qtnh {
     IndexGroup ig1({ "rd", "cd", "rb", "cb" }, utils::arr_to_vec(gs1));
     IndexGroup ig2({ "rd", "cd", "rb", "cb" }, utils::arr_to_vec(gs2));
     ig1.reorder({ "rd", "cd", "cb", "rb" });
-    ig2.reorder({ "rd", "cd", "cb", "rb" });
+    ig2.reorder({ "cd", "rd", "rb", "cb" });
 
     ptup1 = ig1.ptup() * ptup1;
     ptup2 = ig2.ptup() * ptup2;
@@ -118,11 +118,11 @@ namespace qtnh {
     std::transform(dims1.begin(), dims1.end(), sizes1.begin(), fun);
     std::transform(dims2.begin(), dims2.end(), sizes2.begin(), fun);
 
-    auto md = std::max(sizes1.at(0), sizes1.at(1));
-    auto nd = std::max(sizes2.at(0), sizes2.at(1));
+    auto md = std::max(sizes1.at(0), sizes2.at(1));
+    auto nd = std::max(sizes1.at(1), sizes2.at(0));
     auto m = md * sizes1.at(2);
-    auto n = nd * sizes2.at(3);
-    auto k = md * sizes1.at(3); // ? use max() here?
+    auto n = md * sizes2.at(3);
+    auto k = nd * sizes1.at(3);
 
     if (utils::is_root()) {
       using namespace ops;
@@ -159,7 +159,7 @@ namespace qtnh {
 
     // Create matrices and multiply. 
     BlockCyclicMatrix m1(pg, m, k, sizes1.at(2), sizes1.at(3), std::move(els1));
-    BlockCyclicMatrix m2(pg, k, n, sizes2.at(2), sizes2.at(3), std::move(els2));
+    BlockCyclicMatrix m2(pg, n, k, sizes2.at(3), sizes2.at(2), std::move(els2));
 
     if (utils::is_root()) {
       using namespace ops;
@@ -171,7 +171,7 @@ namespace qtnh {
       std::cout << "M2.cyc = " << m2.cycDims() << "\n";
     }
 
-    auto m3 = PZGEMM(std::move(m1), std::move(m2));
+    auto m3 = PZGEMM(std::move(m1), std::move(m2), false, true);
 
     if (utils::is_root()) {
       using namespace ops;
@@ -184,8 +184,8 @@ namespace qtnh {
     auto loc_dims3 = utils::concat_dims(dims2.at(3), dims1.at(2)); // column-major
     
     auto new_els = m3.extractEls();
-    using namespace ops;
-    std::cout << tp1_->bc().env().proc_id << " | " << new_els << "\n";
+    // using namespace ops;
+    // std::cout << tp1_->bc().env().proc_id << " | " << new_els << "\n";
 
     tptr tp3 = DenseTensor::make(tp1_->bc().env(), dis_dims3, loc_dims3, std::move(new_els));
 
