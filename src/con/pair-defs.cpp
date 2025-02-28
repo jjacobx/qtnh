@@ -48,6 +48,32 @@ namespace qtnh {
     }
   }
 
+  void _repad(const lalg::ProcGrid& pg1, const lalg::ProcGrid& pg2, 
+              std::vector<qtnh::tel>& els, int loc_size) {
+    using namespace ops;
+    std::cout << pg1.procIdxs() << " to " << pg2.procIdxs() << "\n";
+
+    auto psrc = pg1.getPNum(pg2.procIdxs());
+    auto ptar = pg2.getPNum(pg1.procIdxs());
+
+    
+    std::cout << pg1.procIdxs() << ": " << psrc << ", " << ptar << "\n";
+    
+    if (ptar > -1) {
+      MPI_Ssend(els.data(), loc_size, MPI_DOUBLE_COMPLEX, ptar, 0, MPI_COMM_WORLD);
+    }
+
+    if (psrc > - 1) {
+      MPI_Recv(els.data(), loc_size, MPI_DOUBLE_COMPLEX, psrc, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    } else if (pg2.active()) {
+      els.resize(loc_size, 0);
+    } else {
+      els.resize(0);
+    }
+    
+    return;
+  }
+
   template<> qtnh::tptr PairContractor<DenseTensor, DenseTensor>::contract_scalapack() {
     // #ifdef DEBUG
     if (utils::is_root())
@@ -55,7 +81,7 @@ namespace qtnh {
     // #endif
 
     auto ws = params_.wires;
-    auto& env = tp1_->bc().env();
+    // auto& env = tp1_->bc().env();
 
     auto ndis1 = tp1_->disDims().size();
     auto nloc1 = tp1_->locDims().size();
@@ -119,11 +145,16 @@ namespace qtnh {
     std::transform(dims1.begin(), dims1.end(), sizes1.begin(), fun);
     std::transform(dims2.begin(), dims2.end(), sizes2.begin(), fun);
 
-    auto md = std::max(sizes1.at(0), sizes2.at(1));
-    auto nd = std::max(sizes1.at(1), sizes2.at(0));
-    auto m = md * sizes1.at(2);
-    auto n = md * sizes2.at(3);
-    auto k = nd * sizes1.at(3);
+    auto md = sizes1.at(0), nd = sizes2.at(1), kd = sizes1.at(1);
+    auto ml = sizes1.at(2), nl = sizes2.at(3), kl = sizes1.at(3);
+    auto pm = std::max(nd, md);
+    auto pn = std::max(nd, kd);
+
+    // auto md = std::max(sizes1.at(0), sizes2.at(1));
+    // auto nd = std::max(sizes1.at(1), sizes2.at(0));
+    // auto m = md * sizes1.at(2);
+    // auto n = md * sizes2.at(3);
+    // auto k = nd * sizes1.at(3);
 
     // TODO: Implement below directly with MPI Routines
     // TODO: e.g. _pad_els(els, nd_rows, nd_cols, to_rows, to_cols)
@@ -153,34 +184,43 @@ namespace qtnh {
       std::cout << gs2.at(0) << gs2.at(1) << gs2.at(2) << gs2.at(3) << "\n";
       std::cout << ig1.ptup().tup() << "\n";
       std::cout << ig2.ptup().tup() << "\n";
-      std::cout << "m = " << m <<
-        ", n = " << n <<
-        ", k = " << k <<
-        ", md = " << md <<
-        ", nd = " << nd << "\n";
+      std::cout << "md = " << md <<
+        ", nd = " << nd <<
+        ", kd = " << kd <<
+        ", ml = " << ml <<
+        ", nl = " << nl <<
+        ", kl = " << kl <<
+        ", pm = " << pm <<
+        ", pn = " << pn << "\n";
       std::cout << "m1_b = (" << sizes1.at(2) << ", " << sizes1.at(3) << 
         "), m2_b = (" << sizes2.at(2) << ", " << sizes2.at(3) << ")\n";
     }
 
     using namespace lalg;
-    ProcGrid pg(md, nd);
-
+    ProcGrid pg1(md, kd);
+    ProcGrid pg2(nd, kd);
+    ProcGrid pg3(nd, md);
+    ProcGrid pg_all(pm, pn);
+    
     auto els1 = tp1_->extractEls();
     auto els2 = tp2_->extractEls();
+
+    _repad(pg1, pg_all, els1, ml * kl);
+    _repad(pg2, pg_all, els2, nl * kl);
 
     // Zero-pad inactive processes in the grid. 
     // TODO: Zero-pad active processes too, to match contracted dimensions. 
     // ! Problem: zero-padding columns requires different distribution! 
-    if (pg.active()) {
-      std::cout << tp1_->locSize() << ", " << (m * k) / (md * nd) << "\n";
-      std::cout << tp2_->locSize() << ", " << (k * n) / (md * nd) << "\n";
-      els1.resize((m * k) / (md * nd), 0);
-      els2.resize((k * n) / (md * nd), 0);
-    }
+    // if (pg.active()) {
+    //   std::cout << tp1_->locSize() << ", " << (m * k) / (md * nd) << "\n";
+    //   std::cout << tp2_->locSize() << ", " << (k * n) / (md * nd) << "\n";
+    //   els1.resize((m * k) / (md * nd), 0);
+    //   els2.resize((k * n) / (md * nd), 0);
+    // }
 
     // Create matrices and multiply. 
-    BlockCyclicMatrix m1(pg, m, k, sizes1.at(2), sizes1.at(3), std::move(els1));
-    BlockCyclicMatrix m2(pg, n, k, sizes2.at(3), sizes2.at(2), std::move(els2));
+    BlockCyclicMatrix m1(pg_all, pm * ml, pn * kl, ml, kl, std::move(els1));
+    BlockCyclicMatrix m2(pg_all, pm * nl, pn * kl, nl, kl, std::move(els2));
 
     if (utils::is_root()) {
       using namespace ops;
@@ -205,6 +245,7 @@ namespace qtnh {
     auto loc_dims3 = utils::concat_dims(dims2.at(3), dims1.at(2)); // column-major
     
     auto new_els = m3.extractEls();
+    _repad(pg_all, pg3, new_els, ml * nl);
     // using namespace ops;
     // std::cout << tp1_->bc().env().proc_id << " | " << new_els << "\n";
 
@@ -224,11 +265,11 @@ namespace qtnh {
       std::cout << ig1.ptup().tup() << "\n";
       std::cout << ig2.ptup().tup() << "\n";
       std::cout << ig3.ptup().tup() << "\n";
-      std::cout << "m = " << m <<
-        ", n = " << n <<
-        ", k = " << k <<
-        ", md = " << md <<
-        ", nd = " << nd << "\n";
+      // std::cout << "m = " << m <<
+      //   ", n = " << n <<
+      //   ", k = " << k <<
+      //   ", md = " << md <<
+      //   ", nd = " << nd << "\n";
       std::cout << dis_dims3 << ", " << loc_dims3 << "\n";
     }
 
