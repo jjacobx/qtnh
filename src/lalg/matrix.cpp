@@ -17,6 +17,20 @@ namespace qtnh {
       if (active_) blacs_gridexit_(&context_);
     }
 
+    int ProcGrid::getPNum(mtup pidxs) const {
+      // if (active_) {
+        return blacs_pnum_(const_cast<int*>(&context_), &pidxs.first, &pidxs.second);
+      // } else {
+      //   return -1;
+      // }
+    }
+
+    mtup ProcGrid::getPIdxs(int pnum) const {
+      mtup pidxs { -1, -1 };
+      blacs_pcoord_(const_cast<int*>(&context_), &pnum, &pidxs.first, &pidxs.second);
+      return pidxs;
+    }
+
     BlockCyclicMatrix::BlockCyclicMatrix(const ProcGrid& grid, int m, int n, int mb, int nb)
     : BlockCyclicMatrix(grid, m, n, mb, nb, {})
     {

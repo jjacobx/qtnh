@@ -20,6 +20,9 @@ namespace qtnh {
         constexpr bool active() const { return active_; }
         constexpr bool context() const { return context_; }
 
+        int getPNum(mtup idxs) const;
+        mtup getPIdxs(int pnum) const;
+
       private:
         int nprows_;
         int npcols_;
