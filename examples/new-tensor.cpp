@@ -45,6 +45,9 @@ int main() {
     std::cout << env.proc_id << " | T1[0] (gather 2) = " << (*tp1)[0] << "\n";
   }
 
+  lalg::ProcGrid pg(1, 2);
+  std::cout << env.proc_id << ": pnum = " << pg.getPNum({ 0, 0 }) << "\n";
+
   using dpcon = PairContractor<DenseTensor, DenseTensor>;
   auto tp_d1 = DenseTensor::make(env, {}, { 2, 2, 2 }, std::vector<tel>(els1));
   tp_d1 = Tensor::cast<DenseTensor>(Tensor::rescatter(std::move(tp_d1), 1));
