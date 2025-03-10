@@ -19,7 +19,7 @@ namespace qtnh {
         constexpr mtup procDims() const { return { nprows_, npcols_ }; }
         constexpr mtup procIdxs() const { return { row_, col_ }; }
         constexpr bool active() const { return active_; }
-        constexpr bool context() const { return context_; }
+        constexpr int context() const { return context_; }
 
         int getPNum(mtup idxs) const;
         mtup getPIdxs(int pnum) const;
