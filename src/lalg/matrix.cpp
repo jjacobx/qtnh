@@ -15,7 +15,8 @@ namespace qtnh {
       sl_init_(&context_, &nprows_, &npcols_);
       active_ = (context_ != -1);
 
-      blacs_gridinfo_(&context_, &nprows_, &npcols_, &row_, &col_);
+      // Grid info resets values for rows/cols. 
+      blacs_gridinfo_(&context_, &nprows, &npcols, &row_, &col_);
     }
 
     ProcGrid::~ProcGrid() {
