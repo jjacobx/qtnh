@@ -51,25 +51,39 @@ namespace qtnh {
   void _repad(const lalg::ProcGrid& pg1, const lalg::ProcGrid& pg2, 
               std::vector<qtnh::tel>& els, int loc_size) {
     using namespace ops;
-    std::cout << pg1.procIdxs() << " to " << pg2.procIdxs() << "\n";
+
+    int pid;
+    MPI_Comm_rank(MPI_COMM_WORLD, &pid);
+
+    std::cout << pid << " | " << pg1.procIdxs() << " to " << pg2.procIdxs() << "\n";
 
     auto psrc = pg1.getPNum(pg2.procIdxs());
     auto ptar = pg2.getPNum(pg1.procIdxs());
 
     
-    std::cout << pg1.procIdxs() << ": " << psrc << ", " << ptar << "\n";
+    std::cout << pid << " | " << pg1.procIdxs() << ": " << psrc << ", " << ptar << "\n";
+
+    if (psrc >= 0 && psrc == ptar) return;
     
     if (ptar > -1) {
+      std::cout << "Sending at " << pid << " to " << ptar << "\n";
       MPI_Ssend(els.data(), loc_size, MPI_DOUBLE_COMPLEX, ptar, 0, MPI_COMM_WORLD);
     }
 
-    if (psrc > - 1) {
+    if (psrc > -1) {
+      std:: cout << "Receiving at " << pid << " from " << psrc << "\n";
+      els.resize(loc_size);
       MPI_Recv(els.data(), loc_size, MPI_DOUBLE_COMPLEX, psrc, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     } else if (pg2.active()) {
-      els.resize(loc_size, 0);
+      std:: cout << "Resizing at " << pid << "\n";
+      els.resize(loc_size);
+      std::fill(els.begin(), els.end(), 0);
     } else {
+      std:: cout << "Deleting at " << pid << "\n";
       els.resize(0);
     }
+
+    std::cout << pid << " | DONE\n";
     
     return;
   }
@@ -201,12 +215,31 @@ namespace qtnh {
     ProcGrid pg2(nd, kd);
     ProcGrid pg3(nd, md);
     ProcGrid pg_all(pm, pn);
+
+    std::cout << "PG1 CONTEXT: " << pg1.context() << "\n";
+    std::cout << "PG2 CONTEXT: " << pg2.context() << "\n";
+    std::cout << "PG3 CONTEXT: " << pg3.context() << "\n";
+    std::cout << "PG ALL CONTEXT: " << pg_all.context() << "\n";
     
     auto els1 = tp1_->extractEls();
     auto els2 = tp2_->extractEls();
 
     _repad(pg1, pg_all, els1, ml * kl);
     _repad(pg2, pg_all, els2, nl * kl);
+
+    std::cout << tp1_->bc().env().proc_id << " | els1 = ";
+    for (auto e : els1) {
+      std::cout << e << ", ";
+    }
+    std::cout << "\n";
+
+    std::cout << tp1_->bc().env().proc_id << " | els2 = ";
+    for (auto e : els2) {
+      std::cout << e << ", ";
+    }
+    std::cout << "\n";
+
+    std::cout << "RE-PADDED\n";
 
     // Zero-pad inactive processes in the grid. 
     // TODO: Zero-pad active processes too, to match contracted dimensions. 
@@ -222,6 +255,8 @@ namespace qtnh {
     BlockCyclicMatrix m1(pg_all, pm * ml, pn * kl, ml, kl, std::move(els1));
     BlockCyclicMatrix m2(pg_all, pm * nl, pn * kl, nl, kl, std::move(els2));
 
+    std::cout << "MATRIX CREATED\n";
+
     if (utils::is_root()) {
       using namespace ops;
       std::cout << "M1.blk = " << m1.blkDims() << "\n";
@@ -233,6 +268,10 @@ namespace qtnh {
     }
 
     auto m3 = PZGEMM(std::move(m1), std::move(m2), false, true);
+
+    utils::barrier();
+
+    std::cout << "GEMM COMPLETE\n";
 
     if (utils::is_root()) {
       using namespace ops;
