@@ -25,9 +25,9 @@ namespace qtnh {
       if (m.grid().active()) {
         // Won't be modified, so must const cast. 
         // Needs two steps because descriptor is constexpr. 
-        auto desc_m = m.descSVD(); auto desc_mp = const_cast<int*>(desc_m.data());
-        auto desc_u = u.descSVD(); auto desc_up = const_cast<int*>(desc_u.data());
-        auto desc_v = v.descSVD(); auto desc_vp = const_cast<int*>(desc_v.data());
+        auto desc_m = m.desc9(); auto desc_mp = const_cast<int*>(desc_m.data());
+        auto desc_u = u.desc9(); auto desc_up = const_cast<int*>(desc_u.data());
+        auto desc_v = v.desc9(); auto desc_vp = const_cast<int*>(desc_v.data());
         
         // Query size of the work array. 
         pzgesvd_(&job_u, &job_vt, &dims_m.first, &dims_m.second, 
@@ -101,9 +101,9 @@ namespace qtnh {
       if (grid.active()) {
         // Won't be modified, so must const cast. 
         // Needs two steps because descriptor is constexpr. 
-        auto desc_a = a.descSVD(); auto desc_ap = const_cast<int*>(desc_a.data());
-        auto desc_b = b.descSVD(); auto desc_bp = const_cast<int*>(desc_b.data());
-        auto desc_c = c.descSVD(); auto desc_cp = const_cast<int*>(desc_c.data());
+        auto desc_a = a.desc9(); auto desc_ap = const_cast<int*>(desc_a.data());
+        auto desc_b = b.desc9(); auto desc_bp = const_cast<int*>(desc_b.data());
+        auto desc_c = c.desc9(); auto desc_cp = const_cast<int*>(desc_c.data());
 
         pzgemm_(&trans_a, &trans_b, &m, &n, &k, &alpha, 
                 a.data(), &one, &one, desc_ap, 
