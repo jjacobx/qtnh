@@ -13,6 +13,7 @@ namespace qtnh {
       public:
         ProcGrid() = delete;
         ProcGrid(int nprows, int npcols);
+        ProcGrid(int nprows, int npcols, int offset);
         ~ProcGrid();
 
         constexpr mtup procDims() const { return { nprows_, npcols_ }; }
@@ -26,6 +27,7 @@ namespace qtnh {
       private:
         int nprows_;
         int npcols_;
+        int offset_;
 
         bool active_ = false;
         int context_ = -1;

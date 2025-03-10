@@ -3,9 +3,14 @@
 
 namespace qtnh {
   namespace lalg {
-    ProcGrid::ProcGrid(int nprows, int npcols)
+    ProcGrid::ProcGrid(int nprows, int npcols) 
+    : ProcGrid(nprows, npcols, 0) 
+    {}
+
+    ProcGrid::ProcGrid(int nprows, int npcols, int offset)
     : nprows_(nprows)
     , npcols_(npcols)
+    , offset_(offset)
     {
       sl_init_(&context_, &nprows_, &npcols_);
       active_ = (context_ != -1);
