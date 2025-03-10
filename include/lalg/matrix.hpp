@@ -52,7 +52,7 @@ namespace qtnh {
           return { m_ / disDims().first / mb_, n_ / disDims().second / nb_ };
         }
 
-        constexpr std::array<int, 9> const descSVD() {
+        constexpr std::array<int, 9> const desc9() {
           return { 
             1,                     // DTYPE
             grid_.context(),       // CTXT
@@ -66,9 +66,9 @@ namespace qtnh {
           };
         }
 
-        constexpr std::array<int, 11> const descMM() {
+        constexpr std::array<int, 11> const desc11() {
           return { 
-            1,                     // DTYPE
+            601,                   // DTYPE
             grid_.context(),       // CTXT
             m_,                    // M
             n_,                    // N
