@@ -29,7 +29,8 @@ namespace qtnh {
       //   return -1;
       // }
 
-      if (pidxs.first < nprows_ && pidxs.second < npcols_) {
+      if (pidxs.first >= 0 && pidxs.first < nprows_ && 
+          pidxs.second >= 0 && pidxs.second < npcols_) {
         return pidxs.first * npcols_ + pidxs.second + offset_;
       } else {
         return -1;
@@ -44,7 +45,7 @@ namespace qtnh {
       auto idx_row = (pnum - offset_) / npcols_;
       auto idx_col = (pnum - offset_) % npcols_;
 
-      if (idx_row < nprows_ && idx_col < npcols_) {
+      if (pnum >= offset_ && idx_row < nprows_ && idx_col < npcols_) {
         return { idx_row, idx_col };
       } else {
         return { -1, -1 };
