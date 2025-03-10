@@ -27,6 +27,7 @@ find_library(MATH_LIBRARY m REQUIRED)
 find_package(MPI COMPONENTS C CXX REQUIRED)
 
 # ScaLAPACK
+# NOTE: now requires C/MPI_C support 
 if (NOT SKIP_ARCHER2_LIBS)
   find_package(ScaLAPACK REQUIRED)
 endif()
