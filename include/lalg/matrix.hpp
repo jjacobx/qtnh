@@ -96,6 +96,18 @@ namespace qtnh {
         cvec loc_els_p_;
     };
   }
+
+  namespace ops {
+    template <typename T, std::size_t N>
+    std::ostream& operator<<(std::ostream& out, const std::array<T, N>& o) {
+      for (auto i = 0UL; i < N - 1; ++i) {
+        out << o.at(i) << ", ";
+      }
+
+      out << o.at(N - 1);
+      return out;
+    }
+  }
 }
 
 #endif
