@@ -95,6 +95,7 @@ namespace qtnh {
     PTupleSrc ptup2(ndis2 + nloc2);
 
     auto n_dis_ws = 0UL, n_loc_ws = 0UL;
+    auto dis_ws_size = 1UL;
     for (auto w : ws) {
       auto [w1, w2] = w;
       // Get current positions of given indices. 
@@ -104,6 +105,7 @@ namespace qtnh {
       // Move first tensor dims to back, 
       // and second tensor dims to front. 
       if (w1 < ndis1) {
+        dis_ws_size *= tp1_->disDims().at(w1);
         ptup1.at(i) >> int(ndis1 - i - 1);
         ptup2.at(j) << int(j - n_dis_ws++);
       } else {
@@ -111,6 +113,20 @@ namespace qtnh {
         ptup2.at(j) << int(j - ndis2 - n_loc_ws++);
       }
     }
+
+    auto dis_size_1 = tp1_->disSize() / dis_ws_size;
+    auto dis_size_2 = tp2_->disSize() / dis_ws_size;
+
+    auto use_bt = dis_ws_size > dis_size_1 && dis_ws_size > dis_size_2;
+
+    auto grows = std::max(dis_size_1, dis_ws_size);
+    auto gcols = std::max(dis_size_2, dis_ws_size);
+    if (use_bt) {
+      grows = std::max(dis_size_1, dis_size_2);
+      gcols = dis_ws_size;
+    }
+
+    
 
     // Save permuted dims. 
     auto dims1 = utils::split_vec_rel(ptup1.apply(tp1_->totDims()), 
