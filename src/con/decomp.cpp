@@ -75,7 +75,7 @@ namespace qtnh {
     auto [dims_cc, dims_cb] = utils::split_dims(dims_cl, params_.cyc_splits.second);
     auto block = utils::dims_to_size(dims_rb);
 
-    BlockCyclicMatrix m(pg, int(nrows), int(ncols), int(block), int(block), dtp->extractEls());
+    BlockCyclicMatrix m(pg, { int(nrows), int(ncols) }, { int(block), int(block) }, dtp->extractEls());
 
     auto [u, s, v] = PZGESVD(std::move(m));
 

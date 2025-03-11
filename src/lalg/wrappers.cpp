@@ -11,8 +11,8 @@ namespace qtnh {
       auto chi = std::min(dims_m.first, dims_m.second);
   
       std::vector<double> sd(static_cast<std::size_t>(chi));
-      BlockCyclicMatrix u(m.grid(), dims_m.first, chi, m.blkDims().first, m.blkDims().second);
-      BlockCyclicMatrix v(m.grid(), chi, dims_m.second, m.blkDims().first, m.blkDims().second);
+      BlockCyclicMatrix u(m.grid(), { dims_m.first, chi }, { m.blkDims().first, m.blkDims().second });
+      BlockCyclicMatrix v(m.grid(), { chi, dims_m.second }, { m.blkDims().first, m.blkDims().second });
 
       auto one = 1;
       
@@ -87,8 +87,8 @@ namespace qtnh {
         throw std::invalid_argument("Process grids of A and B are different");
       }
 
-      BlockCyclicMatrix c(grid, tot_dims_a.first, tot_dims_b.second, 
-                          blk_dims_a.first, blk_dims_b.second);
+      BlockCyclicMatrix c(grid, { tot_dims_a.first, tot_dims_b.second }, 
+                          { blk_dims_a.first, blk_dims_b.second });
 
       auto one = 1;
       

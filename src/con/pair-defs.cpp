@@ -236,8 +236,8 @@ namespace qtnh {
     // }
 
     // Create matrices and multiply. 
-    BlockCyclicMatrix m1(pg_all, pm * ml, pn * kl, ml, kl, std::move(els1));
-    BlockCyclicMatrix m2(pg_all, pm * nl, pn * kl, nl, kl, std::move(els2));
+    BlockCyclicMatrix m1(pg_all, { pm * ml, pn * kl }, { ml, kl }, std::move(els1));
+    BlockCyclicMatrix m2(pg_all, { pm * nl, pn * kl }, { nl, kl }, std::move(els2));
 
     if (utils::is_root()) {
       using namespace ops;

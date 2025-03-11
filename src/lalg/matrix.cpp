@@ -53,21 +53,46 @@ namespace qtnh {
       }
     }
 
-    BlockCyclicMatrix::BlockCyclicMatrix(const ProcGrid& grid, int m, int n, int mb, int nb)
-    : BlockCyclicMatrix(grid, m, n, mb, nb, {})
+    BlockCyclicMatrix::BlockCyclicMatrix(const ProcGrid& grid, mtup tot_dims, mtup blk_dims)
+    : BlockCyclicMatrix(grid, tot_dims, blk_dims, cvec {})
     {
-      auto proc_dims = grid.procDims();
-      auto loc_size = (m * n) / (proc_dims.first * proc_dims.second);
+      auto loc_size = std::size_t(mc_ * nc_ * mb_ * nb_);
       loc_els_p_ = cvec(loc_size);
     }
 
-    BlockCyclicMatrix::BlockCyclicMatrix(const ProcGrid& grid, int m, int n, int mb, int nb,
+    BlockCyclicMatrix::BlockCyclicMatrix(const ProcGrid& grid, mtup tot_dims, mtup blk_dims, 
                                          cvec&& loc_els_p)
     : grid_(grid)
-    , m_(m)
-    , n_(n)
-    , mb_(mb)
-    , nb_(nb)
+    , mb_(blk_dims.first)
+    , nb_(blk_dims.second)
+    , md_(grid.procDims().first)
+    , nd_(grid.procDims().second)
+    , mc_(tot_dims.first / md_ / mb_)
+    , nc_(tot_dims.second / nd_ / nb_)
+    , m_(tot_dims.first)
+    , n_(tot_dims.second)
+    , loc_els_p_(loc_els_p)
+    {}
+
+    BlockCyclicMatrix::BlockCyclicMatrix(const ProcGrid& grid, mtup cyc_dims, mtup dis_dims, 
+                                         mtup blk_dims)
+    : BlockCyclicMatrix(grid, cyc_dims, dis_dims,blk_dims, cvec {})
+    {
+      auto loc_size = std::size_t(mc_ * nc_ * mb_ * nb_);
+      loc_els_p_ = cvec(loc_size);
+    }
+
+    BlockCyclicMatrix::BlockCyclicMatrix(const ProcGrid& grid, mtup cyc_dims, mtup dis_dims, 
+                                         mtup blk_dims, cvec&& loc_els_p)
+    : grid_(grid)
+    , mb_(blk_dims.first)
+    , nb_(blk_dims.second)
+    , md_(dis_dims.first)
+    , nd_(dis_dims.second)
+    , mc_(cyc_dims.first)
+    , nc_(cyc_dims.second)
+    , m_(mc_ * md_ * mb_)
+    , n_(nc_ * nd_ * nb_)
     , loc_els_p_(loc_els_p)
     {}
   }

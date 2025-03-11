@@ -38,47 +38,47 @@ namespace qtnh {
     class BlockCyclicMatrix {
       public:
         BlockCyclicMatrix() = delete;
-        BlockCyclicMatrix(const ProcGrid& grid, int m, int n, int mb, int nb);
-        BlockCyclicMatrix(const ProcGrid& grid, int m, int n, int mb, int nb, cvec&& loc_els_p);
+        BlockCyclicMatrix(const ProcGrid& grid, mtup tot_dims, mtup blk_dims);
+        BlockCyclicMatrix(const ProcGrid& grid, mtup tot_dims, mtup blk_dims, cvec&& loc_els_p);
+        BlockCyclicMatrix(const ProcGrid& grid, mtup cyc_dims, mtup dis_dims, mtup blk_dims);
+        BlockCyclicMatrix(const ProcGrid& grid, mtup cyc_dims, mtup dis_dims, mtup blk_dims, cvec&& loc_els_p);
         ~BlockCyclicMatrix() = default;
 
         const ProcGrid& grid() const { return grid_; }
         qtnh::tel* data() { return loc_els_p_.data(); }
 
-        constexpr mtup totDims() const { return { m_, n_ }; }
         constexpr mtup blkDims() const { return { mb_, nb_ }; }
-        constexpr mtup disDims() const { return grid_.procDims(); }
-        constexpr mtup cycDims() const { 
-          return { m_ / disDims().first / mb_, n_ / disDims().second / nb_ };
-        }
+        constexpr mtup disDims() const { return { md_, nd_ }; }
+        constexpr mtup cycDims() const { return { mc_, nc_ }; }
+        constexpr mtup totDims() const { return { m_, n_ }; }
 
         constexpr std::array<int, 9> const desc9() {
           return { 
-            1,                     // DTYPE
-            grid_.context(),       // CTXT
-            m_,                    // M
-            n_,                    // N
-            mb_,                   // MB
-            nb_,                   // NB
-            0,                     // RSRC
-            0,                     // CSRC
-            mb_ * cycDims().first  // LLD
+            1,                // DTYPE
+            grid_.context(),  // CTXT
+            m_,               // M
+            n_,               // N
+            mb_,              // MB
+            nb_,              // NB
+            0,                // RSRC
+            0,                // CSRC
+            mb_ * mc_         // LLD
           };
         }
 
         constexpr std::array<int, 11> const desc11() {
           return { 
-            601,                   // DTYPE
-            grid_.context(),       // CTXT
-            m_,                    // M
-            n_,                    // N
-            mb_,                   // IMB
-            nb_,                   // INB
-            mb_,                   // MB
-            nb_,                   // NB
-            0,                     // RSRC
-            0,                     // CSRC
-            mb_ * cycDims().first  // LLD
+            601,              // DTYPE
+            grid_.context(),  // CTXT
+            m_,               // M
+            n_,               // N
+            mb_,              // IMB
+            nb_,              // INB
+            mb_,              // MB
+            nb_,              // NB
+            0,                // RSRC
+            0,                // CSRC
+            mb_ * mc_         // LLD
           };
         }
 
@@ -87,10 +87,11 @@ namespace qtnh {
       private:
         const ProcGrid& grid_;
 
-        int m_;
-        int n_;
-        int mb_;
-        int nb_;
+        int mb_, nb_;
+        int md_, nd_;
+        int mc_, nc_;
+
+        int m_, n_;
 
         // Remember the elements need to be in column-major order. 
         cvec loc_els_p_;
