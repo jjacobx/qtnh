@@ -84,6 +84,8 @@ namespace qtnh {
 
         cvec&& extractEls() { return std::move(loc_els_p_); }
 
+        void transformGrid(const ProcGrid& pg);
+
       private:
         const ProcGrid& grid_;
 
