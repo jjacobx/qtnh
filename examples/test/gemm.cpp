@@ -46,10 +46,10 @@ int main() {
   using namespace lalg;
   ProcGrid pg(4, 2);
 
-  BlockCyclicMatrix a(pg, { 8, 8} , { 2, 4 }, tp_a->cast<DenseTensor>()->extractEls());
+  BlockCyclicMatrix a(pg, { 8, 8 }, { 2, 4 }, tp_a->cast<DenseTensor>()->extractEls());
   BlockCyclicMatrix b(pg, { 8, 8 }, { 2, 4 }, tp_a->cast<DenseTensor>()->extractEls());
 
-  auto c = PZGEMM(std::move(a), std::move(b), true);
+  auto c = PZGEMM(std::move(a), std::move(b), false, false);
 
   // Convert output BC matrix back to result. 
   auto dis_dims_c = tidx_tup { 2, 2, 2 };
@@ -65,4 +65,18 @@ int main() {
   tp_c = Tensor::permute(std::move(tp_c), ig_c.ptup().inv().toTar().tup());
 
   std::cout << "P" << env.proc_id << ": C = " << *tp_c << "\n";
+
+  utils::barrier();
+
+  BlockCyclicMatrix a2(pg, { 2, 2 }, { 1, 1 }, { 1, 1 }, { 1, 2, 3, 4 });
+  BlockCyclicMatrix b2(pg, { 2, 2 }, { 1, 1 }, { 1, 1 }, { 1, 2, 3, 4 });
+
+  auto c2 = PZGEMM(std::move(a2), std::move(b2));
+  auto els_c2 = c2.extractEls();
+  
+  std::cout << "P" << env.proc_id << " | els_c2 = ";
+  for (auto e : els_c2) {
+    std::cout << e << ", ";
+  }
+  std::cout << "\n";
 }
