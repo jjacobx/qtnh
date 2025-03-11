@@ -66,17 +66,23 @@ namespace qtnh {
     }
 
     BlockCyclicMatrix PZGEMM(BlockCyclicMatrix&& a, BlockCyclicMatrix&& b, bool use_at, bool use_bt) {
-      auto tot_dims_a = a.totDims(), tot_dims_b = b.totDims();
       auto blk_dims_a = a.blkDims(), blk_dims_b = b.blkDims();
+      auto dis_dims_a = a.disDims(), dis_dims_b = b.disDims();
+      auto cyc_dims_a = a.cycDims(), cyc_dims_b = b.cycDims();
+      auto tot_dims_a = a.totDims(), tot_dims_b = b.totDims();
       auto& grid = a.grid();
 
       if (use_at) {
-        std::swap(tot_dims_a.first, tot_dims_a.second);
         std::swap(blk_dims_a.first, blk_dims_a.second);
+        std::swap(dis_dims_a.first, dis_dims_a.second);
+        std::swap(cyc_dims_a.first, cyc_dims_a.second);
+        std::swap(tot_dims_a.first, tot_dims_a.second);
       }
       if (use_bt) {
-        std::swap(tot_dims_b.first, tot_dims_b.second);
         std::swap(blk_dims_b.first, blk_dims_b.second);
+        std::swap(dis_dims_b.first, dis_dims_b.second);
+        std::swap(cyc_dims_b.first, cyc_dims_b.second);
+        std::swap(tot_dims_b.first, tot_dims_b.second);
       }
       
       // Basic checks for distributed matrix multiplication. 
@@ -87,8 +93,19 @@ namespace qtnh {
         throw std::invalid_argument("Process grids of A and B are different");
       }
 
-      BlockCyclicMatrix c(grid, { tot_dims_a.first, tot_dims_b.second }, 
-                          { blk_dims_a.first, blk_dims_b.second });
+      BlockCyclicMatrix c(
+        grid, 
+        mtup { blk_dims_a.first, blk_dims_b.second }, 
+        mtup { dis_dims_a.first, dis_dims_b.second }, 
+        mtup { cyc_dims_a.first, cyc_dims_b.second }
+      );
+
+      if (utils::is_root()) {
+        using namespace ops;
+        std::cout << "C.blk = " << c.blkDims() << "\n";
+        std::cout << "C.dis = " << c.disDims() << "\n";
+        std::cout << "C.cyc = " << c.cycDims() << "\n";
+      }
 
       auto one = 1;
       
