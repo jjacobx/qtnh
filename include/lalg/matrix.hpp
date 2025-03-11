@@ -40,8 +40,8 @@ namespace qtnh {
         BlockCyclicMatrix() = delete;
         BlockCyclicMatrix(const ProcGrid& grid, mtup tot_dims, mtup blk_dims);
         BlockCyclicMatrix(const ProcGrid& grid, mtup tot_dims, mtup blk_dims, cvec&& loc_els_p);
-        BlockCyclicMatrix(const ProcGrid& grid, mtup cyc_dims, mtup dis_dims, mtup blk_dims);
-        BlockCyclicMatrix(const ProcGrid& grid, mtup cyc_dims, mtup dis_dims, mtup blk_dims, cvec&& loc_els_p);
+        BlockCyclicMatrix(const ProcGrid& grid, mtup blk_dims, mtup dis_dims, mtup cyc_dims);
+        BlockCyclicMatrix(const ProcGrid& grid, mtup blk_dims, mtup dis_dims, mtup cyc_dims, cvec&& loc_els_p);
         ~BlockCyclicMatrix() = default;
 
         const ProcGrid& grid() const { return grid_; }
