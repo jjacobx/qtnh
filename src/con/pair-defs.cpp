@@ -48,15 +48,13 @@ namespace qtnh {
     }
   }
 
-  template<> qtnh::tptr PairContractor<DenseTensor, DenseTensor>::contract_scalapack() {
-    // #ifdef DEBUG
+  template<> qtnh::tptr PairContractor<DenseTensor, DenseTensor>::contract() {
+    #ifdef DEBUG
     if (utils::is_root())
       std::cout << "STARTING DENSE-DENSE CONTRACTION USING SCALAPACK\n";
-    // #endif
+    #endif
 
     auto ws = params_.wires;
-    // auto& env = tp1_->bc().env();
-
     auto ndis1 = tp1_->disDims().size();
     auto nloc1 = tp1_->locDims().size();
     auto ndis2 = tp2_->disDims().size();
@@ -82,6 +80,38 @@ namespace qtnh {
       } else {
         ptup1.at(i) >> int(ndis1 + nloc1 - i - 1);
         ptup2.at(j) << int(j - ndis2 - n_loc_ws++);
+      }
+    }
+
+    // * Temporary – establish default index replacements. 
+    // * This might have to be moved somewhere else. 
+    if (params_.useDefRepls) {
+      params_.dimRepls1 = std::vector<qtnh::tidx_tup_st>(tp1_->totDims().size(), UINT16_MAX);
+      std::sort(params_.wires.begin(), params_.wires.end(), utils::wirecomp::first);
+
+      for  (auto i = 0u, j = 0u; i < tp1_->totDims().size(); ++i) {
+        if ((j < params_.wires.size()) && (i == params_.wires.at(j).first)) {
+          ++j;
+        } else {
+          params_.dimRepls1.at(i) = i - j;
+          if (i >= tp1_->disDims().size()) {
+            params_.dimRepls1.at(i) += (tp2_->disDims().size() - n_dis_ws);
+          }
+        }
+      }
+
+      params_.dimRepls2 = std::vector<qtnh::tidx_tup_st>(tp2_->totDims().size(), UINT16_MAX);
+      std::sort(params_.wires.begin(), params_.wires.end(), utils::wirecomp::second);
+
+      for  (auto i = 0u, j = 0u; i < tp2_->totDims().size(); ++i) {
+        if ((j < params_.wires.size()) && (i == params_.wires.at(j).second)) {
+          ++j;
+        } else {
+          params_.dimRepls2.at(i) = tp1_->disDims().size() - n_dis_ws + i - j;
+          if (i >= tp2_->disDims().size()) {
+            params_.dimRepls2.at(i) = tp1_->totDims().size() - params_.wires.size() + i - j;
+          }
+        }
       }
     }
 
@@ -117,12 +147,6 @@ namespace qtnh {
 
     ptup1 = ig1.ptup() * ptup1;
     ptup2 = ig2.ptup() * ptup2;
-
-    // if (utils::is_root()) {
-    //   using namespace ops;
-    //   std::cout << ptup1.tup() << "\n";
-    //   std::cout << ptup2.tup() << "\n";
-    // }
 
     tp1_ = Tensor::cast<DenseTensor>(Tensor::permute(std::move(tp1_), ptup1.toTar().tup()));
     tp2_ = Tensor::cast<DenseTensor>(Tensor::permute(std::move(tp2_), ptup2.toTar().tup()));
@@ -167,59 +191,32 @@ namespace qtnh {
 
     IndexGroup ig3({ "rd", "cd", "rb", "cb" }, utils::arr_to_vec(gs3));
     ig3.reorder({ "rd", "cd", "cb", "rb" });
-    tp3 = Tensor::permute(std::move(tp3), ig3.ptup().inv().toTar().tup());
 
-    // if (utils::is_root()) {
-    //   using namespace ops;
-    //   std::cout << dims1.at(0) << dims1.at(1) << dims1.at(2) << dims1.at(3) << "\n";
-    //   std::cout << dims2.at(0) << dims2.at(1) << dims2.at(2) << dims2.at(3) << "\n";
-    //   std::cout << gs1.at(0) << gs1.at(1) << gs1.at(2) << gs1.at(3) << "\n";
-    //   std::cout << gs2.at(0) << gs2.at(1) << gs2.at(2) << gs2.at(3) << "\n";
-    //   std::cout << ig1.ptup().tup() << "\n";
-    //   std::cout << ig2.ptup().tup() << "\n";
-    //   std::cout << "md = " << md <<
-    //     ", nd = " << nd <<
-    //     ", kd = " << kd <<
-    //     ", ml = " << ml <<
-    //     ", nl = " << nl <<
-    //     ", kl = " << kl <<
-    //     ", pm = " << pm <<
-    //     ", pn = " << pn << "\n";
-    //   std::cout << "m1_b = (" << sizes1.at(2) << ", " << sizes1.at(3) << 
-    //     "), m2_b = (" << sizes2.at(2) << ", " << sizes2.at(3) << ")\n";
-    // }
+    // Apply dimension replacements. 
+    auto dim_repls = utils::concat_vecs(params_.dimRepls1, params_.dimRepls2);
+    PTupleSrc ptup_repls(dim_repls.size());
 
-    // utils::barrier();
-    // std::cout << tp1_->bc().env().proc_id << " | els1 = ";
-    // for (auto e : els1) {
-    //   std::cout << e << ", ";
-    // }
-    // std::cout << "\n";
+    auto gs_repls = utils::split_vec_rel(ptup_repls.tup(), ndis1, nloc1, ndis2);
+    IndexGroup ig_repls({ "d1", "l1", "d2", "l2" }, utils::arr_to_vec(gs_repls));
+    ig_repls.reorder({ "d1", "d2", "l1", "l2" });
+    dim_repls = ig_repls.ptup().apply(dim_repls);
+    tup_t remap(tp3->totDims().size());
 
-    // std::cout << tp1_->bc().env().proc_id << " | els2 = ";
-    // for (auto e : els2) {
-    //   std::cout << e << ", ";
-    // }
-    // std::cout << "\n";
-    // utils::barrier();
+    for (auto i = 0UL, j = 0UL; i < dim_repls.size(); ++i) {
+      if (dim_repls.at(i) < UINT16_MAX) {
+        remap.at(i - j) = dim_repls.at(i);
+      } else {
+        ++j;
+      }
+    }
 
-    // if (utils::is_root()) {
-    //   using namespace ops;
-    //   std::cout << "M1.blk = " << m1.blkDims() << "\n";
-    //   std::cout << "M2.blk = " << m2.blkDims() << "\n";
-    //   std::cout << "M1.dis = " << m1.disDims() << "\n";
-    //   std::cout << "M2.dis = " << m2.disDims() << "\n";
-    //   std::cout << "M1.cyc = " << m1.cycDims() << "\n";
-    //   std::cout << "M2.cyc = " << m2.cycDims() << "\n";
-    //   std::cout << "M3.blk = " << m3.blkDims() << "\n";
-    //   std::cout << "M3.dis = " << m3.disDims() << "\n";
-    //   std::cout << "M3.cyc = " << m3.cycDims() << "\n";
-    // }
+    auto ptup_final = PTupleTar(remap) * ig3.ptup().inv().toTar();
+    tp3 = Tensor::permute(std::move(tp3), ptup_final.tup());
 
     return tp3;
   }
 
-  template<> qtnh::tptr PairContractor<DenseTensor, DenseTensor>::contract() {
+  template<> qtnh::tptr PairContractor<DenseTensor, DenseTensor>::contract_scalapack() {
     #ifdef DEBUG
       if (utils::is_root())
         std::cout << "STARTING DENSE-DENSE CONTRACTION\n";
