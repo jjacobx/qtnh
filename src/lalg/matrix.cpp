@@ -96,5 +96,35 @@ namespace qtnh {
     , n_(nc_ * nd_ * nb_)
     , loc_els_(loc_els)
     {}
+
+    BlockCyclicMatrix BlockCyclicMatrix::moveToGrid(const ProcGrid &pg) {
+      int pid;
+      MPI_Comm_rank(MPI_COMM_WORLD, &pid);
+  
+      auto psrc = pg_.getPNum(pg.procIdxs());
+      auto ptar = pg.getPNum(pg_.procIdxs());
+      auto loc_size = mb_ * nb_ * mc_ * nc_;
+  
+      if (psrc != ptar || psrc < 0) {
+        if (ptar >= 0) {
+          MPI_Ssend(loc_els_.data(), loc_size, MPI_DOUBLE_COMPLEX, 
+                    ptar, 0, MPI_COMM_WORLD);
+        }
+    
+        if (psrc >= 0) {
+          loc_els_.resize(loc_size);
+          MPI_Recv(loc_els_.data(), loc_size, MPI_DOUBLE_COMPLEX, 
+                   psrc, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        } else if (pg.active()) {
+          loc_els_.resize(loc_size);
+          std::fill(loc_els_.begin(), loc_els_.end(), 0);
+        } else {
+          loc_els_.resize(0);
+        }
+      }
+      
+      return BlockCyclicMatrix(pg, { mb_, nb_ }, { md_, nd_ }, { mc_, nc_ }, 
+                               std::move(loc_els_));
+    }
   }
 }

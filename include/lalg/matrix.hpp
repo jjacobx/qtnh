@@ -84,7 +84,7 @@ namespace qtnh {
 
         cvec&& extractEls() { return std::move(loc_els_); }
 
-        BlockCyclicMatrix&& transformGrid(const ProcGrid& pg) &&;
+        BlockCyclicMatrix moveToGrid(const ProcGrid& pg);
 
       private:
         const ProcGrid& pg_;
