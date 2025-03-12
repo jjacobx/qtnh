@@ -171,7 +171,7 @@ namespace qtnh {
     tup_t remap(tp3->totDims().size());
 
     for (auto i = 0UL, j = 0UL; i < dim_repls.size(); ++i) {
-      if (dim_repls.at(i) < UINT16_MAX) {
+      if (dim_repls.at(i) < qtnh::X) {
         remap.at(i - j) = dim_repls.at(i);
       } else {
         ++j;
@@ -368,7 +368,7 @@ namespace qtnh {
 
     // Calculate default index replacements. 
     if (params_.useDefRepls) {
-      params_.dimRepls1 = std::vector<qtnh::tidx_tup_st>(tp1_->totDims().size(), UINT16_MAX);
+      params_.dimRepls1 = std::vector<qtnh::tidx_tup_st>(tp1_->totDims().size(), qtnh::X);
       std::sort(params_.wires.begin(), params_.wires.end(), utils::wirecomp::first);
 
       for  (auto i = 0u, j = 0u; i < tp1_->totDims().size(); ++i) {
@@ -382,7 +382,7 @@ namespace qtnh {
         }
       }
 
-      params_.dimRepls2 = std::vector<qtnh::tidx_tup_st>(tp2_->totDims().size(), UINT16_MAX);
+      params_.dimRepls2 = std::vector<qtnh::tidx_tup_st>(tp2_->totDims().size(), qtnh::X);
       std::sort(params_.wires.begin(), params_.wires.end(), utils::wirecomp::second);
 
       for  (auto i = 0u, j = 0u; i < tp2_->totDims().size(); ++i) {
@@ -431,7 +431,7 @@ namespace qtnh {
     auto dis_imbal = 0;
 
     if ((dis_imbal == 0) && (input_count == tp2_->disDims().size() / 2 + tp2_->locDims().size() / 2)) {
-      params_.dimRepls1 = std::vector<qtnh::tidx_tup_st>(tp1_->totDims().size(), UINT16_MAX);
+      params_.dimRepls1 = std::vector<qtnh::tidx_tup_st>(tp1_->totDims().size(), qtnh::X);
       std::sort(params_.wires.begin(), params_.wires.end(), utils::wirecomp::first);
 
       for  (auto i = 0u, j = 0u; i < tp1_->totDims().size(); ++i) {
@@ -442,7 +442,7 @@ namespace qtnh {
         }
       }
 
-      params_.dimRepls2 = std::vector<qtnh::tidx_tup_st>(tp2_->totDims().size(), UINT16_MAX);
+      params_.dimRepls2 = std::vector<qtnh::tidx_tup_st>(tp2_->totDims().size(), qtnh::X);
       std::sort(params_.wires.begin(), params_.wires.end(), utils::wirecomp::second);
 
       std::vector<qtnh::tidx_tup_st> from_dims(params_.wires.size());
