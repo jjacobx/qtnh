@@ -45,7 +45,7 @@ namespace qtnh {
         ~BlockCyclicMatrix() = default;
 
         const ProcGrid& grid() const { return pg_; }
-        qtnh::tel* data() { return loc_els_p_.data(); }
+        qtnh::tel* data() { return loc_els_.data(); }
 
         constexpr mtup blkDims() const { return { mb_, nb_ }; }
         constexpr mtup disDims() const { return { md_, nd_ }; }
@@ -82,9 +82,9 @@ namespace qtnh {
           };
         }
 
-        cvec&& extractEls() { return std::move(loc_els_p_); }
+        cvec&& extractEls() { return std::move(loc_els_); }
 
-        void transformGrid(const ProcGrid& pg);
+        BlockCyclicMatrix&& transformGrid(const ProcGrid& pg) &&;
 
       private:
         const ProcGrid& pg_;
@@ -96,7 +96,7 @@ namespace qtnh {
         int m_, n_;
 
         // Remember the elements need to be in column-major order. 
-        cvec loc_els_p_;
+        cvec loc_els_;
     };
   }
 
