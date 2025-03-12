@@ -82,6 +82,17 @@ if (AUTO_COMM_INIT)
   )
 endif()
 
+option(CON_METHOD "Contraction method." "direct")
+if (CON_METHOD STREQUAL "gemm")
+  message(STATUS "Contraction method set to gemm.")
+  target_compile_options(qtnh
+    PRIVATE
+    -DCON_GEMM=1
+  )
+else()
+  message(STATUS "Contraction method set to direct.")
+endif()
+
 target_include_directories(qtnh
   PUBLIC
   "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>"
