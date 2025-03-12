@@ -44,7 +44,15 @@ namespace qtnh {
         BlockCyclicMatrix(const ProcGrid& grid, mtup blk_dims, mtup dis_dims, mtup cyc_dims, cvec&& loc_els_p);
         ~BlockCyclicMatrix() = default;
 
-        const ProcGrid& grid() const { return pg_; }
+        // Disable copying. 
+        BlockCyclicMatrix(const BlockCyclicMatrix&) = delete;
+        BlockCyclicMatrix& operator=(const BlockCyclicMatrix&) = delete;
+        
+        // Default moves. 
+        BlockCyclicMatrix(BlockCyclicMatrix&&) = default;
+        BlockCyclicMatrix& operator=(BlockCyclicMatrix&&) = default;
+
+        const ProcGrid& grid() const { return *pg_; }
         qtnh::tel* data() { return loc_els_.data(); }
 
         constexpr mtup blkDims() const { return { mb_, nb_ }; }
@@ -54,40 +62,40 @@ namespace qtnh {
 
         constexpr std::array<int, 9> const desc9() {
           return { 
-            1,              // DTYPE
-            pg_.context(),  // CTXT
-            m_,             // M
-            n_,             // N
-            mb_,            // MB
-            nb_,            // NB
-            0,              // RSRC
-            0,              // CSRC
-            mb_ * mc_       // LLD
+            1,               // DTYPE
+            pg_->context(),  // CTXT
+            m_,              // M
+            n_,              // N
+            mb_,             // MB
+            nb_,             // NB
+            0,               // RSRC
+            0,               // CSRC
+            mb_ * mc_        // LLD
           };
         }
 
         constexpr std::array<int, 11> const desc11() {
           return { 
-            601,            // DTYPE
-            pg_.context(),  // CTXT
-            m_,             // M
-            n_,             // N
-            mb_,            // IMB
-            nb_,            // INB
-            mb_,            // MB
-            nb_,            // NB
-            0,              // RSRC
-            0,              // CSRC
-            mb_ * mc_       // LLD
+            601,             // DTYPE
+            pg_->context(),  // CTXT
+            m_,              // M
+            n_,              // N
+            mb_,             // IMB
+            nb_,             // INB
+            mb_,             // MB
+            nb_,             // NB
+            0,               // RSRC
+            0,               // CSRC
+            mb_ * mc_        // LLD
           };
         }
 
         cvec&& extractEls() { return std::move(loc_els_); }
 
-        BlockCyclicMatrix moveToGrid(const ProcGrid& pg);
+        BlockCyclicMatrix toGrid(const ProcGrid& pg) &&;
 
       private:
-        const ProcGrid& pg_;
+         ProcGrid const *pg_;
 
         int mb_, nb_;
         int md_, nd_;

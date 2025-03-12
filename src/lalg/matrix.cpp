@@ -64,7 +64,7 @@ namespace qtnh {
 
     BlockCyclicMatrix::BlockCyclicMatrix(const ProcGrid& pg, mtup tot_dims, mtup blk_dims, 
                                          cvec&& loc_els)
-    : pg_(pg)
+    : pg_(&pg)
     , mb_(blk_dims.first)
     , nb_(blk_dims.second)
     , md_(pg.procDims().first)
@@ -85,7 +85,7 @@ namespace qtnh {
 
     BlockCyclicMatrix::BlockCyclicMatrix(const ProcGrid& pg, mtup blk_dims, mtup dis_dims, mtup cyc_dims, 
                                          cvec&& loc_els)
-    : pg_(pg)
+    : pg_(&pg)
     , mb_(blk_dims.first)
     , nb_(blk_dims.second)
     , md_(dis_dims.first)
@@ -97,12 +97,12 @@ namespace qtnh {
     , loc_els_(loc_els)
     {}
 
-    BlockCyclicMatrix BlockCyclicMatrix::moveToGrid(const ProcGrid &pg) {
+    BlockCyclicMatrix BlockCyclicMatrix::toGrid(const ProcGrid &pg) && {
       int pid;
       MPI_Comm_rank(MPI_COMM_WORLD, &pid);
   
-      auto psrc = pg_.getPNum(pg.procIdxs());
-      auto ptar = pg.getPNum(pg_.procIdxs());
+      auto psrc = pg_->getPNum(pg.procIdxs());
+      auto ptar = pg.getPNum(pg_->procIdxs());
       auto loc_size = mb_ * nb_ * mc_ * nc_;
   
       if (psrc != ptar || psrc < 0) {
