@@ -100,13 +100,6 @@ namespace qtnh {
         mtup { cyc_dims_a.first, cyc_dims_b.second }
       );
 
-      if (utils::is_root()) {
-        using namespace ops;
-        std::cout << "C.blk = " << c.blkDims() << "\n";
-        std::cout << "C.dis = " << c.disDims() << "\n";
-        std::cout << "C.cyc = " << c.cycDims() << "\n";
-      }
-
       auto one = 1;
       
       // Second matrix transposed to allow non-square process grids. 
