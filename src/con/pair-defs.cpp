@@ -48,35 +48,6 @@ namespace qtnh {
     }
   }
 
-  void _repad(const lalg::ProcGrid& pg1, const lalg::ProcGrid& pg2, 
-              std::vector<qtnh::tel>& els, int loc_size) {
-    using namespace ops;
-
-    int pid;
-    MPI_Comm_rank(MPI_COMM_WORLD, &pid);
-
-    auto psrc = pg1.getPNum(pg2.procIdxs());
-    auto ptar = pg2.getPNum(pg1.procIdxs());
-
-    if (psrc >= 0 && psrc == ptar) return;
-    
-    if (ptar > -1) {
-      MPI_Ssend(els.data(), loc_size, MPI_DOUBLE_COMPLEX, ptar, 0, MPI_COMM_WORLD);
-    }
-
-    if (psrc > -1) {
-      els.resize(loc_size);
-      MPI_Recv(els.data(), loc_size, MPI_DOUBLE_COMPLEX, psrc, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    } else if (pg2.active()) {
-      els.resize(loc_size);
-      std::fill(els.begin(), els.end(), 0);
-    } else {
-      els.resize(0);
-    }
-    
-    return;
-  }
-
   template<> qtnh::tptr PairContractor<DenseTensor, DenseTensor>::contract_scalapack() {
     // #ifdef DEBUG
     if (utils::is_root())
@@ -147,11 +118,11 @@ namespace qtnh {
     ptup1 = ig1.ptup() * ptup1;
     ptup2 = ig2.ptup() * ptup2;
 
-    if (utils::is_root()) {
-      using namespace ops;
-      std::cout << ptup1.tup() << "\n";
-      std::cout << ptup2.tup() << "\n";
-    }
+    // if (utils::is_root()) {
+    //   using namespace ops;
+    //   std::cout << ptup1.tup() << "\n";
+    //   std::cout << ptup2.tup() << "\n";
+    // }
 
     tp1_ = Tensor::cast<DenseTensor>(Tensor::permute(std::move(tp1_), ptup1.toTar().tup()));
     tp2_ = Tensor::cast<DenseTensor>(Tensor::permute(std::move(tp2_), ptup2.toTar().tup()));
@@ -198,35 +169,6 @@ namespace qtnh {
     ig3.reorder({ "rd", "cd", "cb", "rb" });
     tp3 = Tensor::permute(std::move(tp3), ig3.ptup().inv().toTar().tup());
 
-    // auto pm = std::max(nd, md);
-    // auto pn = std::max(nd, kd);
-
-    // auto md = std::max(sizes1.at(0), sizes2.at(1));
-    // auto nd = std::max(sizes1.at(1), sizes2.at(0));
-    // auto m = md * sizes1.at(2);
-    // auto n = md * sizes2.at(3);
-    // auto k = nd * sizes1.at(3);
-
-    // TODO: Implement below directly with MPI Routines
-    // TODO: e.g. _pad_els(els, nd_rows, nd_cols, to_rows, to_cols)
-    // auto params1 = tp1_->bc().params();
-    // params1.str = qtnh::uint(sizes1.at(1));
-    // auto tp_tmp = DenseTensor::make(env, { std::size_t(sizes1.at(0)) }, 
-    //                                 { std::size_t(sizes1.at(2) * sizes1.at(3)) }, 
-    //                                 tp1_->extractEls(), params1);
-    // params1.str = qtnh::uint(nd);
-    // tp_tmp = Tensor::cast<DenseTensor>(Tensor::rebcast(std::move(tp_tmp), params1));
-    // auto els1 = tp_tmp->extractEls();
-
-    // auto params2 = tp2_->bc().params();
-    // params2.str = qtnh::uint(sizes2.at(0));
-    // auto tp_tmp = DenseTensor::make(env, { std::size_t(sizes2.at(1)) }, 
-    //                                 { std::size_t(sizes2.at(2) * sizes2.at(3)) }, 
-    //                                 tp2_->extractEls(), params2);
-    // params2.str = qtnh::uint(nd);
-    // tp_tmp = Tensor::cast<DenseTensor>(Tensor::rebcast(std::move(tp_tmp), params2));
-    // auto els2 = tp_tmp->extractEls();
-
     // if (utils::is_root()) {
     //   using namespace ops;
     //   std::cout << dims1.at(0) << dims1.at(1) << dims1.at(2) << dims1.at(3) << "\n";
@@ -247,18 +189,6 @@ namespace qtnh {
     //     "), m2_b = (" << sizes2.at(2) << ", " << sizes2.at(3) << ")\n";
     // }
 
-    // using namespace lalg;
-    // ProcGrid pg1(md, kd);
-    // ProcGrid pg2(nd, kd);
-    // ProcGrid pg3(nd, md);
-    // ProcGrid pg_all(pm, pn);
-    
-    // auto els1 = tp1_->extractEls();
-    // auto els2 = tp2_->extractEls();
-
-    // _repad(pg1, pg_all, els1, ml * kl);
-    // _repad(pg2, pg_all, els2, nl * kl);
-
     // utils::barrier();
     // std::cout << tp1_->bc().env().proc_id << " | els1 = ";
     // for (auto e : els1) {
@@ -273,20 +203,6 @@ namespace qtnh {
     // std::cout << "\n";
     // utils::barrier();
 
-    // Zero-pad inactive processes in the grid. 
-    // TODO: Zero-pad active processes too, to match contracted dimensions. 
-    // ! Problem: zero-padding columns requires different distribution! 
-    // if (pg.active()) {
-    //   std::cout << tp1_->locSize() << ", " << (m * k) / (md * nd) << "\n";
-    //   std::cout << tp2_->locSize() << ", " << (k * n) / (md * nd) << "\n";
-    //   els1.resize((m * k) / (md * nd), 0);
-    //   els2.resize((k * n) / (md * nd), 0);
-    // }
-
-    // Create matrices and multiply. 
-    // BlockCyclicMatrix m1(pg_all, { pm * ml, pn * kl }, { ml, kl }, std::move(els1));
-    // BlockCyclicMatrix m2(pg_all, { pm * nl, pn * kl }, { nl, kl }, std::move(els2));
-
     // if (utils::is_root()) {
     //   using namespace ops;
     //   std::cout << "M1.blk = " << m1.blkDims() << "\n";
@@ -295,54 +211,9 @@ namespace qtnh {
     //   std::cout << "M2.dis = " << m2.disDims() << "\n";
     //   std::cout << "M1.cyc = " << m1.cycDims() << "\n";
     //   std::cout << "M2.cyc = " << m2.cycDims() << "\n";
-    // }
-
-    // auto m3 = PZGEMM(std::move(m1), std::move(m2), false, true);
-
-    // utils::barrier();
-    // std::cout << "GEMM COMPLETE\n";
-
-    // if (utils::is_root()) {
-    //   using namespace ops;
     //   std::cout << "M3.blk = " << m3.blkDims() << "\n";
     //   std::cout << "M3.dis = " << m3.disDims() << "\n";
     //   std::cout << "M3.cyc = " << m3.cycDims() << "\n";
-    // }
-
-    // auto dis_dims3 = utils::concat_dims(dims1.at(0), dims2.at(1));
-    // auto loc_dims3 = utils::concat_dims(dims2.at(3), dims1.at(2)); // column-major
-    
-    // auto new_els = m3.extractEls();
-    // std::cout << tp1_->bc().env().proc_id << " | els3 = ";
-    // for (auto e : new_els) {
-    //   std::cout << e << ", ";
-    // }
-    // std::cout << "\n";
-
-    // _repad(pg_all, pg3, new_els, ml * nl);
-
-    // tptr tp3 = DenseTensor::make(tp1_->bc().env(), dis_dims3, loc_dims3, std::move(new_els));
-
-    // // Permute back to row-major. 
-    // PTupleSrc ptup3(tp3->totDims().size());
-    // auto gs3 = utils::split_vec_rel(ptup3.tup(), dims1.at(0).size(), dims2.at(1).size(), 
-    //                                 dims1.at(2).size(), dims2.at(3).size());
-
-    // IndexGroup ig3({ "rd", "cd", "rb", "cb" }, utils::arr_to_vec(gs3));
-    // ig3.reorder({ "rd", "cd", "cb", "rb" });
-    // tp3 = Tensor::permute(std::move(tp3), ig3.ptup().inv().toTar().tup());
-
-    // if (utils::is_root()) {
-    //   using namespace ops;
-    //   std::cout << ig1.ptup().tup() << "\n";
-    //   std::cout << ig2.ptup().tup() << "\n";
-    //   std::cout << ig3.ptup().tup() << "\n";
-    //   // std::cout << "m = " << m <<
-    //   //   ", n = " << n <<
-    //   //   ", k = " << k <<
-    //   //   ", md = " << md <<
-    //   //   ", nd = " << nd << "\n";
-    //   std::cout << dis_dims3 << ", " << loc_dims3 << "\n";
     // }
 
     return tp3;
