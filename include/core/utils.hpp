@@ -86,6 +86,24 @@ namespace qtnh {
       if (dynamic_cast<T*>(p) != t) delete p;
       return std::unique_ptr<T>(t);
     }
+    
+    template<typename T>
+    std::vector<T> concat_vecs_two(std::vector<T> vec1, std::vector<T> vec2) {
+      std::vector<T> vec = vec1;
+      vec.insert(vec.end(), vec2.begin(), vec2.end());
+      return vec;
+    }
+
+    template<typename T, typename... Ts>
+    std::vector<T> concat_vecs(std::vector<T> vec1, std::vector<T> vec2, std::vector<Ts>... vecs) {
+      const auto NVECS = sizeof...(vecs);
+      
+      if constexpr (NVECS > 0) {
+        return concat_vecs_two(vec1, concat_vecs(vec2, vecs...));
+      } else {
+        return concat_vecs_two(vec1, vec2);
+      }
+    }
 
     template <typename T>
     std::pair<std::vector<T>, std::vector<T>> split_vec(std::vector<T> vec, std::size_t n) {
