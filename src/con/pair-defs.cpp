@@ -114,19 +114,17 @@ namespace qtnh {
       }
     }
 
+    // Calculate grid size. 
     auto dis_size_1 = tp1_->disSize() / dis_ws_size;
     auto dis_size_2 = tp2_->disSize() / dis_ws_size;
 
     auto use_bt = dis_ws_size > dis_size_1 && dis_ws_size > dis_size_2;
-
-    auto grows = std::max(dis_size_1, dis_ws_size);
-    auto gcols = std::max(dis_size_2, dis_ws_size);
+    auto grows = int(std::max(dis_size_1, dis_ws_size));
+    auto gcols = int(std::max(dis_size_2, dis_ws_size));
     if (use_bt) {
-      grows = std::max(dis_size_1, dis_size_2);
-      gcols = dis_ws_size;
+      grows = int(std::max(dis_size_1, dis_size_2));
+      gcols = int(dis_ws_size);
     }
-
-    
 
     // Save permuted dims. 
     auto dims1 = utils::split_vec_rel(ptup1.apply(tp1_->totDims()), 
@@ -143,7 +141,8 @@ namespace qtnh {
     IndexGroup ig1({ "rd", "cd", "rb", "cb" }, utils::arr_to_vec(gs1));
     IndexGroup ig2({ "rd", "cd", "rb", "cb" }, utils::arr_to_vec(gs2));
     ig1.reorder({ "rd", "cd", "cb", "rb" });
-    ig2.reorder({ "cd", "rd", "rb", "cb" });
+    ig2.reorder({ "rd", "cd", "cb", "rb" });
+    if (use_bt) ig2.reorder({ "cd", "rd", "rb", "cb" });
 
     ptup1 = ig1.ptup() * ptup1;
     ptup2 = ig2.ptup() * ptup2;
@@ -158,16 +157,49 @@ namespace qtnh {
     tp2_ = Tensor::cast<DenseTensor>(Tensor::permute(std::move(tp2_), ptup2.toTar().tup()));
 
     // Calculate matrix parameters. 
-    // TODO: Use B^T if contracted distributed dimensions are larger. 
     std::array<int, 4> sizes1, sizes2;
-    auto fun = [](auto dims) { return int(utils::dims_to_size(dims)); };
-    std::transform(dims1.begin(), dims1.end(), sizes1.begin(), fun);
-    std::transform(dims2.begin(), dims2.end(), sizes2.begin(), fun);
+    auto to_size = [](auto dims) { return int(utils::dims_to_size(dims)); };
+    std::transform(dims1.begin(), dims1.end(), sizes1.begin(), to_size);
+    std::transform(dims2.begin(), dims2.end(), sizes2.begin(), to_size);
 
     auto md = sizes1.at(0), nd = sizes2.at(1), kd = sizes1.at(1);
     auto ml = sizes1.at(2), nl = sizes2.at(3), kl = sizes1.at(3);
-    auto pm = std::max(nd, md);
-    auto pn = std::max(nd, kd);
+
+    using namespace lalg;
+    auto pg1 = ProcGrid(md, kd);
+    auto pg2 = use_bt ? ProcGrid(nd, kd) : ProcGrid(kd, nd);
+    auto pg3 = ProcGrid(md, nd);
+    auto pg_all = ProcGrid(grows, gcols);
+
+    // Create matrices and move them to larger grid. 
+    auto m1 = BlockCyclicMatrix(pg1, { md * ml, kd * kl }, { ml, kl }, tp1_->extractEls());
+    auto m2 = use_bt
+      ? BlockCyclicMatrix(pg2, { nd * nl, kd * kl }, { nl, kl }, tp2_->extractEls())
+      : BlockCyclicMatrix(pg2, { kd * kl, nd * nl }, { kl, nl }, tp2_->extractEls());
+
+    m1 = std::move(m1).toGrid(pg_all);
+    m2 = std::move(m2).toGrid(pg_all);
+    
+    // Calculate matrix product. 
+    auto m3 = PZGEMM(std::move(m1), std::move(m2), false, use_bt);
+    m3 = std::move(m3).toGrid(pg3);
+
+    auto dis_dims3 = utils::concat_dims(dims1.at(0), dims2.at(1));
+    auto loc_dims3 = utils::concat_dims(dims2.at(3), dims1.at(2)); // column-major
+
+    tptr tp3 = DenseTensor::make(tp1_->bc().env(), dis_dims3, loc_dims3, m3.extractEls());
+
+    // Permute back to row-major. 
+    PTupleSrc ptup3(tp3->totDims().size());
+    auto gs3 = utils::split_vec_rel(ptup3.tup(), dims1.at(0).size(), dims2.at(1).size(), 
+                                    dims1.at(2).size(), dims2.at(3).size());
+
+    IndexGroup ig3({ "rd", "cd", "rb", "cb" }, utils::arr_to_vec(gs3));
+    ig3.reorder({ "rd", "cd", "cb", "rb" });
+    tp3 = Tensor::permute(std::move(tp3), ig3.ptup().inv().toTar().tup());
+
+    // auto pm = std::max(nd, md);
+    // auto pn = std::max(nd, kd);
 
     // auto md = std::max(sizes1.at(0), sizes2.at(1));
     // auto nd = std::max(sizes1.at(1), sizes2.at(0));
@@ -195,51 +227,51 @@ namespace qtnh {
     // tp_tmp = Tensor::cast<DenseTensor>(Tensor::rebcast(std::move(tp_tmp), params2));
     // auto els2 = tp_tmp->extractEls();
 
-    if (utils::is_root()) {
-      using namespace ops;
-      std::cout << dims1.at(0) << dims1.at(1) << dims1.at(2) << dims1.at(3) << "\n";
-      std::cout << dims2.at(0) << dims2.at(1) << dims2.at(2) << dims2.at(3) << "\n";
-      std::cout << gs1.at(0) << gs1.at(1) << gs1.at(2) << gs1.at(3) << "\n";
-      std::cout << gs2.at(0) << gs2.at(1) << gs2.at(2) << gs2.at(3) << "\n";
-      std::cout << ig1.ptup().tup() << "\n";
-      std::cout << ig2.ptup().tup() << "\n";
-      std::cout << "md = " << md <<
-        ", nd = " << nd <<
-        ", kd = " << kd <<
-        ", ml = " << ml <<
-        ", nl = " << nl <<
-        ", kl = " << kl <<
-        ", pm = " << pm <<
-        ", pn = " << pn << "\n";
-      std::cout << "m1_b = (" << sizes1.at(2) << ", " << sizes1.at(3) << 
-        "), m2_b = (" << sizes2.at(2) << ", " << sizes2.at(3) << ")\n";
-    }
+    // if (utils::is_root()) {
+    //   using namespace ops;
+    //   std::cout << dims1.at(0) << dims1.at(1) << dims1.at(2) << dims1.at(3) << "\n";
+    //   std::cout << dims2.at(0) << dims2.at(1) << dims2.at(2) << dims2.at(3) << "\n";
+    //   std::cout << gs1.at(0) << gs1.at(1) << gs1.at(2) << gs1.at(3) << "\n";
+    //   std::cout << gs2.at(0) << gs2.at(1) << gs2.at(2) << gs2.at(3) << "\n";
+    //   std::cout << ig1.ptup().tup() << "\n";
+    //   std::cout << ig2.ptup().tup() << "\n";
+    //   std::cout << "md = " << md <<
+    //     ", nd = " << nd <<
+    //     ", kd = " << kd <<
+    //     ", ml = " << ml <<
+    //     ", nl = " << nl <<
+    //     ", kl = " << kl <<
+    //     ", pm = " << pm <<
+    //     ", pn = " << pn << "\n";
+    //   std::cout << "m1_b = (" << sizes1.at(2) << ", " << sizes1.at(3) << 
+    //     "), m2_b = (" << sizes2.at(2) << ", " << sizes2.at(3) << ")\n";
+    // }
 
-    using namespace lalg;
-    ProcGrid pg1(md, kd);
-    ProcGrid pg2(nd, kd);
-    ProcGrid pg3(nd, md);
-    ProcGrid pg_all(pm, pn);
+    // using namespace lalg;
+    // ProcGrid pg1(md, kd);
+    // ProcGrid pg2(nd, kd);
+    // ProcGrid pg3(nd, md);
+    // ProcGrid pg_all(pm, pn);
     
-    auto els1 = tp1_->extractEls();
-    auto els2 = tp2_->extractEls();
+    // auto els1 = tp1_->extractEls();
+    // auto els2 = tp2_->extractEls();
 
-    _repad(pg1, pg_all, els1, ml * kl);
-    _repad(pg2, pg_all, els2, nl * kl);
+    // _repad(pg1, pg_all, els1, ml * kl);
+    // _repad(pg2, pg_all, els2, nl * kl);
 
-    utils::barrier();
-    std::cout << tp1_->bc().env().proc_id << " | els1 = ";
-    for (auto e : els1) {
-      std::cout << e << ", ";
-    }
-    std::cout << "\n";
+    // utils::barrier();
+    // std::cout << tp1_->bc().env().proc_id << " | els1 = ";
+    // for (auto e : els1) {
+    //   std::cout << e << ", ";
+    // }
+    // std::cout << "\n";
 
-    std::cout << tp1_->bc().env().proc_id << " | els2 = ";
-    for (auto e : els2) {
-      std::cout << e << ", ";
-    }
-    std::cout << "\n";
-    utils::barrier();
+    // std::cout << tp1_->bc().env().proc_id << " | els2 = ";
+    // for (auto e : els2) {
+    //   std::cout << e << ", ";
+    // }
+    // std::cout << "\n";
+    // utils::barrier();
 
     // Zero-pad inactive processes in the grid. 
     // TODO: Zero-pad active processes too, to match contracted dimensions. 
@@ -252,66 +284,66 @@ namespace qtnh {
     // }
 
     // Create matrices and multiply. 
-    BlockCyclicMatrix m1(pg_all, { pm * ml, pn * kl }, { ml, kl }, std::move(els1));
-    BlockCyclicMatrix m2(pg_all, { pm * nl, pn * kl }, { nl, kl }, std::move(els2));
+    // BlockCyclicMatrix m1(pg_all, { pm * ml, pn * kl }, { ml, kl }, std::move(els1));
+    // BlockCyclicMatrix m2(pg_all, { pm * nl, pn * kl }, { nl, kl }, std::move(els2));
 
-    if (utils::is_root()) {
-      using namespace ops;
-      std::cout << "M1.blk = " << m1.blkDims() << "\n";
-      std::cout << "M2.blk = " << m2.blkDims() << "\n";
-      std::cout << "M1.dis = " << m1.disDims() << "\n";
-      std::cout << "M2.dis = " << m2.disDims() << "\n";
-      std::cout << "M1.cyc = " << m1.cycDims() << "\n";
-      std::cout << "M2.cyc = " << m2.cycDims() << "\n";
-    }
+    // if (utils::is_root()) {
+    //   using namespace ops;
+    //   std::cout << "M1.blk = " << m1.blkDims() << "\n";
+    //   std::cout << "M2.blk = " << m2.blkDims() << "\n";
+    //   std::cout << "M1.dis = " << m1.disDims() << "\n";
+    //   std::cout << "M2.dis = " << m2.disDims() << "\n";
+    //   std::cout << "M1.cyc = " << m1.cycDims() << "\n";
+    //   std::cout << "M2.cyc = " << m2.cycDims() << "\n";
+    // }
 
-    auto m3 = PZGEMM(std::move(m1), std::move(m2), false, true);
+    // auto m3 = PZGEMM(std::move(m1), std::move(m2), false, true);
 
-    utils::barrier();
-    std::cout << "GEMM COMPLETE\n";
+    // utils::barrier();
+    // std::cout << "GEMM COMPLETE\n";
 
-    if (utils::is_root()) {
-      using namespace ops;
-      std::cout << "M3.blk = " << m3.blkDims() << "\n";
-      std::cout << "M3.dis = " << m3.disDims() << "\n";
-      std::cout << "M3.cyc = " << m3.cycDims() << "\n";
-    }
+    // if (utils::is_root()) {
+    //   using namespace ops;
+    //   std::cout << "M3.blk = " << m3.blkDims() << "\n";
+    //   std::cout << "M3.dis = " << m3.disDims() << "\n";
+    //   std::cout << "M3.cyc = " << m3.cycDims() << "\n";
+    // }
 
-    auto dis_dims3 = utils::concat_dims(dims1.at(0), dims2.at(1));
-    auto loc_dims3 = utils::concat_dims(dims2.at(3), dims1.at(2)); // column-major
+    // auto dis_dims3 = utils::concat_dims(dims1.at(0), dims2.at(1));
+    // auto loc_dims3 = utils::concat_dims(dims2.at(3), dims1.at(2)); // column-major
     
-    auto new_els = m3.extractEls();
-    std::cout << tp1_->bc().env().proc_id << " | els3 = ";
-    for (auto e : new_els) {
-      std::cout << e << ", ";
-    }
-    std::cout << "\n";
+    // auto new_els = m3.extractEls();
+    // std::cout << tp1_->bc().env().proc_id << " | els3 = ";
+    // for (auto e : new_els) {
+    //   std::cout << e << ", ";
+    // }
+    // std::cout << "\n";
 
-    _repad(pg_all, pg3, new_els, ml * nl);
+    // _repad(pg_all, pg3, new_els, ml * nl);
 
-    tptr tp3 = DenseTensor::make(tp1_->bc().env(), dis_dims3, loc_dims3, std::move(new_els));
+    // tptr tp3 = DenseTensor::make(tp1_->bc().env(), dis_dims3, loc_dims3, std::move(new_els));
 
-    // Permute back to row-major. 
-    PTupleSrc ptup3(tp3->totDims().size());
-    auto gs3 = utils::split_vec_rel(ptup3.tup(), dims1.at(0).size(), dims2.at(1).size(), 
-                                    dims1.at(2).size(), dims2.at(3).size());
+    // // Permute back to row-major. 
+    // PTupleSrc ptup3(tp3->totDims().size());
+    // auto gs3 = utils::split_vec_rel(ptup3.tup(), dims1.at(0).size(), dims2.at(1).size(), 
+    //                                 dims1.at(2).size(), dims2.at(3).size());
 
-    IndexGroup ig3({ "rd", "cd", "rb", "cb" }, utils::arr_to_vec(gs3));
-    ig3.reorder({ "rd", "cd", "cb", "rb" });
-    tp3 = Tensor::permute(std::move(tp3), ig3.ptup().inv().toTar().tup());
+    // IndexGroup ig3({ "rd", "cd", "rb", "cb" }, utils::arr_to_vec(gs3));
+    // ig3.reorder({ "rd", "cd", "cb", "rb" });
+    // tp3 = Tensor::permute(std::move(tp3), ig3.ptup().inv().toTar().tup());
 
-    if (utils::is_root()) {
-      using namespace ops;
-      std::cout << ig1.ptup().tup() << "\n";
-      std::cout << ig2.ptup().tup() << "\n";
-      std::cout << ig3.ptup().tup() << "\n";
-      // std::cout << "m = " << m <<
-      //   ", n = " << n <<
-      //   ", k = " << k <<
-      //   ", md = " << md <<
-      //   ", nd = " << nd << "\n";
-      std::cout << dis_dims3 << ", " << loc_dims3 << "\n";
-    }
+    // if (utils::is_root()) {
+    //   using namespace ops;
+    //   std::cout << ig1.ptup().tup() << "\n";
+    //   std::cout << ig2.ptup().tup() << "\n";
+    //   std::cout << ig3.ptup().tup() << "\n";
+    //   // std::cout << "m = " << m <<
+    //   //   ", n = " << n <<
+    //   //   ", k = " << k <<
+    //   //   ", md = " << md <<
+    //   //   ", nd = " << nd << "\n";
+    //   std::cout << dis_dims3 << ", " << loc_dims3 << "\n";
+    // }
 
     return tp3;
   }
