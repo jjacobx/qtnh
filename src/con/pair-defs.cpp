@@ -51,7 +51,7 @@ namespace qtnh {
   template<> qtnh::tptr PairContractor<DenseTensor, DenseTensor>::contract_gemm() {
     #ifdef DEBUG
     if (utils::is_root())
-      std::cout << "STARTING DENSE-DENSE CONTRACTION USING SCALAPACK\n";
+      std::cout << "STARTING DENSE-DENSE CONTRACTION (GEMM METHOD)\n";
     #endif
 
     auto ws = params_.wires;
@@ -80,38 +80,6 @@ namespace qtnh {
       } else {
         ptup1.at(i) >> int(ndis1 + nloc1 - i - 1);
         ptup2.at(j) << int(j - ndis2 - n_loc_ws++);
-      }
-    }
-
-    // * Temporary – establish default index replacements. 
-    // * This might have to be moved somewhere else. 
-    if (params_.useDefRepls) {
-      params_.dimRepls1 = std::vector<qtnh::tidx_tup_st>(tp1_->totDims().size(), UINT16_MAX);
-      std::sort(params_.wires.begin(), params_.wires.end(), utils::wirecomp::first);
-
-      for  (auto i = 0u, j = 0u; i < tp1_->totDims().size(); ++i) {
-        if ((j < params_.wires.size()) && (i == params_.wires.at(j).first)) {
-          ++j;
-        } else {
-          params_.dimRepls1.at(i) = i - j;
-          if (i >= tp1_->disDims().size()) {
-            params_.dimRepls1.at(i) += (tp2_->disDims().size() - n_dis_ws);
-          }
-        }
-      }
-
-      params_.dimRepls2 = std::vector<qtnh::tidx_tup_st>(tp2_->totDims().size(), UINT16_MAX);
-      std::sort(params_.wires.begin(), params_.wires.end(), utils::wirecomp::second);
-
-      for  (auto i = 0u, j = 0u; i < tp2_->totDims().size(); ++i) {
-        if ((j < params_.wires.size()) && (i == params_.wires.at(j).second)) {
-          ++j;
-        } else {
-          params_.dimRepls2.at(i) = tp1_->disDims().size() - n_dis_ws + i - j;
-          if (i >= tp2_->disDims().size()) {
-            params_.dimRepls2.at(i) = tp1_->totDims().size() - params_.wires.size() + i - j;
-          }
-        }
       }
     }
 
@@ -219,7 +187,7 @@ namespace qtnh {
   template<> qtnh::tptr PairContractor<DenseTensor, DenseTensor>::contract_direct() {
     #ifdef DEBUG
       if (utils::is_root())
-        std::cout << "STARTING DENSE-DENSE CONTRACTION\n";
+        std::cout << "STARTING DENSE-DENSE CONTRACTION (DIRECT METHOD)\n";
     #endif
 
     auto ws = params_.wires;
@@ -254,46 +222,6 @@ namespace qtnh {
         ++ndis_cons;
       }
     }
-
-    // * Temporary – establish default index replacements. 
-    // * This might have to be moved somewhere else. 
-    if (params_.useDefRepls) {
-      params_.dimRepls1 = std::vector<qtnh::tidx_tup_st>(tp1_->totDims().size(), UINT16_MAX);
-      std::sort(params_.wires.begin(), params_.wires.end(), utils::wirecomp::first);
-
-      for  (auto i = 0u, j = 0u; i < tp1_->totDims().size(); ++i) {
-        if ((j < params_.wires.size()) && (i == params_.wires.at(j).first)) {
-          ++j;
-        } else {
-          params_.dimRepls1.at(i) = i - j;
-          if (i >= tp1_->disDims().size()) {
-            params_.dimRepls1.at(i) += (tp2_->disDims().size() - ndis_cons);
-          }
-        }
-      }
-
-      params_.dimRepls2 = std::vector<qtnh::tidx_tup_st>(tp2_->totDims().size(), UINT16_MAX);
-      std::sort(params_.wires.begin(), params_.wires.end(), utils::wirecomp::second);
-
-      for  (auto i = 0u, j = 0u; i < tp2_->totDims().size(); ++i) {
-        if ((j < params_.wires.size()) && (i == params_.wires.at(j).second)) {
-          ++j;
-        } else {
-          params_.dimRepls2.at(i) = tp1_->disDims().size() - ndis_cons + i - j;
-          if (i >= tp2_->disDims().size()) {
-            params_.dimRepls2.at(i) = tp1_->totDims().size() - params_.wires.size() + i - j;
-          }
-        }
-      }
-    }
-
-    #ifdef DEBUG
-      using namespace ops;
-      if (utils::is_root()) {
-        std::cout << "T1 dimension replacements: " << params_.dimRepls1 << "\n";
-        std::cout << "T2 dimension replacements: " << params_.dimRepls2 << "\n";
-      }
-    #endif
 
     tp1_ = Tensor::cast<DenseTensor>(Tensor::permute(std::move(tp1_), ptup1));
     tp2_ = Tensor::cast<DenseTensor>(Tensor::permute(std::move(tp2_), ptup2));
@@ -433,6 +361,50 @@ namespace qtnh {
   }
 
   template<> qtnh::tptr PairContractor<DenseTensor, DenseTensor>::contract() {
+    auto n_dis_ws = 0UL;
+    for (auto [w1, w2] : params_.wires) {
+      if (w1 < tp1_->disDims().size()) n_dis_ws++;
+    }
+
+    // Calculate default index replacements. 
+    if (params_.useDefRepls) {
+      params_.dimRepls1 = std::vector<qtnh::tidx_tup_st>(tp1_->totDims().size(), UINT16_MAX);
+      std::sort(params_.wires.begin(), params_.wires.end(), utils::wirecomp::first);
+
+      for  (auto i = 0u, j = 0u; i < tp1_->totDims().size(); ++i) {
+        if ((j < params_.wires.size()) && (i == params_.wires.at(j).first)) {
+          ++j;
+        } else {
+          params_.dimRepls1.at(i) = i - j;
+          if (i >= tp1_->disDims().size()) {
+            params_.dimRepls1.at(i) += (tp2_->disDims().size() - n_dis_ws);
+          }
+        }
+      }
+
+      params_.dimRepls2 = std::vector<qtnh::tidx_tup_st>(tp2_->totDims().size(), UINT16_MAX);
+      std::sort(params_.wires.begin(), params_.wires.end(), utils::wirecomp::second);
+
+      for  (auto i = 0u, j = 0u; i < tp2_->totDims().size(); ++i) {
+        if ((j < params_.wires.size()) && (i == params_.wires.at(j).second)) {
+          ++j;
+        } else {
+          params_.dimRepls2.at(i) = tp1_->disDims().size() - n_dis_ws + i - j;
+          if (i >= tp2_->disDims().size()) {
+            params_.dimRepls2.at(i) = tp1_->totDims().size() - params_.wires.size() + i - j;
+          }
+        }
+      }
+    }
+
+    #ifdef DEBUG
+      using namespace ops;
+      if (utils::is_root()) {
+        std::cout << "T1 dimension replacements: " << params_.dimRepls1 << "\n";
+        std::cout << "T2 dimension replacements: " << params_.dimRepls2 << "\n";
+      }
+    #endif
+
     #ifdef CON_GEMM
       return contract_gemm();
     #else
