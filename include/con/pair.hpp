@@ -24,7 +24,10 @@ namespace qtnh {
       const ConParams& params() const noexcept { return this->params_; }
 
       qtnh::tptr contract();
-      qtnh::tptr contract_scalapack();
+
+    private:
+      qtnh::tptr contract_direct();
+      qtnh::tptr contract_gemm();
   };
 
   template<typename T1, typename T2>
@@ -41,7 +44,10 @@ namespace qtnh {
       const ConParams& params() const noexcept { return this->params_; }
 
       qtnh::tptr contract();
-      qtnh::tptr contract_scalapack();
+      
+      private:
+        qtnh::tptr contract_direct();
+        qtnh::tptr contract_gemm();
   };
 
   template<typename T1>

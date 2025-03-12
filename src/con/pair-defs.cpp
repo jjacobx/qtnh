@@ -48,7 +48,7 @@ namespace qtnh {
     }
   }
 
-  template<> qtnh::tptr PairContractor<DenseTensor, DenseTensor>::contract() {
+  template<> qtnh::tptr PairContractor<DenseTensor, DenseTensor>::contract_gemm() {
     #ifdef DEBUG
     if (utils::is_root())
       std::cout << "STARTING DENSE-DENSE CONTRACTION USING SCALAPACK\n";
@@ -216,7 +216,7 @@ namespace qtnh {
     return tp3;
   }
 
-  template<> qtnh::tptr PairContractor<DenseTensor, DenseTensor>::contract_scalapack() {
+  template<> qtnh::tptr PairContractor<DenseTensor, DenseTensor>::contract_direct() {
     #ifdef DEBUG
       if (utils::is_root())
         std::cout << "STARTING DENSE-DENSE CONTRACTION\n";
@@ -430,6 +430,14 @@ namespace qtnh {
     BcParams new_params { static_cast<qtnh::uint>(utils::dims_to_size(virtual_dims)), 1, align_off };
 
     return DenseTensor::make(t3.bc().env(), new_dis_dims, t3.locDims(), std::move(t3.loc_els_), new_params);
+  }
+
+  template<> qtnh::tptr PairContractor<DenseTensor, DenseTensor>::contract() {
+    #ifdef CON_GEMM
+      return contract_gemm();
+    #else
+      return contract_direct();
+    #endif
   }
 
   template<> qtnh::tptr PairContractor<DenseTensor, SymmTensor>::contract() {
