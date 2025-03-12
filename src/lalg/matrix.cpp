@@ -1,5 +1,6 @@
 #include "lalg/matrix.hpp"
 #include "lalg/routines.hpp"
+#include "matrix.hpp"
 
 namespace qtnh {
   namespace lalg {
@@ -53,20 +54,20 @@ namespace qtnh {
       }
     }
 
-    BlockCyclicMatrix::BlockCyclicMatrix(const ProcGrid& grid, mtup tot_dims, mtup blk_dims)
-    : BlockCyclicMatrix(grid, tot_dims, blk_dims, cvec {})
+    BlockCyclicMatrix::BlockCyclicMatrix(const ProcGrid& pg, mtup tot_dims, mtup blk_dims)
+    : BlockCyclicMatrix(pg, tot_dims, blk_dims, cvec {})
     {
       auto loc_size = std::size_t(mc_ * nc_ * mb_ * nb_);
       loc_els_p_ = cvec(loc_size);
     }
 
-    BlockCyclicMatrix::BlockCyclicMatrix(const ProcGrid& grid, mtup tot_dims, mtup blk_dims, 
+    BlockCyclicMatrix::BlockCyclicMatrix(const ProcGrid& pg, mtup tot_dims, mtup blk_dims, 
                                          cvec&& loc_els_p)
-    : grid_(grid)
+    : pg_(pg)
     , mb_(blk_dims.first)
     , nb_(blk_dims.second)
-    , md_(grid.procDims().first)
-    , nd_(grid.procDims().second)
+    , md_(pg.procDims().first)
+    , nd_(pg.procDims().second)
     , mc_(tot_dims.first / md_ / mb_)
     , nc_(tot_dims.second / nd_ / nb_)
     , m_(tot_dims.first)
@@ -74,16 +75,16 @@ namespace qtnh {
     , loc_els_p_(loc_els_p)
     {}
 
-    BlockCyclicMatrix::BlockCyclicMatrix(const ProcGrid& grid, mtup blk_dims, mtup dis_dims, mtup cyc_dims)
-    : BlockCyclicMatrix(grid, blk_dims, dis_dims, cyc_dims, cvec {})
+    BlockCyclicMatrix::BlockCyclicMatrix(const ProcGrid& pg, mtup blk_dims, mtup dis_dims, mtup cyc_dims)
+    : BlockCyclicMatrix(pg, blk_dims, dis_dims, cyc_dims, cvec {})
     {
       auto loc_size = std::size_t(mc_ * nc_ * mb_ * nb_);
       loc_els_p_ = cvec(loc_size);
     }
 
-    BlockCyclicMatrix::BlockCyclicMatrix(const ProcGrid& grid, mtup blk_dims, mtup dis_dims, mtup cyc_dims, 
+    BlockCyclicMatrix::BlockCyclicMatrix(const ProcGrid& pg, mtup blk_dims, mtup dis_dims, mtup cyc_dims, 
                                          cvec&& loc_els_p)
-    : grid_(grid)
+    : pg_(pg)
     , mb_(blk_dims.first)
     , nb_(blk_dims.second)
     , md_(dis_dims.first)

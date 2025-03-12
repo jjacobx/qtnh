@@ -44,7 +44,7 @@ namespace qtnh {
         BlockCyclicMatrix(const ProcGrid& grid, mtup blk_dims, mtup dis_dims, mtup cyc_dims, cvec&& loc_els_p);
         ~BlockCyclicMatrix() = default;
 
-        const ProcGrid& grid() const { return grid_; }
+        const ProcGrid& grid() const { return pg_; }
         qtnh::tel* data() { return loc_els_p_.data(); }
 
         constexpr mtup blkDims() const { return { mb_, nb_ }; }
@@ -54,31 +54,31 @@ namespace qtnh {
 
         constexpr std::array<int, 9> const desc9() {
           return { 
-            1,                // DTYPE
-            grid_.context(),  // CTXT
-            m_,               // M
-            n_,               // N
-            mb_,              // MB
-            nb_,              // NB
-            0,                // RSRC
-            0,                // CSRC
-            mb_ * mc_         // LLD
+            1,              // DTYPE
+            pg_.context(),  // CTXT
+            m_,             // M
+            n_,             // N
+            mb_,            // MB
+            nb_,            // NB
+            0,              // RSRC
+            0,              // CSRC
+            mb_ * mc_       // LLD
           };
         }
 
         constexpr std::array<int, 11> const desc11() {
           return { 
-            601,              // DTYPE
-            grid_.context(),  // CTXT
-            m_,               // M
-            n_,               // N
-            mb_,              // IMB
-            nb_,              // INB
-            mb_,              // MB
-            nb_,              // NB
-            0,                // RSRC
-            0,                // CSRC
-            mb_ * mc_         // LLD
+            601,            // DTYPE
+            pg_.context(),  // CTXT
+            m_,             // M
+            n_,             // N
+            mb_,            // IMB
+            nb_,            // INB
+            mb_,            // MB
+            nb_,            // NB
+            0,              // RSRC
+            0,              // CSRC
+            mb_ * mc_       // LLD
           };
         }
 
@@ -87,7 +87,7 @@ namespace qtnh {
         void transformGrid(const ProcGrid& pg);
 
       private:
-        const ProcGrid& grid_;
+        const ProcGrid& pg_;
 
         int mb_, nb_;
         int md_, nd_;
