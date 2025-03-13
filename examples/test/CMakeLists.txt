@@ -29,3 +29,11 @@ target_compile_options(gemm-test
   PRIVATE
   -Wall
 )
+
+add_executable(serial-test serial.cpp)
+add_dependencies(serial-test qtnh)
+target_link_libraries(serial-test qtnh)
+target_compile_options(serial-test
+  PRIVATE
+  -Wall
+)
