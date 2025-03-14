@@ -52,6 +52,10 @@ if (MAP)
     -Wl,--eh-frame-hdr
     -Wl,-rpath=${FORGE_DIR}/map/libs/default/gnu/ofi
   )
+  target_compile_options(qtnh
+    PRIVATE
+    -g
+  )
 endif()
 
 option(FSANITIZE "Turn on fsanitize debug flags" OFF)
@@ -76,6 +80,17 @@ if (AUTO_COMM_INIT)
     PRIVATE
     -DAUTO_COMM_INIT=1
   )
+endif()
+
+option(CON_METHOD "Contraction method." "direct")
+if (CON_METHOD STREQUAL "gemm")
+  message(STATUS "Contraction method set to gemm.")
+  target_compile_options(qtnh
+    PRIVATE
+    -DCON_GEMM=1
+  )
+else()
+  message(STATUS "Contraction method set to direct.")
 endif()
 
 target_include_directories(qtnh

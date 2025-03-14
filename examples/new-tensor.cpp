@@ -45,13 +45,18 @@ int main() {
     std::cout << env.proc_id << " | T1[0] (gather 2) = " << (*tp1)[0] << "\n";
   }
 
-  tp1 = DenseTensor::make(env, {}, { 2, 2, 2 }, std::vector<tel>(els1));
-  tp2 = DenseTensor::make(env, {}, { 4, 2 }, std::vector<tel>(els2));
+  using dpcon = PairContractor<DenseTensor, DenseTensor>;
+  auto tp_d1 = DenseTensor::make(env, {}, { 2, 4 }, std::vector<tel>(els1));
+  tp_d1 = Tensor::cast<DenseTensor>(Tensor::rescatter(std::move(tp_d1), 1));
+  auto tp_d2 = DenseTensor::make(env, {}, { 2, 2, 2 }, std::vector<tel>(els2));
+  tp_d2 = Tensor::cast<DenseTensor>(Tensor::rescatter(std::move(tp_d2), 2));
 
   params = ConParams(std::vector<wire> {});
-  tp3 = pcon(std::move(tp1), std::move(tp2), params).contract();
-  if (tp3->has({1, 1, 1, 3, 1})) {
-    std::cout << env.proc_id << ": T3[(1, 1, 1, 3, 1)] (tensor product) = " << tp3->at({1, 1, 1, 3, 1}) << "\n";
+  auto tp_d3 = dpcon(Tensor::cast<DenseTensor>(tp_d1->copy()), 
+                     Tensor::cast<DenseTensor>(tp_d2->copy()), params).contract();
+
+  if (tp_d3->has({ 1, 1, 1, 3, 1 })) {
+    std::cout << env.proc_id << ": T3[(1, 1, 1, 3, 1)] (tensor product) = " << tp_d3->at({ 1, 1, 1, 3, 1 }) << "\n";
   }
 
   return 0;

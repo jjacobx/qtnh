@@ -238,11 +238,11 @@ namespace qtnh {
   TIndexing::NumIterator& TIndexing::NumIterator::operator++() {
     for (std::size_t i = 0; i < current_idxs_.size(); ++i) {
 
-      if (current_idxs_.at(i) < dims_.at(i) - 1) {
-        current_idxs_.at(i)++;
+      if (current_idxs_[i] < dims_[i] - 1) {
+        current_idxs_[i]++;
         return *this;
-      } else if (current_idxs_.at(i) == dims_.at(i) - 1) {
-        current_idxs_.at(i) = 0;
+      } else if (current_idxs_[i] == dims_[i] - 1) {
+        current_idxs_[i] = 0;
         continue;
       }
     }

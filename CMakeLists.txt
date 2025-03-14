@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.13.0)
 project(QTNH 
   VERSION 0.0.1
   DESCRIPTION "A quantum computer simulator via generalised tensor network contraction"
-  LANGUAGES CXX
+  LANGUAGES C CXX
 )
 
 set(default_build_type "Release")
@@ -24,9 +24,10 @@ option(SKIP_ARCHER2_LIBS "Skips libraries that don't require linking on ARCHER2"
 find_library(MATH_LIBRARY m REQUIRED)
 
 # MPI
-find_package(MPI COMPONENTS CXX REQUIRED)
+find_package(MPI COMPONENTS C CXX REQUIRED)
 
 # ScaLAPACK
+# NOTE: now requires C/MPI_C support 
 if (NOT SKIP_ARCHER2_LIBS)
   find_package(ScaLAPACK REQUIRED)
 endif()

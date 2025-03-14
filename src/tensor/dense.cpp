@@ -432,21 +432,32 @@ namespace qtnh {
       auto j = ptup.at(i);
       if (j >= ndis) {
         new_ext1 = old_cumdims.at(i) * sizeof(qtnh::tel);
-        // std::cout << "Send extent: " << count1 * ext1 << ", expected: " << new_ext1 << "\n";
+        new_ext2 = new_cumdims.at(j) * sizeof(qtnh::tel);
+        #ifdef DEBUG
+          std::cout << "Send extent: " << count1 * ext1 << ", expected: " << new_ext1 << "\n";
+          std::cout << "Recv extent: " << count2 * ext2 << ", expected: " << new_ext2 << "\n";
+        #endif
+
         if (count1 * ext1 != new_ext1){
           MPI_Type_contiguous(int(count1), send_types.at(i1), &send_types.at(i1 + 1));
           MPI_Type_create_resized(send_types.at(i1 + 1), 0, new_ext1, &send_types.at(i1 + 2));
+          #ifdef DEBUG
+            std::cout << "Send: t_contiguous (count = " << count1 << ", ext = " << ext1 << ")\n";
+            std::cout << "Send: t_resized (ext = " << new_ext1 << ")\n";
+          #endif
 
           ext1 = new_ext1;
           count1 = 1UL;
           i1 += 2;
         }
-        
-        new_ext2 = new_cumdims.at(j) * sizeof(qtnh::tel);
-        // std::cout << "Recv extent: " << count2 * ext2 << ", expected: " << new_ext2 << "\n";
+
         if (count2 * ext2 != new_ext2){
           MPI_Type_contiguous(int(count2), recv_types.at(i2), &recv_types.at(i2 + 1));
           MPI_Type_create_resized(recv_types.at(i2 + 1), 0, new_ext2, &recv_types.at(i2 + 2));
+          #ifdef DEBUG
+            std::cout << "Recv: t_contiguous (count = " << count2 << ", ext = " << ext2 << ")\n";
+            std::cout << "Recv: t_resized (ext = " << new_ext2 << ")\n";
+          #endif
 
           ext2 = new_ext2;
           count2 = 1UL;
@@ -460,16 +471,29 @@ namespace qtnh {
 
     if (count1 > 1) {
       MPI_Type_contiguous(int(count1), send_types.at(i1), &send_types.at(i1 + 1));
+      #ifdef DEBUG
+        std::cout << "Send: t_contiguous (count = " << count1 << ", ext = " << ext1 << ")\n";
+      #endif
+
       ++i1;
     }
+
     if (count2 > 1) {
       MPI_Type_contiguous(int(count2), recv_types.at(i2), &recv_types.at(i2 + 1));
+      #ifdef DEBUG
+        std::cout << "Recv: t_contiguous (count = " << count2 << ", ext = " << ext2 << ")\n";
+      #endif
+
       ++i2;
     }
 
     MPI_Datatype send_type, recv_type;
     MPI_Type_create_resized(send_types.at(i1), 0, sizeof(qtnh::tel), &send_type);
     MPI_Type_create_resized(recv_types.at(i2), 0, sizeof(qtnh::tel), &recv_type);
+    #ifdef DEBUG
+      std::cout << "Send: t_resized (ext = " << sizeof(qtnh::tel) << ")\n";
+      std::cout << "Recv: t_resized (ext = " << sizeof(qtnh::tel) << ")\n";
+    #endif
 
     MPI_Type_commit(&send_type);
     MPI_Type_commit(&recv_type);

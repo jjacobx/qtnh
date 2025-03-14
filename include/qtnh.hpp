@@ -24,7 +24,8 @@ namespace qtnh {
 #include "core/utils.hpp"
 
 #include "lalg/matrix.hpp"
-#include "lalg/routines.hpp"
+// #include "lalg/routines.hpp" - skip imported Fortran routines
+#include "lalg/wrappers.hpp"
 
 #include "tensor/dense.hpp"
 #include "tensor/diag.hpp"

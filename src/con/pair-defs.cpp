@@ -4,7 +4,9 @@
 
 #include "con/pair-defs.hpp"
 #include "core/utils.hpp"
+#include "lalg/wrappers.hpp"
 #include "tensor/indexing.hpp"
+#include "tensor/ptuple.hpp"
 
 
 namespace qtnh {
@@ -27,14 +29,17 @@ namespace qtnh {
             std::cout << "t1[" << *it1 << "] * t2[" << *it2 << "]";
           #endif
 
-          el3 += (*tp1)[*(it1++)] * (*tp2)[*(it2++)];
+          el3 += (*tp1)[*it1] * (*tp2)[*it2];
+          ++it1; ++it2;
 
           #ifdef DEBUG
             if (it1 != it1.end() && it2 != it2.end()) std::cout << " + ";
           #endif
         }
 
-        (*tp3)[*(it3++)] = el3;
+        (*tp3)[*it3] = el3;
+        ++it3;
+
 
         #ifdef DEBUG
           std::cout << " = " << el3  << std::endl;
@@ -43,11 +48,152 @@ namespace qtnh {
     }
   }
 
+  template<> qtnh::tptr PairContractor<DenseTensor, DenseTensor>::contract_gemm() {
+    #ifdef DEBUG
+    if (utils::is_root())
+      std::cout << "STARTING DENSE-DENSE CONTRACTION (GEMM METHOD)\n";
+    #endif
 
-  template<> qtnh::tptr PairContractor<DenseTensor, DenseTensor>::contract() {
+    auto ws = params_.wires;
+    auto ndis1 = tp1_->disDims().size();
+    auto nloc1 = tp1_->locDims().size();
+    auto ndis2 = tp2_->disDims().size();
+    auto nloc2 = tp2_->locDims().size();
+
+    PTupleSrc ptup1(ndis1 + nloc1);
+    PTupleSrc ptup2(ndis2 + nloc2);
+
+    auto n_dis_ws = 0UL, n_loc_ws = 0UL;
+    auto dis_ws_size = 1UL;
+    for (auto w : ws) {
+      auto [w1, w2] = w;
+      // Get current positions of given indices. 
+      auto i = ptup1.inv().tup().at(w1);
+      auto j = ptup2.inv().tup().at(w2);
+      
+      // Move first tensor dims to back, 
+      // and second tensor dims to front. 
+      if (w1 < ndis1) {
+        dis_ws_size *= tp1_->disDims().at(w1);
+        ptup1.at(i) >> int(ndis1 - i - 1);
+        ptup2.at(j) << int(j - n_dis_ws++);
+      } else {
+        ptup1.at(i) >> int(ndis1 + nloc1 - i - 1);
+        ptup2.at(j) << int(j - ndis2 - n_loc_ws++);
+      }
+    }
+
+    // Calculate grid size. 
+    auto dis_size_1 = tp1_->disSize() / dis_ws_size;
+    auto dis_size_2 = tp2_->disSize() / dis_ws_size;
+
+    auto use_bt = dis_ws_size > dis_size_1 && dis_ws_size > dis_size_2;
+    auto grows = int(std::max(dis_size_1, dis_ws_size));
+    auto gcols = int(std::max(dis_size_2, dis_ws_size));
+    if (use_bt) {
+      grows = int(std::max(dis_size_1, dis_size_2));
+      gcols = int(dis_ws_size);
+    }
+
+    // Save permuted dims. 
+    auto dims1 = utils::split_vec_rel(ptup1.apply(tp1_->totDims()), 
+                                      ndis1 - n_dis_ws, n_dis_ws, nloc1 - n_loc_ws);
+    auto dims2 = utils::split_vec_rel(ptup2.apply(tp2_->totDims()), 
+                                      n_dis_ws, ndis2 - n_dis_ws, n_loc_ws);
+
+    // Convert to column-major. 
+    auto gs1 = utils::split_vec_rel(PTupleSrc(ndis1 + nloc1).tup(), 
+                                    ndis1 - n_dis_ws, n_dis_ws, nloc1 - n_loc_ws);
+    auto gs2 = utils::split_vec_rel(PTupleSrc(ndis2 + nloc2).tup(), 
+                                    n_dis_ws, ndis2 - n_dis_ws, n_loc_ws);
+    
+    IndexGroup ig1({ "rd", "cd", "rb", "cb" }, utils::arr_to_vec(gs1));
+    IndexGroup ig2({ "rd", "cd", "rb", "cb" }, utils::arr_to_vec(gs2));
+    ig1.reorder({ "rd", "cd", "cb", "rb" });
+    ig2.reorder({ "rd", "cd", "cb", "rb" });
+    if (use_bt) ig2.reorder({ "cd", "rd", "rb", "cb" });
+
+    ptup1 = ig1.ptup() * ptup1;
+    ptup2 = ig2.ptup() * ptup2;
+
+    // Align and permute tensors. 
+    auto offset = std::min(tp1_->bc().params().off, tp2_->bc().params().off);
+    tp1_ = Tensor::cast<DenseTensor>(Tensor::rebcast(std::move(tp1_), { 1, 1, offset }));
+    tp2_ = Tensor::cast<DenseTensor>(Tensor::rebcast(std::move(tp2_), { 1, 1, offset }));
+
+    tp1_ = Tensor::cast<DenseTensor>(Tensor::permute(std::move(tp1_), ptup1.toTar().tup()));
+    tp2_ = Tensor::cast<DenseTensor>(Tensor::permute(std::move(tp2_), ptup2.toTar().tup()));
+
+    // Calculate matrix parameters. 
+    std::array<int, 4> sizes1, sizes2;
+    auto to_size = [](auto dims) { return int(utils::dims_to_size(dims)); };
+    std::transform(dims1.begin(), dims1.end(), sizes1.begin(), to_size);
+    std::transform(dims2.begin(), dims2.end(), sizes2.begin(), to_size);
+
+    auto md = sizes1.at(0), nd = sizes2.at(1), kd = sizes1.at(1);
+    auto ml = sizes1.at(2), nl = sizes2.at(3), kl = sizes1.at(3);
+
+    using namespace lalg;
+    auto pg1 = ProcGrid(md, kd, offset);
+    auto pg2 = use_bt ? ProcGrid(nd, kd, offset) : ProcGrid(kd, nd, offset);
+    auto pg3 = ProcGrid(md, nd, offset);
+    auto pg_all = ProcGrid(grows, gcols, offset);
+
+    // Create matrices and move them to larger grid. 
+    auto m1 = BlockCyclicMatrix(pg1, { md * ml, kd * kl }, { ml, kl }, tp1_->extractEls());
+    auto m2 = use_bt
+      ? BlockCyclicMatrix(pg2, { nd * nl, kd * kl }, { nl, kl }, tp2_->extractEls())
+      : BlockCyclicMatrix(pg2, { kd * kl, nd * nl }, { kl, nl }, tp2_->extractEls());
+
+    m1 = std::move(m1).toGrid(pg_all);
+    m2 = std::move(m2).toGrid(pg_all);
+    
+    // Calculate matrix product. 
+    auto m3 = PZGEMM(std::move(m1), std::move(m2), false, use_bt);
+    m3 = std::move(m3).toGrid(pg3);
+
+    auto dis_dims3 = utils::concat_dims(dims1.at(0), dims2.at(1));
+    auto loc_dims3 = utils::concat_dims(dims2.at(3), dims1.at(2)); // column-major
+
+    tptr tp3 = DenseTensor::make(tp1_->bc().env(), dis_dims3, loc_dims3, 
+                                 m3.extractEls(), { 1, 1, offset});
+
+    // Permute back to row-major. 
+    PTupleSrc ptup3(tp3->totDims().size());
+    auto gs3 = utils::split_vec_rel(ptup3.tup(), dims1.at(0).size(), dims2.at(1).size(), 
+                                    dims1.at(2).size(), dims2.at(3).size());
+
+    IndexGroup ig3({ "rd", "cd", "rb", "cb" }, utils::arr_to_vec(gs3));
+    ig3.reorder({ "rd", "cd", "cb", "rb" });
+
+    // Apply dimension replacements. 
+    auto dim_repls = utils::concat_vecs(params_.dimRepls1, params_.dimRepls2);
+    PTupleSrc ptup_repls(dim_repls.size());
+
+    auto gs_repls = utils::split_vec_rel(ptup_repls.tup(), ndis1, nloc1, ndis2);
+    IndexGroup ig_repls({ "d1", "l1", "d2", "l2" }, utils::arr_to_vec(gs_repls));
+    ig_repls.reorder({ "d1", "d2", "l1", "l2" });
+    dim_repls = ig_repls.ptup().apply(dim_repls);
+    tup_t remap(tp3->totDims().size());
+
+    for (auto i = 0UL, j = 0UL; i < dim_repls.size(); ++i) {
+      if (dim_repls.at(i) < qtnh::X) {
+        remap.at(i - j) = dim_repls.at(i);
+      } else {
+        ++j;
+      }
+    }
+
+    auto ptup_final = PTupleTar(remap) * ig3.ptup().inv().toTar();
+    tp3 = Tensor::permute(std::move(tp3), ptup_final.tup());
+
+    return tp3;
+  }
+
+  template<> qtnh::tptr PairContractor<DenseTensor, DenseTensor>::contract_direct() {
     #ifdef DEBUG
       if (utils::is_root())
-        std::cout << "STARTING DENSE-DENSE CONTRACTION\n";
+        std::cout << "STARTING DENSE-DENSE CONTRACTION (DIRECT METHOD)\n";
     #endif
 
     auto ws = params_.wires;
@@ -82,46 +228,6 @@ namespace qtnh {
         ++ndis_cons;
       }
     }
-
-    // * Temporary – establish default index replacements. 
-    // * This might have to be moved somewhere else. 
-    if (params_.useDefRepls) {
-      params_.dimRepls1 = std::vector<qtnh::tidx_tup_st>(tp1_->totDims().size(), UINT16_MAX);
-      std::sort(params_.wires.begin(), params_.wires.end(), utils::wirecomp::first);
-
-      for  (auto i = 0u, j = 0u; i < tp1_->totDims().size(); ++i) {
-        if ((j < params_.wires.size()) && (i == params_.wires.at(j).first)) {
-          ++j;
-        } else {
-          params_.dimRepls1.at(i) = i - j;
-          if (i >= tp1_->disDims().size()) {
-            params_.dimRepls1.at(i) += (tp2_->disDims().size() - ndis_cons);
-          }
-        }
-      }
-
-      params_.dimRepls2 = std::vector<qtnh::tidx_tup_st>(tp2_->totDims().size(), UINT16_MAX);
-      std::sort(params_.wires.begin(), params_.wires.end(), utils::wirecomp::second);
-
-      for  (auto i = 0u, j = 0u; i < tp2_->totDims().size(); ++i) {
-        if ((j < params_.wires.size()) && (i == params_.wires.at(j).second)) {
-          ++j;
-        } else {
-          params_.dimRepls2.at(i) = tp1_->disDims().size() - ndis_cons + i - j;
-          if (i >= tp2_->disDims().size()) {
-            params_.dimRepls2.at(i) = tp1_->totDims().size() - params_.wires.size() + i - j;
-          }
-        }
-      }
-    }
-
-    #ifdef DEBUG
-      using namespace ops;
-      if (utils::is_root()) {
-        std::cout << "T1 dimension replacements: " << params_.dimRepls1 << "\n";
-        std::cout << "T2 dimension replacements: " << params_.dimRepls2 << "\n";
-      }
-    #endif
 
     tp1_ = Tensor::cast<DenseTensor>(Tensor::permute(std::move(tp1_), ptup1));
     tp2_ = Tensor::cast<DenseTensor>(Tensor::permute(std::move(tp2_), ptup2));
@@ -260,6 +366,58 @@ namespace qtnh {
     return DenseTensor::make(t3.bc().env(), new_dis_dims, t3.locDims(), std::move(t3.loc_els_), new_params);
   }
 
+  template<> qtnh::tptr PairContractor<DenseTensor, DenseTensor>::contract() {
+    auto n_dis_ws = 0UL;
+    for (auto [w1, w2] : params_.wires) {
+      if (w1 < tp1_->disDims().size()) n_dis_ws++;
+    }
+
+    // Calculate default index replacements. 
+    if (params_.useDefRepls) {
+      params_.dimRepls1 = std::vector<qtnh::tidx_tup_st>(tp1_->totDims().size(), qtnh::X);
+      std::sort(params_.wires.begin(), params_.wires.end(), utils::wirecomp::first);
+
+      for  (auto i = 0u, j = 0u; i < tp1_->totDims().size(); ++i) {
+        if ((j < params_.wires.size()) && (i == params_.wires.at(j).first)) {
+          ++j;
+        } else {
+          params_.dimRepls1.at(i) = i - j;
+          if (i >= tp1_->disDims().size()) {
+            params_.dimRepls1.at(i) += (tp2_->disDims().size() - n_dis_ws);
+          }
+        }
+      }
+
+      params_.dimRepls2 = std::vector<qtnh::tidx_tup_st>(tp2_->totDims().size(), qtnh::X);
+      std::sort(params_.wires.begin(), params_.wires.end(), utils::wirecomp::second);
+
+      for  (auto i = 0u, j = 0u; i < tp2_->totDims().size(); ++i) {
+        if ((j < params_.wires.size()) && (i == params_.wires.at(j).second)) {
+          ++j;
+        } else {
+          params_.dimRepls2.at(i) = tp1_->disDims().size() - n_dis_ws + i - j;
+          if (i >= tp2_->disDims().size()) {
+            params_.dimRepls2.at(i) = tp1_->totDims().size() - params_.wires.size() + i - j;
+          }
+        }
+      }
+    }
+
+    #ifdef DEBUG
+      using namespace ops;
+      if (utils::is_root()) {
+        std::cout << "T1 dimension replacements: " << params_.dimRepls1 << "\n";
+        std::cout << "T2 dimension replacements: " << params_.dimRepls2 << "\n";
+      }
+    #endif
+
+    #ifdef CON_GEMM
+      return contract_gemm();
+    #else
+      return contract_direct();
+    #endif
+  }
+
   template<> qtnh::tptr PairContractor<DenseTensor, SymmTensor>::contract() {
     #ifdef DEBUG
       if (utils::is_root())
@@ -279,7 +437,7 @@ namespace qtnh {
     auto dis_imbal = 0;
 
     if ((dis_imbal == 0) && (input_count == tp2_->disDims().size() / 2 + tp2_->locDims().size() / 2)) {
-      params_.dimRepls1 = std::vector<qtnh::tidx_tup_st>(tp1_->totDims().size(), UINT16_MAX);
+      params_.dimRepls1 = std::vector<qtnh::tidx_tup_st>(tp1_->totDims().size(), qtnh::X);
       std::sort(params_.wires.begin(), params_.wires.end(), utils::wirecomp::first);
 
       for  (auto i = 0u, j = 0u; i < tp1_->totDims().size(); ++i) {
@@ -290,7 +448,7 @@ namespace qtnh {
         }
       }
 
-      params_.dimRepls2 = std::vector<qtnh::tidx_tup_st>(tp2_->totDims().size(), UINT16_MAX);
+      params_.dimRepls2 = std::vector<qtnh::tidx_tup_st>(tp2_->totDims().size(), qtnh::X);
       std::sort(params_.wires.begin(), params_.wires.end(), utils::wirecomp::second);
 
       std::vector<qtnh::tidx_tup_st> from_dims(params_.wires.size());

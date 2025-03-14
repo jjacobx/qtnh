@@ -1,5 +1,5 @@
 #include "con/decomp.hpp"
-#include "lalg/routines.hpp"
+#include "lalg/wrappers.hpp"
 
 #include <iostream>
 
@@ -53,8 +53,10 @@ namespace qtnh {
   // for rows and columns. Cycle dimensions can vary. 
   void Decomposer::decompose() {
     auto& env = tp_m_->bc().env();
+    auto offset = tp_m_->bc().params().off;
 
     tp_m_ = Tensor::permute(std::move(tp_m_), ptup_.toTar().tup());
+    tp_m_ = Tensor::rebcast(std::move(tp_m_), { 1, 1, offset });
     auto dtp = Tensor::convert<DenseTensor>(std::move(tp_m_));
 
     auto dis_dims = dtp->disDims();
@@ -63,7 +65,7 @@ namespace qtnh {
     auto size_cd = utils::dims_to_size(dims_cd);
     
     using namespace lalg;
-    ProcGrid pg(static_cast<int>(size_rd), static_cast<int>(size_cd));
+    ProcGrid pg(static_cast<int>(size_rd), static_cast<int>(size_cd), offset);
 
     // Fortran layout means rows and columns are inverted. 
     auto loc_split = params_.cyc_splits.second + params_.loc_splits.second;
@@ -73,9 +75,9 @@ namespace qtnh {
 
     auto [dims_rc, dims_rb] = utils::split_dims(dims_rl, params_.cyc_splits.first);
     auto [dims_cc, dims_cb] = utils::split_dims(dims_cl, params_.cyc_splits.second);
-    auto nblock = utils::dims_to_size(dims_rb);
+    auto block = utils::dims_to_size(dims_rb);
 
-    BlockCyclicMatrix m(pg, int(nrows), int(ncols), int(nblock), dtp->extractEls());
+    BlockCyclicMatrix m(pg, { int(nrows), int(ncols) }, { int(block), int(block) }, dtp->extractEls());
 
     auto [u, s, v] = PZGESVD(std::move(m));
 
@@ -86,9 +88,9 @@ namespace qtnh {
     auto loc_dims_v = utils::concat_dims(dims_cl, dims_xl);
     auto loc_dims_s = utils::concat_dims(dims_rd, dims_xl);
 
-    tp_u_ = DenseTensor::make(env, dis_dims, loc_dims_u, u.extractEls());
-    tp_s_ = DenseTensor::make(env, {}, loc_dims_s, std::move(s));
-    tp_v_ = DenseTensor::make(env, dis_dims, loc_dims_v, v.extractEls());
+    tp_u_ = DenseTensor::make(env, dis_dims, loc_dims_u, u.extractEls(), { 1, 1, offset });
+    tp_s_ = DenseTensor::make(env, {}, loc_dims_s, std::move(s), { 1, 1, offset });
+    tp_v_ = DenseTensor::make(env, dis_dims, loc_dims_v, v.extractEls(), { 1, 1, offset });
     
     // Everything below is book-keeping to restore right index order. 
     // TODO: Wrap repeated parts into a function. 

@@ -13,16 +13,21 @@ namespace qtnh {
       public:
         ProcGrid() = delete;
         ProcGrid(int nprows, int npcols);
+        ProcGrid(int nprows, int npcols, int offset);
         ~ProcGrid();
 
         constexpr mtup procDims() const { return { nprows_, npcols_ }; }
         constexpr mtup procIdxs() const { return { row_, col_ }; }
         constexpr bool active() const { return active_; }
-        constexpr bool context() const { return context_; }
+        constexpr int context() const { return context_; }
+
+        int getPNum(mtup idxs) const;
+        mtup getPIdxs(int pnum) const;
 
       private:
         int nprows_;
         int npcols_;
+        int offset_;
 
         bool active_ = false;
         int context_ = -1;
@@ -33,48 +38,86 @@ namespace qtnh {
     class BlockCyclicMatrix {
       public:
         BlockCyclicMatrix() = delete;
-        BlockCyclicMatrix(const ProcGrid& grid, int nrows, int ncols, int nblock);
-        BlockCyclicMatrix(const ProcGrid& grid, int nrows, int ncols, int nblock, cvec&& loc_els_p);
+        BlockCyclicMatrix(const ProcGrid& grid, mtup tot_dims, mtup blk_dims);
+        BlockCyclicMatrix(const ProcGrid& grid, mtup tot_dims, mtup blk_dims, cvec&& loc_els_p);
+        BlockCyclicMatrix(const ProcGrid& grid, mtup blk_dims, mtup dis_dims, mtup cyc_dims);
+        BlockCyclicMatrix(const ProcGrid& grid, mtup blk_dims, mtup dis_dims, mtup cyc_dims, cvec&& loc_els_p);
         ~BlockCyclicMatrix() = default;
 
-        const ProcGrid& grid() const { return grid_; }
-        qtnh::tel* data() { return loc_els_p_.data(); }
+        // Disable copying. 
+        BlockCyclicMatrix(const BlockCyclicMatrix&) = delete;
+        BlockCyclicMatrix& operator=(const BlockCyclicMatrix&) = delete;
+        
+        // Default moves. 
+        BlockCyclicMatrix(BlockCyclicMatrix&&) = default;
+        BlockCyclicMatrix& operator=(BlockCyclicMatrix&&) = default;
 
-        constexpr mtup totDims() const { return { nrows_, ncols_ }; }
-        constexpr mtup cycDims() const { 
+        const ProcGrid& grid() const { return *pg_; }
+        qtnh::tel* data() { return loc_els_.data(); }
+
+        constexpr mtup blkDims() const { return { mb_, nb_ }; }
+        constexpr mtup disDims() const { return { md_, nd_ }; }
+        constexpr mtup cycDims() const { return { mc_, nc_ }; }
+        constexpr mtup totDims() const { return { m_, n_ }; }
+
+        constexpr std::array<int, 9> const desc9() {
           return { 
-            nrows_ / grid_.procDims().first / nblock_, 
-            ncols_ / grid_.procDims().second / nblock_
+            1,               // DTYPE
+            pg_->context(),  // CTXT
+            m_,              // M
+            n_,              // N
+            mb_,             // MB
+            nb_,             // NB
+            0,               // RSRC
+            0,               // CSRC
+            mb_ * mc_        // LLD
           };
         }
-        constexpr int nBlock() const { return nblock_; }
 
-        constexpr std::array<int, 9> const descriptor() {
+        constexpr std::array<int, 11> const desc11() {
           return { 
-            1,                          // DTYPE
-            grid_.context(),            // CTXT
-            nrows_,                     // M
-            ncols_,                     // N
-            nblock_,                    // MB
-            nblock_,                    // NB
-            0,                          // RSRC
-            0,                          // CSRC
-            nblock_ * cycDims().first   // LLD
+            601,             // DTYPE
+            pg_->context(),  // CTXT
+            m_,              // M
+            n_,              // N
+            mb_,             // IMB
+            nb_,             // INB
+            mb_,             // MB
+            nb_,             // NB
+            0,               // RSRC
+            0,               // CSRC
+            mb_ * mc_        // LLD
           };
         }
 
-        cvec&& extractEls() { return std::move(loc_els_p_); }
+        cvec&& extractEls() { return std::move(loc_els_); }
+
+        BlockCyclicMatrix toGrid(const ProcGrid& pg) &&;
 
       private:
-        const ProcGrid& grid_;
+         ProcGrid const *pg_;
 
-        int nrows_;
-        int ncols_;
-        int nblock_;
+        int mb_, nb_;
+        int md_, nd_;
+        int mc_, nc_;
+
+        int m_, n_;
 
         // Remember the elements need to be in column-major order. 
-        cvec loc_els_p_;
+        cvec loc_els_;
     };
+  }
+
+  namespace ops {
+    template <typename T, std::size_t N>
+    std::ostream& operator<<(std::ostream& out, const std::array<T, N>& o) {
+      for (auto i = 0UL; i < N - 1; ++i) {
+        out << o.at(i) << ", ";
+      }
+
+      out << o.at(N - 1);
+      return out;
+    }
   }
 }
 

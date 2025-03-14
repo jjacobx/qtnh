@@ -144,7 +144,7 @@ namespace qtnh {
       /// tensors that use different underlying classes. It may also produce unexpected results 
       /// when virtual elements are stored, i.e. elements useful for calculations, but not actually 
       /// present in the tensor. 
-      virtual qtnh::tel operator[](std::size_t i) const override { return loc_els_.at(i); }
+      virtual qtnh::tel operator[](std::size_t i) const override { return loc_els_[i]; }
       /// @brief Access element at total indices if present. 
       /// @param tot_idxs Indices with total position of the element. 
       /// @return Value of the element at given indices. Throws error if not present. 
@@ -160,7 +160,7 @@ namespace qtnh {
       /// tensors that use different underlying classes. It may also produce unexpected results 
       /// when virtual elements are stored, i.e. elements useful for calculations, but not actually 
       /// present in the tensor. 
-      qtnh::tel& operator[](std::size_t i) { return loc_els_.at(i); }
+      qtnh::tel& operator[](std::size_t i) { return loc_els_[i]; }
       /// @brief Access and reference element at total indices if present. 
       /// @param tot_idxs Indices with total position of the element. 
       /// @return Reference to the element at given indices. Throws error if not present. 

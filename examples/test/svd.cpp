@@ -15,7 +15,9 @@ int main() {
   tptr tp_m = DenseTensor::make(env, {}, dims, std::move(els));
 
   auto ndis_dims = 2UL;
+  auto dist = BcParams { 1, 1, 3 };
   tp_m = Tensor::rescatter(std::move(tp_m), ndis_dims);
+  tp_m = Tensor::rebcast(std::move(tp_m), dist);
 
   DecParams dp {{ 1, 1 }, { 3, 2 }, { 2, 1 }, { 1, 1 }, { 1, 1 }};
   Decomposer dec(std::move(tp_m), dp);
@@ -28,7 +30,8 @@ int main() {
   std::cout << "P" << env.proc_id << ": V = " << *tp_v << "\n";
   
   auto&& els_s = tp_s->cast<DenseTensor>()->extractEls();
-  tp_s = DiagTensor::make(env, {}, utils::concat_dims(tp_s->totDims(), tp_s->totDims()), 0, std::move(els_s));
+  tp_s = DiagTensor::make(env, {}, utils::concat_dims(tp_s->totDims(), tp_s->totDims()), 
+                          0, std::move(els_s), dist);
   tp_s = Tensor::convert<DenseTensor>(std::move(tp_s));
   
   PTupleSrc s_ptup(tp_s->totDims().size());
@@ -49,7 +52,7 @@ int main() {
   con = pcon(std::move(tp_u), std::move(tp_sv), params);
   auto tp_usv = con.contract();
 
-  tp_usv = Tensor::rebcast(std::move(tp_usv), { 1, 1, 0 });
+  tp_usv = Tensor::rebcast(std::move(tp_usv), dist);
 
   std::cout << "P" << env.proc_id << ": USV = " << *tp_usv << "\n";
 
@@ -58,7 +61,8 @@ int main() {
   std::iota(els.begin(), els.end(), 0);
 
   tptr tp = DenseTensor::make(env, {}, dims, std::move(els));
-  tp = Tensor::rescatter(std::move(tp), 2);
+  tp = Tensor::rescatter(std::move(tp), ndis_dims);
+  tp = Tensor::rebcast(std::move(tp), dist);
 
   tp = Tensor::truncate(std::move(tp), 1, 3);
   tp = Tensor::truncate(std::move(tp), 3, 1);
