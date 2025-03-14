@@ -1,10 +1,10 @@
 #include <iostream>
 #include <mpi.h>
 
-#include "tensor/indexing.hpp"
-#include "tensor/network.hpp"
-#include "con/pair-defs.hpp"
-#include "con/self-defs.hpp"
+#include "net/network.hpp"
+#include "ten/util/indexing.hpp"
+#include "ten/con/pair-defs.hpp"
+#include "ten/con/self-defs.hpp"
 
 namespace qtnh {
   TensorNetwork::TensorNetwork()

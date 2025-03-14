@@ -1,9 +1,9 @@
 #include <iostream>
 #include <cassert>
 
-#include "tensor/dense.hpp"
-#include "tensor/indexing.hpp"
-#include "tensor/ptuple.hpp"
+#include "ten/type/dense.hpp"
+#include "ten/util/indexing.hpp"
+#include "ten/util/ptuple.hpp"
 
 namespace qtnh {
   DenseTensorBase::DenseTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims)

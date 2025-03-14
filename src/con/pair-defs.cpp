@@ -2,12 +2,11 @@
 #include <iostream>
 #include <numeric>
 
-#include "con/pair-defs.hpp"
-#include "core/utils.hpp"
-#include "lalg/wrappers.hpp"
-#include "tensor/indexing.hpp"
-#include "tensor/ptuple.hpp"
-
+#include "blas/wrappers.hpp"
+#include "ten/con/pair-defs.hpp"
+#include "ten/util/utils.hpp"
+#include "ten/util/indexing.hpp"
+#include "ten/util/ptuple.hpp"
 
 namespace qtnh {
   void _local_contraction(Tensor* tp1, Tensor* tp2, DenseTensor* tp3, 

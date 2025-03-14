@@ -3,12 +3,12 @@
 #include <memory>
 #include <vector>
 
-#include "core/utils.hpp"
-#include "tensor/tensor.hpp"
-#include "tensor/dense.hpp"
-#include "tensor/symm.hpp"
-#include "tensor/diag.hpp"
-#include "con/pair-defs.hpp"
+#include "ten/con/pair-defs.hpp"
+#include "ten/util/utils.hpp"
+#include "ten/type/tensor.hpp"
+#include "ten/type/dense.hpp"
+#include "ten/type/symm.hpp"
+#include "ten/type/diag.hpp"
 
 #include "gen/random-tensors.hpp"
 

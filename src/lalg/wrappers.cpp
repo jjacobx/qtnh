@@ -1,8 +1,8 @@
 #include <iostream>
 
-#include "core/utils.hpp"
-#include "lalg/routines.hpp"
-#include "lalg/wrappers.hpp"
+#include "blas/routines.hpp"
+#include "blas/wrappers.hpp"
+#include "ten/util/utils.hpp"
 
 namespace qtnh {
   namespace lalg {

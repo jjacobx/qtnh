@@ -1,7 +1,7 @@
-#ifndef _TENSOR_SYMM_HPP
-#define _TENSOR_SYMM_HPP
+#ifndef _TEN_TYPE_SYMM_HPP
+#define _TEN_TYPE_SYMM_HPP
 
-#include "tensor/dense.hpp"
+#include "ten/type/dense.hpp"
 
 namespace qtnh {
   class SymmTensorBase;

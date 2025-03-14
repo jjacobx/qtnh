@@ -1,8 +1,8 @@
-#ifndef __LALG_WRAPPERS__
-#define __LALG_WRAPPERS__
+#ifndef __BLAS_WRAPPERS__
+#define __BLAS_WRAPPERS__
 
-#include "core/typedefs.hpp"
-#include "lalg/matrix.hpp"
+#include "ten/util/typedefs.hpp"
+#include "blas/matrix.hpp"
 
 namespace qtnh {
   namespace lalg {

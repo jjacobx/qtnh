@@ -1,8 +1,8 @@
 #include <algorithm>
 #include <iostream>
 
-#include "tensor/symm.hpp"
-#include "tensor/indexing.hpp"
+#include "ten/type/symm.hpp"
+#include "ten/util/indexing.hpp"
 
 namespace qtnh {
   SymmTensorBase::SymmTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims)

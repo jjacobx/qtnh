@@ -1,10 +1,10 @@
-#ifndef __CON_BASE__
-#define __CON_BASE__
+#ifndef __TEN_CON_BASE__
+#define __TEN_CON_BASE__
 
-#include "tensor/tensor.hpp"
-#include "tensor/dense.hpp"
-#include "tensor/symm.hpp"
-#include "tensor/diag.hpp"
+#include "ten/type/dense.hpp"
+#include "ten/type/diag.hpp"
+#include "ten/type/tensor.hpp"
+#include "ten/type/symm.hpp"
 
 namespace qtnh {
   template<

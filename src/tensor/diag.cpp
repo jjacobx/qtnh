@@ -1,7 +1,7 @@
 #include <iostream>
 
-#include "tensor/diag.hpp"
-#include "tensor/indexing.hpp"
+#include "ten/type/diag.hpp"
+#include "ten/util/indexing.hpp"
 
 namespace qtnh {
   DiagTensorBase::DiagTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, 

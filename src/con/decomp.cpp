@@ -1,5 +1,5 @@
-#include "con/decomp.hpp"
-#include "lalg/wrappers.hpp"
+#include "blas/wrappers.hpp"
+#include "ten/dec/base.hpp"
 
 #include <iostream>
 

@@ -1,8 +1,8 @@
-#ifndef __TENSOR_PTUPLE__
-#define __TENSOR_PTUPLE__
+#ifndef __TEN_UTIL_PTUPLE__
+#define __TEN_UTIL_PTUPLE__
 
 #include <map>
-#include "core/typedefs.hpp"
+#include "ten/util/typedefs.hpp"
 
 namespace qtnh {
   using tup_t = std::vector<qtnh::tidx_tup_st>;

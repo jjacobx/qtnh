@@ -1,7 +1,7 @@
 #include <mpi.h>
 
-#include "lalg/matrix.hpp"
-#include "lalg/routines.hpp"
+#include "blas/matrix.hpp"
+#include "blas/routines.hpp"
 
 namespace qtnh {
   namespace lalg {

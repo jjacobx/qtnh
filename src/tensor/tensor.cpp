@@ -3,8 +3,8 @@
 #include <mpi.h>
 #include <numeric>
 
-#include "tensor/tensor.hpp"
-#include "tensor/indexing.hpp"
+#include "ten/type/tensor.hpp"
+#include "ten/util/indexing.hpp"
 
 #ifndef AUTO_COMM_INIT
 #define AUTO_COMM_INIT 0

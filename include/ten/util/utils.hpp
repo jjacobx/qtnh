@@ -1,11 +1,11 @@
-#ifndef _CORE__UTILS_HPP
-#define _CORE__UTILS_HPP
+#ifndef _UTIL_UTILS_HPP
+#define _UTIL_UTILS_HPP
 
 #include <memory>
 #include <string>
 
-#include "tensor/indexing.hpp"
-#include "typedefs.hpp"
+#include "ten/util/indexing.hpp"
+#include "ten/util/typedefs.hpp"
 
 namespace qtnh {
   namespace utils {

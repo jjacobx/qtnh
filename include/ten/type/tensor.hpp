@@ -1,12 +1,12 @@
-#ifndef _TENSOR_TENSOR_HPP
-#define _TENSOR_TENSOR_HPP
+#ifndef _TEN_TYPE_TENSOR_HPP
+#define _TEN_TYPE_TENSOR_HPP
 
 #include <memory>
 
-#include "core/env.hpp"
-#include "core/typedefs.hpp"
-#include "core/utils.hpp"
-#include "lalg/matrix.hpp"
+#include "env.hpp"
+#include "blas/matrix.hpp"
+#include "ten/util/typedefs.hpp"
+#include "ten/util/utils.hpp"
 
 namespace qtnh {
   class Tensor;

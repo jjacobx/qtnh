@@ -1,7 +1,7 @@
-#ifndef __CON_SELF_DEFS__
-#define __CON_SELF_DEFS__
+#ifndef __TEN_CON_SELF_DEFS__
+#define __TEN_CON_SELF_DEFS__
 
-#include "con/self.hpp"
+#include "ten/con/self.hpp"
 
 namespace qtnh {
   template<typename T>

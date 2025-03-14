@@ -12,27 +12,30 @@ namespace qtnh {
   namespace lalg {}
 }
 
-#include "con/base.hpp"
-#include "con/decomp.hpp"
-#include "con/pair.hpp"
-#include "con/pair-defs.hpp"
-#include "con/self.hpp"
-#include "con/self-defs.hpp"
+#include "env.hpp"
 
-#include "core/env.hpp"
-#include "core/typedefs.hpp"
-#include "core/utils.hpp"
+#include "blas/matrix.hpp"
+// #include "blas/routines.hpp" - skip imported Fortran routines
+#include "blas/wrappers.hpp"
 
-#include "lalg/matrix.hpp"
-// #include "lalg/routines.hpp" - skip imported Fortran routines
-#include "lalg/wrappers.hpp"
+#include "net/network.hpp"
 
-#include "tensor/dense.hpp"
-#include "tensor/diag.hpp"
-#include "tensor/indexing.hpp"
-#include "tensor/network.hpp"
-#include "tensor/ptuple.hpp"
-#include "tensor/symm.hpp"
-#include "tensor/tensor.hpp"
+#include "ten/con/base.hpp"
+#include "ten/con/pair.hpp"
+#include "ten/con/pair-defs.hpp"
+#include "ten/con/self.hpp"
+#include "ten/con/self-defs.hpp"
+
+#include "ten/dec/base.hpp"
+
+#include "ten/type/dense.hpp"
+#include "ten/type/diag.hpp"
+#include "ten/type/symm.hpp"
+#include "ten/type/tensor.hpp"
+
+#include "ten/util/indexing.hpp"
+#include "ten/util/ptuple.hpp"
+#include "ten/util/typedefs.hpp"
+#include "ten/util/utils.hpp"
 
 #endif

@@ -1,5 +1,5 @@
-#ifndef __LALG_ROUTINES__
-#define __LALG_ROUTINES__
+#ifndef __BLAS_ROUTINES__
+#define __BLAS_ROUTINES__
 
 #include <complex>
 

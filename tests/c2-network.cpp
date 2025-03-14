@@ -1,9 +1,9 @@
 #include <catch2/catch_test_macros.hpp>
 #include <iostream>
 
-#include "core/utils.hpp"
-#include "tensor/indexing.hpp"
-#include "tensor/network.hpp"
+#include "net/network.hpp"
+#include "ten/util/utils.hpp"
+#include "ten/util/indexing.hpp"
 
 #include "gen/random-tn.hpp"
 #include "gen/qft.hpp"

@@ -1,7 +1,7 @@
-#ifndef _TENSOR_DENSE_HPP
-#define _TENSOR_DENSE_HPP
+#ifndef _TEN_TYPE_DENSE_HPP
+#define _TEN_TYPE_DENSE_HPP
 
-#include "tensor/tensor.hpp"
+#include "ten/type/tensor.hpp"
 
 namespace qtnh {
   class DenseTensorBase;

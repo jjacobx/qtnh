@@ -1,9 +1,9 @@
-#ifndef _TENSOR_INDEXING_HPP
-#define _TENSOR_INDEXING_HPP
+#ifndef _TEN_UTIL_INDEXING_HPP
+#define _TEN_UTIL_INDEXING_HPP
 
 #include <string>
 
-#include "../core/typedefs.hpp"
+#include "ten/util/typedefs.hpp"
 
 namespace qtnh {
   struct TIFlag {

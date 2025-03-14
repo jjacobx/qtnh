@@ -2,9 +2,9 @@
 #include <iostream>
 #include <numeric>
 
-#include "con/self-defs.hpp"
-#include "core/utils.hpp"
-#include "tensor/indexing.hpp"
+#include "ten/con/self-defs.hpp"
+#include "ten/util/utils.hpp"
+#include "ten/util/indexing.hpp"
 
 namespace qtnh {
   template<> qtnh::tptr SelfContractor<DenseTensor>::contract() {

@@ -1,5 +1,5 @@
-#ifndef _CORE__TYPEDEFS_HPP
-#define _CORE__TYPEDEFS_HPP
+#ifndef _UTIL_TYPEDEFS_HPP
+#define _UTIL_TYPEDEFS_HPP
 
 #include <complex>
 #include <limits>

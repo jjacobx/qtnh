@@ -1,7 +1,7 @@
-#ifndef _TENSOR_DIAG_HPP
-#define _TENSOR_DIAG_HPP
+#ifndef _TEN_TYPE_DIAG_HPP
+#define _TEN_TYPE_DIAG_HPP
 
-#include "tensor/symm.hpp"
+#include "ten/type/symm.hpp"
 
 namespace qtnh {
   class DiagTensorBase;

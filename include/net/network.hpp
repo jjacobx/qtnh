@@ -1,14 +1,14 @@
-#ifndef _TENSOR__NETWORK_HPP
-#define _TENSOR__NETWORK_HPP
+#ifndef _NET_NETWORK_HPP
+#define _NET_NETWORK_HPP
 
 #include <memory>
 #include <unordered_map>
 
-#include "core/typedefs.hpp"
-#include "tensor/tensor.hpp"
-#include "tensor/dense.hpp"
-#include "tensor/diag.hpp"
-#include "tensor/symm.hpp"
+#include "ten/type/dense.hpp"
+#include "ten/type/diag.hpp"
+#include "ten/type/symm.hpp"
+#include "ten/type/tensor.hpp"
+#include "ten/util/typedefs.hpp"
 
 
 namespace qtnh {

@@ -2,7 +2,7 @@
 #define QFT_TENSORS_HPP
 
 #include "validation-primitives.hpp"
-#include "tensor/network.hpp"
+#include "net/network.hpp"
 
 using namespace std::complex_literals;
 

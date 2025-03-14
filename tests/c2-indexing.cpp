@@ -1,5 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
-#include "tensor/indexing.hpp"
+#include "ten/util/indexing.hpp"
 
 TEST_CASE("tensor-indexing-setup") {
   using qtnh::TIndexing;

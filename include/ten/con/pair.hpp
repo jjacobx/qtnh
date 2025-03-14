@@ -1,7 +1,7 @@
-#ifndef __CON_PAIR__
-#define __CON_PAIR__
+#ifndef __TEN_CON_PAIR__
+#define __TEN_CON_PAIR__
 
-#include "con/base.hpp"
+#include "ten/con/base.hpp"
 
 namespace qtnh {
   template<typename T1, typename T2>

@@ -3,7 +3,7 @@
 #include <mpi.h>
 #include <numeric>
 
-#include "core/utils.hpp"
+#include "ten/util/utils.hpp"
 
 namespace qtnh {
   namespace utils {

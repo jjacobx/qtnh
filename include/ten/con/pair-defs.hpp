@@ -1,7 +1,7 @@
-#ifndef __CON_PAIR_DEFS__
-#define __CON_PAIR_DEFS__
+#ifndef __TEN_CON_PAIR_DEFS__
+#define __TEN_CON_PAIR_DEFS__
 
-#include "con/pair.hpp"
+#include "ten/con/pair.hpp"
 
 namespace qtnh {
   using pcon = PairContractor<Tensor, Tensor>;

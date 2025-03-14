@@ -1,8 +1,8 @@
-#ifndef __LALG_MATRIX__
-#define __LALG_MATRIX__
+#ifndef __BLAS_MATRIX__
+#define __BLAS_MATRIX__
 
 #include <memory>
-#include "core/typedefs.hpp"
+#include "ten/util/typedefs.hpp"
 
 namespace qtnh {
   namespace lalg {

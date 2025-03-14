@@ -1,10 +1,10 @@
-#ifndef __CON_DECOMP__
-#define __CON_DECOMP__
+#ifndef __TEN_DEC_BASE__
+#define __TEN_DEC_BASE__
 
-#include "lalg/matrix.hpp"
-#include "tensor/tensor.hpp"
-#include "tensor/dense.hpp"
-#include "tensor/ptuple.hpp"
+#include "blas/matrix.hpp"
+#include "ten/type/tensor.hpp"
+#include "ten/type/dense.hpp"
+#include "ten/util/ptuple.hpp"
 
 namespace qtnh {
   struct DecParams {
