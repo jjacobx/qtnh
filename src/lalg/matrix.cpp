@@ -14,7 +14,19 @@ namespace qtnh {
     , npcols_(npcols)
     , offset_(offset)
     {
-      sl_init_(&context_, &nprows_, &npcols_);
+      int none = -1; // Unused value. 
+      int what = 0;  // Default system context. 
+      blacs_get_(&none, &what, &context_);
+
+      std::vector<int> user_map(nprows * npcols);
+      for (auto i = 0UL; i < std::size_t(nprows); ++i) {
+        for (auto j = 0UL; j < std::size_t(npcols); ++j) {
+          // user_map is column-major. 
+          user_map.at(i + nprows * j) = int(npcols * i + j + offset);
+        }
+      }
+
+      blacs_gridmap_(&context_, user_map.data(), &nprows, &nprows, &npcols);
       active_ = (context_ != -1);
 
       // Grid info resets values for rows/cols. 

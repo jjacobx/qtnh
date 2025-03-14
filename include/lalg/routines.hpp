@@ -16,7 +16,7 @@ namespace qtnh {
 
     // Call this to make processes independent. 
     extern "C" void blacs_get_(int*, int*, int*);
-    extern "C" void blacs_gridmap_(int*, int*, int*, int*, int*, int*);
+    extern "C" void blacs_gridmap_(int*, int*, int*, int*, int*);
 
     extern "C" void pzgesvd_(char* jobu, char* jobvt, int* m, int* n, 
                              complex* a, int* ia, int* ja, int* desc_a, double* s, 
