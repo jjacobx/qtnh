@@ -116,6 +116,11 @@ namespace qtnh {
     ptup1 = ig1.ptup() * ptup1;
     ptup2 = ig2.ptup() * ptup2;
 
+    // Align and permute tensors. 
+    auto offset = std::min(tp1_->bc().params().off, tp2_->bc().params().off);
+    tp1_ = Tensor::cast<DenseTensor>(Tensor::rebcast(std::move(tp1_), { 1, 1, offset }));
+    tp2_ = Tensor::cast<DenseTensor>(Tensor::rebcast(std::move(tp2_), { 1, 1, offset }));
+
     tp1_ = Tensor::cast<DenseTensor>(Tensor::permute(std::move(tp1_), ptup1.toTar().tup()));
     tp2_ = Tensor::cast<DenseTensor>(Tensor::permute(std::move(tp2_), ptup2.toTar().tup()));
 
@@ -129,10 +134,10 @@ namespace qtnh {
     auto ml = sizes1.at(2), nl = sizes2.at(3), kl = sizes1.at(3);
 
     using namespace lalg;
-    auto pg1 = ProcGrid(md, kd);
-    auto pg2 = use_bt ? ProcGrid(nd, kd) : ProcGrid(kd, nd);
-    auto pg3 = ProcGrid(md, nd);
-    auto pg_all = ProcGrid(grows, gcols);
+    auto pg1 = ProcGrid(md, kd, offset);
+    auto pg2 = use_bt ? ProcGrid(nd, kd, offset) : ProcGrid(kd, nd, offset);
+    auto pg3 = ProcGrid(md, nd, offset);
+    auto pg_all = ProcGrid(grows, gcols, offset);
 
     // Create matrices and move them to larger grid. 
     auto m1 = BlockCyclicMatrix(pg1, { md * ml, kd * kl }, { ml, kl }, tp1_->extractEls());
@@ -150,7 +155,8 @@ namespace qtnh {
     auto dis_dims3 = utils::concat_dims(dims1.at(0), dims2.at(1));
     auto loc_dims3 = utils::concat_dims(dims2.at(3), dims1.at(2)); // column-major
 
-    tptr tp3 = DenseTensor::make(tp1_->bc().env(), dis_dims3, loc_dims3, m3.extractEls());
+    tptr tp3 = DenseTensor::make(tp1_->bc().env(), dis_dims3, loc_dims3, 
+                                 m3.extractEls(), { 1, 1, offset});
 
     // Permute back to row-major. 
     PTupleSrc ptup3(tp3->totDims().size());
