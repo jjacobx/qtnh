@@ -138,6 +138,19 @@ TEST_CASE("tensor-accessors") {
   }
 }
 
+void print_if_fail(tel el1, tel el2, Tensor& t, std::vector<tel>& els) {
+  if (!utils::equal(el1, el2)) {
+    using namespace ops;
+    std::cout << "FAILED\n";
+    std::cout << el1 << " != " << el2 << "\n";
+    std::cout << "T3 = " << t << "\n";
+
+    std::cout << "EX = ";
+    for (auto e : els) std::cout << e << ", ";
+    std::cout << "\n";
+  }
+}
+
 TEST_CASE("tensor-contraction") {
   SECTION("dense-dense") {
     for (auto& cv : gen::dense_vals) {
@@ -156,6 +169,8 @@ TEST_CASE("tensor-contraction") {
       TIndexing ti(dims);
       for (auto idxs : ti.tup()) {
         auto el = els.at(utils::idxs_to_i(idxs, dims));
+        print_if_fail(tp3->at(idxs), el, *tp3, els);
+
         REQUIRE(utils::equal(tp3->at(idxs), el));
       }
     }
@@ -185,6 +200,8 @@ TEST_CASE("tensor-contraction") {
       TIndexing ti(dims);
       for (auto idxs : ti.tup()) {
         auto el = els.at(utils::idxs_to_i(idxs, dims));
+        print_if_fail(tp3->at(idxs), el, *tp3, els);
+
         REQUIRE(utils::equal(tp3->at(idxs), el));
       }
     }
@@ -217,6 +234,8 @@ TEST_CASE("tensor-contraction") {
       TIndexing ti(dims);
       for (auto idxs : ti.tup()) {
         auto el = els.at(utils::idxs_to_i(idxs, dims));
+        print_if_fail(tp3->at(idxs), el, *tp3, els);
+        
         REQUIRE(utils::equal(tp3->at(idxs), el));
       }
     }
