@@ -1,5 +1,5 @@
-#ifndef _UTIL_UTILS_HPP
-#define _UTIL_UTILS_HPP
+#ifndef __UTIL_UTILS__
+#define __UTIL_UTILS__
 
 #include <memory>
 #include <string>

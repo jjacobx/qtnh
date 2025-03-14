@@ -1,5 +1,5 @@
-#ifndef RANDOM_TENSORS_HPP
-#define RANDOM_TENSORS_HPP
+#ifndef __GEN_RANDOM_TENSORS__
+#define __GEN_RANDOM_TENSORS__
 
 #include "validation-primitives.hpp"
 

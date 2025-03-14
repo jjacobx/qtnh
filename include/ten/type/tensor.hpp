@@ -1,5 +1,5 @@
-#ifndef _TEN_TYPE_TENSOR_HPP
-#define _TEN_TYPE_TENSOR_HPP
+#ifndef __TEN_TYPE_TENSOR__
+#define __TEN_TYPE_TENSOR__
 
 #include <memory>
 

@@ -1,5 +1,5 @@
-#ifndef _TEN_UTIL_INDEXING_HPP
-#define _TEN_UTIL_INDEXING_HPP
+#ifndef __TEN_UTIL_INDEXING__
+#define __TEN_UTIL_INDEXING__
 
 #include <string>
 

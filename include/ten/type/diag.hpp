@@ -1,5 +1,5 @@
-#ifndef _TEN_TYPE_DIAG_HPP
-#define _TEN_TYPE_DIAG_HPP
+#ifndef __TEN_TYPE_DIAG__
+#define __TEN_TYPE_DIAG__
 
 #include "ten/type/symm.hpp"
 

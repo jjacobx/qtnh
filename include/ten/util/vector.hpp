@@ -1,5 +1,5 @@
-#ifndef _UTIL_VECTOR_HPP
-#define _UTIL_VECTOR_HPP
+#ifndef __UTIL_VECTOR__
+#define __UTIL_VECTOR__
 
 #include <vector>
 

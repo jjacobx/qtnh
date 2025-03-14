@@ -1,5 +1,5 @@
-#ifndef _TEN_TYPE_DENSE_HPP
-#define _TEN_TYPE_DENSE_HPP
+#ifndef __TEN_TYPE_DENSE__
+#define __TEN_TYPE_DENSE__
 
 #include "ten/type/tensor.hpp"
 

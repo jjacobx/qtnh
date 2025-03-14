@@ -1,5 +1,5 @@
-#ifndef QTNH_HPP
-#define QTNH_HPP
+#ifndef __QTNH__
+#define __QTNH__
 
 /// QTNH project namespace. 
 namespace qtnh {

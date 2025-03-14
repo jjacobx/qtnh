@@ -1,5 +1,5 @@
-#ifndef _NET_NETWORK_HPP
-#define _NET_NETWORK_HPP
+#ifndef __NET_NETWORK__
+#define __NET_NETWORK__
 
 #include <memory>
 #include <unordered_map>
