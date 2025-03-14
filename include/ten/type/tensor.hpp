@@ -17,6 +17,27 @@ namespace qtnh {
   class SymmTensor;
   class DiagTensor;
 
+  /// Tensor type labels for determining contraction function to use. 
+  enum class TT {
+    tensor, 
+    denseTensorBase, 
+    denseTensor, 
+    rescTensor, 
+    symmTensorBase, 
+    symmTensor, 
+    swapTensor, 
+    diagTensorBase, 
+    diagTensor, 
+    idenTensor
+  };
+
+  /// Broadcaster parameters container for sharing tensors across processes. 
+  struct BcParams {
+    qtnh::uint str;  ///< Number of times each local tensor chunk is repeated across contiguous processes. 
+    qtnh::uint cyc;  ///< Number of times the entire tensor structure is repeated. 
+    qtnh::uint off;  ///< Number of empty processes before the tensor begins. 
+  };
+  
   struct ConParams {
     public:
       ConParams() = delete;
