@@ -1,5 +1,6 @@
 target_sources(qtnh
   PRIVATE
-  env.cpp
+  indexing.cpp
+  ptuple.cpp
   utils.cpp
 )

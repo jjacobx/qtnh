@@ -2,9 +2,6 @@ target_sources(qtnh
   PRIVATE
   dense.cpp
   diag.cpp
-  indexing.cpp
-  network.cpp
-  ptuple.cpp
   symm.cpp
   tensor.cpp
 )

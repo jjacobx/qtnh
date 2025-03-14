@@ -2,8 +2,8 @@
 #include <iostream>
 #include <numeric>
 
-#include "ten/util/utils.hpp"
 #include "ten/util/indexing.hpp"
+#include "ten/util/utils.hpp"
 
 namespace qtnh {
   std::ostream& ops::operator<<(std::ostream& out, const qtnh::tidx_tup& o) {
