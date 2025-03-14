@@ -4,6 +4,7 @@
 #include "ten/type/dense.hpp"
 #include "ten/util/indexing.hpp"
 #include "ten/util/ptuple.hpp"
+#include "ten/util/vector.hpp"
 
 namespace qtnh {
   DenseTensorBase::DenseTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims)

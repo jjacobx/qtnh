@@ -37,5 +37,6 @@ namespace qtnh {
 #include "ten/util/ptuple.hpp"
 #include "ten/util/typedefs.hpp"
 #include "ten/util/utils.hpp"
+#include "ten/util/vector.hpp"
 
 #endif

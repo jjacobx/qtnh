@@ -3,6 +3,7 @@
 
 #include "ten/type/symm.hpp"
 #include "ten/util/indexing.hpp"
+#include "ten/util/vector.hpp"
 
 namespace qtnh {
   SymmTensorBase::SymmTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims)
