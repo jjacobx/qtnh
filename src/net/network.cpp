@@ -5,6 +5,7 @@
 #include "ten/util/indexing.hpp"
 #include "ten/con/pair-defs.hpp"
 #include "ten/con/self-defs.hpp"
+#include "ten/util/ops.hpp"
 
 namespace qtnh {
   TensorNetwork::TensorNetwork()
@@ -121,7 +122,6 @@ namespace qtnh {
       #ifdef DEBUG
         utils::barrier();
         if (utils::is_root()) {
-          using namespace qtnh::ops;
           std::cout << "Contracting " << b << " in the following tensor network: \n";
           print();
         }
@@ -154,7 +154,6 @@ namespace qtnh {
       #ifdef DEBUG
         utils::barrier();
         if (utils::is_root()) {
-          using namespace qtnh::ops;
           std::cout << "Contracting " << bonds_.at(bid1) << " in the following tensor network: \n";
           print();
         }
@@ -168,7 +167,6 @@ namespace qtnh {
         utils::barrier();
         auto& t = *tensors_.at(tid);
         if (t.bc().isActive()) {
-          using namespace ops;
           std::cout << t.bc().env.proc_id << " | T (result) = " << t << "\n";
         }
         utils::barrier();
@@ -184,8 +182,6 @@ namespace qtnh {
   }
 
   void TensorNetwork::print() {
-    using namespace qtnh::ops;
-
     std::cout << "================================================================\n";
     std::cout << "Tensor Network of " << tensors_.size() << " tensors and " << bonds_.size() << " bonds\n";
 
@@ -202,17 +198,5 @@ namespace qtnh {
     }
 
     std::cout << "================================================================\n";
-  }
-
-  std::ostream& ops::operator<<(std::ostream& out, const TensorNetwork::Bond& o) {
-    out << "(" << o.tensor_ids.first << ", " << o.tensor_ids.second << "); ";
-    out << "{";
-    for (std::size_t i = 0; i < o.wires.size(); ++i) {
-      out << "(" << o.wires.at(i).first << ", " << o.wires.at(i).second << ")";
-      if (i < o.wires.size() - 1) out << ", ";
-    }
-
-    out << "}";
-    return out;
   }
 }

@@ -5,6 +5,7 @@
 #include "blas/wrappers.hpp"
 #include "ten/con/pair-defs.hpp"
 #include "ten/util/indexing.hpp"
+#include "ten/util/ops.hpp"
 #include "ten/util/ptuple.hpp"
 #include "ten/util/utils.hpp"
 #include "ten/util/vector.hpp"
@@ -18,7 +19,6 @@ namespace qtnh {
         qtnh::tel el3 = 0.0;
 
         #ifdef DEBUG
-          using namespace qtnh::ops;
           std::cout << t3.bc().env.proc_id << " | t3[" << *it3 << "] = ";
         #endif
 
@@ -404,7 +404,6 @@ namespace qtnh {
     }
 
     #ifdef DEBUG
-      using namespace ops;
       if (utils::is_root()) {
         std::cout << "T1 dimension replacements: " << params_.dimRepls1 << "\n";
         std::cout << "T2 dimension replacements: " << params_.dimRepls2 << "\n";

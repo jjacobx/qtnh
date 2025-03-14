@@ -3,8 +3,6 @@
 #include "qtnh.hpp"
 
 using namespace qtnh;
-using namespace qtnh::ops;
-
 using namespace std::chrono;
 using namespace std::complex_literals;
 

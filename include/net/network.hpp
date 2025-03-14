@@ -103,11 +103,6 @@ namespace qtnh {
       /// Map between bonds in the network and their IDs. 
       std::unordered_map<qtnh::uint, Bond> bonds_;
   };
-
-  namespace ops {
-    /// Print bond information via std::cout. 
-    std::ostream& operator<<(std::ostream&, const TensorNetwork::Bond&);
-  }
 }
 
 #endif

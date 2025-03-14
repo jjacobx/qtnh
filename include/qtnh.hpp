@@ -3,9 +3,6 @@
 
 /// QTNH project namespace. 
 namespace qtnh {
-  /// Namespace for tensor operators. It is recommended to use it directly to allow
-  /// e.g. tensor printing. 
-  namespace ops {}
   /// Namespace for helper functions. 
   namespace utils {}
   /// Namespace for linear algebra routines. 
@@ -34,6 +31,7 @@ namespace qtnh {
 #include "ten/type/tensor.hpp"
 
 #include "ten/util/indexing.hpp"
+#include "ten/util/ops.hpp"
 #include "ten/util/ptuple.hpp"
 #include "ten/util/typedefs.hpp"
 #include "ten/util/utils.hpp"

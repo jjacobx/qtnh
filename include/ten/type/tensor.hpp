@@ -304,13 +304,6 @@ namespace qtnh {
   template<> std::unique_ptr<DenseTensor> Tensor::convert<DenseTensor>(qtnh::tptr tp);
   template<> std::unique_ptr<SymmTensor> Tensor::convert<SymmTensor>(qtnh::tptr tp);
   template<> std::unique_ptr<DiagTensor> Tensor::convert<DiagTensor>(qtnh::tptr tp);
-
-  namespace ops {
-    /// Print tensor elements via std::cout. 
-    std::ostream& operator<<(std::ostream&, const Tensor&);
-    std::ostream& operator<<(std::ostream&, const Broadcaster&);
-    bool operator==(const BcParams& p1,const BcParams& p2);
-  }
 }
 
 #endif

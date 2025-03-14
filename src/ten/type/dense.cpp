@@ -3,6 +3,7 @@
 
 #include "ten/type/dense.hpp"
 #include "ten/util/indexing.hpp"
+#include "ten/util/ops.hpp"
 #include "ten/util/ptuple.hpp"
 #include "ten/util/vector.hpp"
 
@@ -131,7 +132,6 @@ namespace qtnh {
   }
 
   DenseTensor* DenseTensor::rebcast(BcParams params) {
-    using namespace qtnh::ops;
     auto invariant = (params == bc_.params());
 
     if (!invariant) bc_ = _rebcast_internal(this, params);
@@ -512,7 +512,6 @@ namespace qtnh {
     #ifdef DEBUG
       utils::barrier();
       if (utils::is_root()) {
-        using namespace ops;
         std::cout << "Permuting: " << ptup << std::endl;
       }
       utils::barrier();
@@ -594,7 +593,6 @@ namespace qtnh {
 
     if (target->bc().isActive() || new_bc.isActive()) {
       #ifdef DEBUG
-        using namespace ops;
         std::cout << new_bc.env.proc_id << " | Sc: (" << send_counts << "); ";
         std::cout << "Sd: (" << send_displs << ")" << std::endl;
         std::cout << new_bc.env.proc_id << " | Rc: (" << recv_counts << "); ";

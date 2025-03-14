@@ -22,12 +22,6 @@ namespace qtnh {
     TIFlag(std::string label, int tag) : label(label), tag(tag) {}
   };
 
-  namespace ops {
-    /// Print tensor index tuple via std::cout. 
-    std::ostream& operator<<(std::ostream&, const qtnh::tidx_tup&);
-    std::ostream& operator<<(std::ostream&, const TIFlag&);
-  }
-
   class TIndexing {
     public:
       /// @brief Create indexing with given dimensions. 
