@@ -14,9 +14,8 @@ namespace qtnh {
     , npcols_(npcols)
     , offset_(offset)
     {
-      int none = -1; // Unused value. 
-      int what = 0;  // Default system context. 
-      blacs_get_(&none, &what, &context_);
+      // Get default system context. 
+      Cblacs_get(-1, 0, &context_);
 
       std::vector<int> user_map(nprows * npcols);
       for (auto i = 0UL; i < std::size_t(nprows); ++i) {
@@ -26,15 +25,15 @@ namespace qtnh {
         }
       }
 
-      blacs_gridmap_(&context_, user_map.data(), &nprows, &nprows, &npcols);
+      Cblacs_gridmap(&context_, user_map.data(), nprows, nprows, npcols);
       active_ = (context_ != -1);
 
       // Grid info resets values for rows/cols. 
-      blacs_gridinfo_(&context_, &nprows, &npcols, &row_, &col_);
+      Cblacs_gridinfo(context_, &nprows, &npcols, &row_, &col_);
     }
 
     ProcGrid::~ProcGrid() {
-      if (active_) blacs_gridexit_(&context_);
+      if (active_) Cblacs_gridexit(context_);
     }
 
     int ProcGrid::getPNum(mtup pidxs) const {

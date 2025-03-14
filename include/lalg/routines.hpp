@@ -7,17 +7,21 @@ namespace qtnh {
   namespace lalg {
     using complex = std::complex<double>;
 
-    extern "C" void sl_init_(int*, int*, int*);
-    extern "C" void blacs_gridinfo_(int*, int*, int*, int*, int*);
-    extern "C" void blacs_gridexit_(int*);
+    // Cblacs. 
+    extern "C" void Cblacs_pinfo(int* mypnum, int* nprocs);
+    extern "C" void Cblacs_get(int context, int request, int* value);
+    extern "C" void Cblacs_exit(int error_code);
+    extern "C" void Cblacs_barrier(int context, char* scope);
 
-    extern "C" int  blacs_pnum_(int*, int*, int*);
-    extern "C" void blacs_pcoord_(int*, int*, int*, int*);
+    extern "C" void Cblacs_gridinit(int* context, char* order, int np_row, int np_col);
+    extern "C" void Cblacs_gridmap(int* context, int* usermap, int ldup, int np_row, int np_col);
+    extern "C" void Cblacs_gridinfo(int context, int* np_row, int* np_col, int* my_row, int* my_col);
+    extern "C" void Cblacs_gridexit(int context);
 
-    // Call this to make processes independent. 
-    extern "C" void blacs_get_(int*, int*, int*);
-    extern "C" void blacs_gridmap_(int*, int*, int*, int*, int*);
+    extern "C" int  Cblacs_pnum(int context, int prow, int pcol);
+    extern "C" void Cblacs_pcoord(int context, int pnum, int* prow, int* pcol);
 
+    // ScaLAPACK. 
     extern "C" void pzgesvd_(char* jobu, char* jobvt, int* m, int* n, 
                              complex* a, int* ia, int* ja, int* desc_a, double* s, 
                              complex* u, int* iu, int* ju, int* desc_u, 
