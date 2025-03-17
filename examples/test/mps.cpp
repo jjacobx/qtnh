@@ -17,5 +17,25 @@ int main() {
     std::cout << "P" << env.proc_id << " | T" << i << " = " << mps.at(i) << "\n"; 
   }
 
+  std::vector<tel> els = {
+    1, 0, 0, 0, 
+    0, 1, 0, 0, 
+    0, 0, 1, 0, 
+    0, 0, 0, 1
+  };
+
+  auto op = SymmTensor::make(env, {}, tidx_tup(4, SITE_DIM), std::move(els));
+
+  utils::barrier();
+
+  if (utils::is_root()) std::cout << "APPLYING OPERATOR\n";
+  mps.apply(std::move(op), { 1, 2 });
+
+  utils::barrier();
+
+  for (auto i = 0UL; i < mps.nSites(); ++i) {
+    std::cout << "P" << env.proc_id << " | T" << i << " = " << mps.at(i) << "\n"; 
+  }
+
   return 0;
 }
