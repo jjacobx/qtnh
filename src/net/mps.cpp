@@ -5,27 +5,31 @@
 #include "ten/dec/base.hpp"
 
 namespace qtnh {
-  MPS::MPS(const QTNHEnv& env, std::size_t n_sites, qtnh::tidx site_dim) 
-  : MPS(env, n_sites, qtnh::tidx_tup(n_sites, site_dim))
+  MPS::MPS(const QTNHEnv& env, std::size_t n_sites, qtnh::tidx site_dim, chi_pair chis) 
+  : MPS(env, n_sites, qtnh::tidx_tup(n_sites, site_dim), chis)
   {}
 
-  MPS::MPS(const QTNHEnv& env, std::size_t n_sites, qtnh::tidx_tup site_dims) 
+  MPS::MPS(const QTNHEnv& env, std::size_t n_sites, qtnh::tidx_tup site_dims, chi_pair chis) 
   : site_tensors_(n_sites)
   , site_norms_(n_sites, MPS_NORM::none)
   , site_dims_(site_dims)
-  , dis_chi_(1)
-  , loc_chi_(1)
+  , dis_chi_(chis.first)
+  , loc_chi_(chis.second)
   {
     for (auto i = 0UL; i < n_sites; ++i) {
-      std::vector<qtnh::tel> els(site_dims.at(i));
-      els.at(0) = 1.0;
+      std::vector<qtnh::tel> els(site_dims.at(i) * loc_chi_ * loc_chi_);
+      if (env.proc_id == 0) els.at(0) = 1.0;
 
-      auto tp = DenseTensor::make(env, { 1, 1 }, { site_dims.at(i), 1, 1 }, std::move(els));
-      site_tensors_.at(i) = std::move(tp);
+      site_tensors_.at(i) = DenseTensor::make(
+        env, 
+        { dis_chi_, dis_chi_ }, 
+        { site_dims.at(i), loc_chi_, loc_chi_ }, 
+        std::move(els)
+      );
     }
   }
 
-  MPS::MPS(qtnh::tptr tp, MPS_NORM norm) {
+  MPS::MPS(qtnh::tptr tp, chi_pair chis, MPS_NORM norm) {
     utils::throw_unimplemented();
   }
 

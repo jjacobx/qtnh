@@ -12,10 +12,12 @@ namespace qtnh {
 
   class MPS {
     public:
+      using chi_pair = std::pair<std::size_t, std::size_t>;
+
       MPS() = delete;
-      MPS(const QTNHEnv& env, std::size_t n_sites, qtnh::tidx site_dim);
-      MPS(const QTNHEnv& env, std::size_t n_sites, qtnh::tidx_tup site_dims);
-      MPS(qtnh::tptr tp, MPS_NORM norm = MPS_NORM::left);
+      MPS(const QTNHEnv& env, std::size_t n_sites, qtnh::tidx site_dim, chi_pair chis);
+      MPS(const QTNHEnv& env, std::size_t n_sites, qtnh::tidx_tup site_dims, chi_pair chis);
+      MPS(qtnh::tptr tp, chi_pair chis, MPS_NORM norm = MPS_NORM::left);
       ~MPS() = default;
 
       const Tensor& at(std::size_t k) const { return *site_tensors_.at(k); }
