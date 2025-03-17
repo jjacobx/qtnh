@@ -1,8 +1,10 @@
 #include <algorithm>
+#include <iostream>
 
 #include "net/mps.hpp"
 #include "ten/con/pair-defs.hpp"
 #include "ten/dec/base.hpp"
+#include "util/ops.hpp"
 
 namespace qtnh {
   MPS::MPS(const QTNHEnv& env, std::size_t n_sites, qtnh::tidx site_dim, chi_pair chis) 
@@ -44,7 +46,7 @@ namespace qtnh {
       tptr tp_tmp = std::move(site_tensors_.at(i));
       auto tot_size = tp_res->totDims().size();
 
-      ConParams params({{ 1, tot_size - 1 }, { 0, 3 }});
+      ConParams params({{ 1, 0 }, { tot_size - 1, 3 }});
       pcon con(std::move(tp_res), std::move(tp_tmp), params);
       tp_res = con.contract();
     }
@@ -81,6 +83,8 @@ namespace qtnh {
       site_tensors_.at(i) = std::move(tp_u);
       tp_res = std::move(tp_v);
     }
+
+    site_tensors_.at(max_site) = std::move(tp_res);
   }
 
   qtnh::tel MPS::self_overlap() {
