@@ -1,5 +1,5 @@
-#ifndef __ENV__
-#define __ENV__
+#ifndef __UTIL_ENV__
+#define __UTIL_ENV__
 
 #include <mpi.h>
 

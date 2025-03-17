@@ -9,8 +9,6 @@ namespace qtnh {
   namespace lalg {}
 }
 
-#include "env.hpp"
-
 #include "blas/matrix.hpp"
 // #include "blas/routines.hpp" - skip imported Fortran routines
 #include "blas/wrappers.hpp"
@@ -30,11 +28,12 @@ namespace qtnh {
 #include "ten/type/symm.hpp"
 #include "ten/type/tensor.hpp"
 
-#include "ten/util/indexing.hpp"
-#include "ten/util/ops.hpp"
-#include "ten/util/ptuple.hpp"
-#include "ten/util/typedefs.hpp"
-#include "ten/util/utils.hpp"
-#include "ten/util/vector.hpp"
+#include "util/env.hpp"
+#include "util/indexing.hpp"
+#include "util/ops.hpp"
+#include "util/ptuple.hpp"
+#include "util/typedefs.hpp"
+#include "util/utils.hpp"
+#include "util/vector.hpp"
 
 #endif

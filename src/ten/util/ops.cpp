@@ -1,6 +1,6 @@
 #include <iomanip>
 
-#include "ten/util/ops.hpp"
+#include "util/ops.hpp"
 
 namespace qtnh {
   std::ostream& operator<<(std::ostream& out, const TensorNetwork::Bond& o) {

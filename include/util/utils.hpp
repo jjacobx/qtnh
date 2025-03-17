@@ -4,8 +4,8 @@
 #include <memory>
 #include <string>
 
-#include "ten/util/indexing.hpp"
-#include "ten/util/typedefs.hpp"
+#include "util/indexing.hpp"
+#include "util/typedefs.hpp"
 
 namespace qtnh {
   namespace utils {

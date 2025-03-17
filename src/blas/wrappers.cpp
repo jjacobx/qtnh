@@ -2,7 +2,7 @@
 
 #include "blas/routines.hpp"
 #include "blas/wrappers.hpp"
-#include "ten/util/utils.hpp"
+#include "util/utils.hpp"
 
 namespace qtnh {
   namespace lalg {

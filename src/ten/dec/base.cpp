@@ -1,6 +1,6 @@
 #include "blas/wrappers.hpp"
 #include "ten/dec/base.hpp"
-#include "ten/util/vector.hpp"
+#include "util/vector.hpp"
 
 #include <iostream>
 

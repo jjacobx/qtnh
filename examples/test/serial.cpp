@@ -1,5 +1,4 @@
 #include <iostream>
-
 #include "qtnh.hpp"
 
 using namespace qtnh;

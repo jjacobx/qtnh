@@ -1,7 +1,7 @@
 #ifndef __GEN_VALIDATION_PRIMITIVES__
 #define __GEN_VALIDATION_PRIMITIVES__
 
-#include "ten/util/typedefs.hpp"
+#include "util/typedefs.hpp"
 
 struct tensor_info {
   qtnh::tidx_tup dims;

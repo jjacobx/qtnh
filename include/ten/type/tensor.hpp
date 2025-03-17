@@ -3,10 +3,9 @@
 
 #include <memory>
 
-#include "env.hpp"
-#include "blas/matrix.hpp"
-#include "ten/util/typedefs.hpp"
-#include "ten/util/utils.hpp"
+#include "util/env.hpp"
+#include "util/typedefs.hpp"
+#include "util/utils.hpp"
 
 namespace qtnh {
   class Tensor;

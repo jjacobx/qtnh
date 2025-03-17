@@ -4,7 +4,7 @@
 #include <numeric>
 
 #include "ten/type/tensor.hpp"
-#include "ten/util/indexing.hpp"
+#include "util/indexing.hpp"
 
 #ifndef AUTO_COMM_INIT
 #define AUTO_COMM_INIT 0

@@ -2,8 +2,8 @@
 #include <iostream>
 
 #include "net/network.hpp"
-#include "ten/util/utils.hpp"
-#include "ten/util/indexing.hpp"
+#include "util/indexing.hpp"
+#include "util/utils.hpp"
 
 #include "gen/random-tn.hpp"
 #include "gen/qft.hpp"

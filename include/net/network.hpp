@@ -8,7 +8,7 @@
 #include "ten/type/diag.hpp"
 #include "ten/type/symm.hpp"
 #include "ten/type/tensor.hpp"
-#include "ten/util/typedefs.hpp"
+#include "util/typedefs.hpp"
 
 
 namespace qtnh {

@@ -2,7 +2,8 @@
 #define __BLAS_MATRIX__
 
 #include <memory>
-#include "ten/util/typedefs.hpp"
+
+#include "util/typedefs.hpp"
 
 namespace qtnh {
   namespace lalg {

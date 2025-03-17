@@ -3,8 +3,8 @@
 #include <numeric>
 
 #include "ten/con/self-defs.hpp"
-#include "ten/util/utils.hpp"
-#include "ten/util/indexing.hpp"
+#include "util/utils.hpp"
+#include "util/indexing.hpp"
 
 namespace qtnh {
   template<> qtnh::tptr SelfContractor<DenseTensor>::contract() {

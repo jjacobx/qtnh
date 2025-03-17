@@ -1,8 +1,8 @@
 #include <iostream>
 #include <mpi.h>
 
-#include "env.hpp"
-#include "ten/util/typedefs.hpp"
+#include "util/env.hpp"
+#include "util/typedefs.hpp"
 
 namespace qtnh {
   QTNHEnv::QTNHEnv() {

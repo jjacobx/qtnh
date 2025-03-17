@@ -4,7 +4,7 @@
 #include "blas/matrix.hpp"
 #include "ten/type/tensor.hpp"
 #include "ten/type/dense.hpp"
-#include "ten/util/ptuple.hpp"
+#include "util/ptuple.hpp"
 
 namespace qtnh {
   struct DecParams {

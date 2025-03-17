@@ -2,8 +2,8 @@
 #include <iostream>
 #include <numeric>
 
-#include "ten/util/indexing.hpp"
-#include "ten/util/utils.hpp"
+#include "util/indexing.hpp"
+#include "util/utils.hpp"
 
 namespace qtnh {
   std::vector<std::size_t> _generate_maps(std::vector<TIFlag> ifls) {

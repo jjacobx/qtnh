@@ -2,7 +2,7 @@
 
 #include "net/network.hpp"
 #include "ten/type/tensor.hpp"
-#include "ten/util/typedefs.hpp"
+#include "util/typedefs.hpp"
 
 namespace qtnh {
   template<typename T, typename U>

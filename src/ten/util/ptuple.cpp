@@ -1,4 +1,4 @@
-#include "ten/util/ptuple.hpp"
+#include "util/ptuple.hpp"
 
 namespace qtnh {
   PTuple::PTuple(std::size_t len) : tup_(len) {

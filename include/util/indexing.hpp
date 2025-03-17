@@ -1,9 +1,9 @@
-#ifndef __TEN_UTIL_INDEXING__
-#define __TEN_UTIL_INDEXING__
+#ifndef __UTIL_INDEXING__
+#define __UTIL_INDEXING__
 
 #include <string>
 
-#include "ten/util/typedefs.hpp"
+#include "util/typedefs.hpp"
 
 namespace qtnh {
   struct TIFlag {
