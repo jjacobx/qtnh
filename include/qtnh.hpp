@@ -13,6 +13,7 @@ namespace qtnh {
 // #include "blas/routines.hpp" - skip imported Fortran routines
 #include "blas/wrappers.hpp"
 
+#include "net/mps.hpp"
 #include "net/network.hpp"
 
 #include "ten/con/base.hpp"
