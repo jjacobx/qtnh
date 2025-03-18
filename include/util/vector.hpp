@@ -77,6 +77,16 @@ namespace qtnh {
 
       return ext;
     }
+
+    template <typename T, class BinaryOperation>
+    std::vector<T> combine_part(std::vector<T> vec, std::size_t from, std::size_t to, 
+                                T init, BinaryOperation op) {
+      auto val = std::accumulate(vec.begin() + from, vec.begin() + to + 1, init, op);
+      vec.at(from) = val;
+      vec.erase(vec.begin() + from + 1, vec.begin() + to + 1);
+
+      return vec;
+    }
   }
 }
 
