@@ -22,6 +22,7 @@ namespace qtnh {
     denseTensorBase, 
     denseTensor, 
     rescTensor, 
+    copyTensor, 
     symmTensorBase, 
     symmTensor, 
     swapTensor, 

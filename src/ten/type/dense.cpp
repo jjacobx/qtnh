@@ -662,8 +662,67 @@ namespace qtnh {
     return (tot_idxs.at(0) == tot_idxs.at(1));
   }
 
-
   RescTensor* RescTensor::rebcast(BcParams params) {
+    Broadcaster new_bc(bc_.env(), bc_.base(), params);
+    bc_ = std::move(new_bc);
+
+    return this;
+  }
+
+  CopyTensor::CopyTensor(const QTNHEnv& env, std::array<tidx_tup, 3> dis_dims_3, 
+                         std::array<tidx_tup, 3> loc_dims_3)
+  : DenseTensorBase(env, utils::concat_vecs(dis_dims_3), utils::concat_vecs(loc_dims_3))
+  , dis_dims_3_(dis_dims_3)
+  , loc_dims_3_(loc_dims_3)
+  {}
+
+  CopyTensor::CopyTensor(const QTNHEnv& env, std::array<tidx_tup, 3> dis_dims_3, 
+                         std::array<tidx_tup, 3> loc_dims_3, BcParams params)
+  : DenseTensorBase(env, utils::concat_vecs(dis_dims_3), utils::concat_vecs(loc_dims_3), params)
+  , dis_dims_3_(dis_dims_3)
+  , loc_dims_3_(loc_dims_3)
+  {}
+
+  qtnh::tptr CopyTensor::copy() const noexcept {
+    auto tp = new CopyTensor(bc_.env(), dis_dims_3_, loc_dims_3_, bc_.params());
+    return std::unique_ptr<CopyTensor>(tp);
+  }
+
+  qtnh::tel CopyTensor::operator[](qtnh::tidx_tup loc_idxs) const {
+    auto dis_idxs = utils::i_to_idxs(bc_.gid(), dis_dims_);
+    auto ids = utils::split_vec_rel(dis_idxs, dis_dims_3_.at(0).size(), dis_dims_3_.at(1).size());
+    auto ils = utils::split_vec_rel(loc_idxs, dis_dims_3_.at(0).size(), loc_dims_3_.at(1).size());
+
+    std::array<std::size_t, 3> is;
+    for (auto k = 0UL; k < 3UL; ++k) {
+      is.at(k) = utils::idxs_to_i(
+        utils::concat_vecs(ids.at(k), ils.at(k)), 
+        utils::concat_dims(dis_dims_3_.at(k), loc_dims_3_.at(k))
+      );
+    }
+    
+    if ((is.at(0) == is.at(1)) && (is.at(1) == is.at(2))) {
+      return 1.0;
+    } else {
+      return 0.0;
+    }
+  }
+
+  qtnh::tel CopyTensor::operator[](std::size_t i) const {
+    auto loc_idxs = utils::i_to_idxs(i, loc_dims_);
+    return operator[](loc_idxs);
+  }
+
+  qtnh::tel CopyTensor::at(qtnh::tidx_tup tot_idxs) const {
+    auto [dis_idxs, loc_idxs] = utils::split_dims(tot_idxs, dis_dims_.size());
+    if (bc_.gid() != (int)utils::idxs_to_i(dis_idxs, dis_dims_)) {
+      throw std::invalid_argument("Element at given indices is not present on calling rank. ");
+    }
+
+    return operator[](loc_idxs);
+  }
+
+  CopyTensor* CopyTensor::rebcast(BcParams params) {
     Broadcaster new_bc(bc_.env(), bc_.base(), params);
     bc_ = std::move(new_bc);
 
