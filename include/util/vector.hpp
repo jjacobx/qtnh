@@ -23,6 +23,16 @@ namespace qtnh {
       }
     }
 
+    template<typename T, std::size_t N>
+    std::vector<T> concat_vecs(std::array<std::vector<T>, N> vecs) {
+      std::vector<T> res(0);
+      for (auto i = 0UL; i < N; ++i) {
+        res = concat_vecs_two(res, vecs.at(i));
+      }
+
+      return res;
+    }
+
     template <typename T>
     std::pair<std::vector<T>, std::vector<T>> split_vec(std::vector<T> vec, std::size_t n) {
       return { std::vector<T>(vec.begin(), vec.begin() + n), std::vector<T>(vec.begin() + n, vec.end()) };
