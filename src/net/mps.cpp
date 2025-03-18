@@ -66,8 +66,8 @@ namespace qtnh {
 
       DecParams dp {
         { 1, 1 }, 
-        { 2, loc_size - 3 }, 
-        { 1, loc_size - 4 }, 
+        { 2, loc_size - 2 }, 
+        { 1, loc_size - 3 }, 
         { 1, 1 }, 
         { 1, 1 }
       };
