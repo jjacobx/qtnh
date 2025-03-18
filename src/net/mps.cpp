@@ -1,10 +1,12 @@
 #include <algorithm>
+#include <functional>
 #include <iostream>
 
 #include "net/mps.hpp"
 #include "ten/con/pair-defs.hpp"
 #include "ten/dec/base.hpp"
 #include "util/ops.hpp"
+#include "util/vector.hpp"
 
 namespace qtnh {
   MPS::MPS(const QTNHEnv& env, std::size_t n_sites, qtnh::tidx site_dim, chi_pair chis) 
@@ -60,6 +62,9 @@ namespace qtnh {
     pcon con(std::move(tp_res), std::move(tp), ConParams(wires));
     tp_res = con.contract();
 
+    std::cout << tp_res->bc().env().proc_id << " | Tres = " << *tp_res << "\n";
+    if (utils::is_root()) std::cout << "AFTER OP\n";
+
     // Decompose back into site tensors. 
     for (auto i = min_site; i < max_site; ++i) {
       auto loc_size = tp_res->locDims().size();
@@ -72,16 +77,86 @@ namespace qtnh {
         { 1, 1 }
       };
 
+      if (utils::is_root()) std::cout << 
+        "dp.in_dis_splits" << dp.in_dis_splits << "\n" << 
+        "dp.in_loc_splits" << dp.in_loc_splits << "\n" << 
+        "dp.cyc_splits" << dp.cyc_splits << "\n" << 
+        "dp.dis_splits" << dp.dis_splits << "\n" << 
+        "dp.loc_splits" << dp.loc_splits << "\n";
+
       Decomposer dec(std::move(tp_res), dp);
       dec.decompose();
 
       auto [tp_u, tp_s, tp_v] = dec.extract_results();
 
-      // Calculate SV and truncate. 
-      // ...
-      // * Temporary. 
+      utils::barrier();
+      if (utils::is_root()) std::cout << "U: " << tp_u->disDims() << ", " << tp_u->locDims() << "\n";
+      if (utils::is_root()) std::cout << "S: " << tp_s->disDims() << ", " << tp_s->locDims() << "\n";
+      if (utils::is_root()) std::cout << "V: " << tp_v->disDims() << ", " << tp_v->locDims() << "\n";
+
+      // Truncate. 
+      auto fmul = std::multiplies<tidx>();
+      auto loc_dims_u = utils::combine_part(tp_u->locDims(), 2, 3, tidx(1.0), fmul);
+      auto loc_dims_s = utils::combine_part(tp_s->locDims(), 1, 2, tidx(1.0), fmul);
+      auto loc_dims_v = utils::combine_part(tp_v->locDims(), 0, 1, tidx(1.0), fmul);
+
+      tp_u->reshape(tp_u->disDims(), loc_dims_u);
+      tp_s->reshape(tp_s->disDims(), loc_dims_s);
+      tp_v->reshape(tp_v->disDims(), loc_dims_v);
+
+      tp_u = Tensor::truncate(std::move(tp_u), 4, loc_chi_);
+      tp_s = Tensor::truncate(std::move(tp_s), 1, loc_chi_);
+      tp_v = Tensor::truncate(std::move(tp_v), 2, loc_chi_);
+
+      if (utils::is_root()) std::cout << "TRUNCATED\n";
+
+      utils::barrier();
+      if (utils::is_root()) std::cout << "U: " << tp_u->disDims() << ", " << tp_u->locDims() << "\n";
+      if (utils::is_root()) std::cout << "S: " << tp_s->disDims() << ", " << tp_s->locDims() << "\n";
+      if (utils::is_root()) std::cout << "V: " << tp_v->disDims() << ", " << tp_v->locDims() << "\n";
+
+      utils::barrier();
+      std::cout << tp_u->bc().env().proc_id << " | U = " << *tp_u << "\n";
+
+      utils::barrier();
+      std::cout << tp_s->bc().env().proc_id << " | S = " << *tp_s << "\n";
+
+      utils::barrier();
+      std::cout << tp_v->bc().env().proc_id << " | V = " << *tp_v << "\n";
+
+      // Calculate SV. 
+      auto&& els = tp_s->cast<DenseTensor>()->extractEls();
+      tp_s = DiagTensor::make(
+        tp_s->bc().env(), 
+        {}, 
+        { dis_chi_, loc_chi_, dis_chi_, loc_chi_ }, 
+        false, 
+        std::move(els)
+      );
+
+      tp_s = SymmTensorBase::rescatterIO(std::move(tp_s), 1);
+
+      std::cout << tp_s->bc().env().proc_id << " | S = " << *tp_s << "\n";
+
+      using repl_vec = std::vector<tidx_tup_st>;
+      repl_vec phys_repls(loc_size - 3);
+      std::iota(phys_repls.begin(), phys_repls.end(), 2);
+
+      ConParams params(
+        {{ 1, 0 }, { 3, 2 }}, 
+        { 0, X, loc_size - 1, X }, 
+        utils::concat_vecs(repl_vec { X, 1, X }, phys_repls, repl_vec { loc_size })
+      );
+
+      if (utils::is_root()) std::cout << "Wires: " << params.wires << "\n";
+      if (utils::is_root()) std::cout << "Repls1: " << params.dimRepls1 << "\n";
+      if (utils::is_root()) std::cout << "Repls2: " << params.dimRepls2 << "\n";
+      
+      pcon con(std::move(tp_s), std::move(tp_v), params);
+      tptr tp_sv = con.contract();
+
       site_tensors_.at(i) = std::move(tp_u);
-      tp_res = std::move(tp_v);
+      tp_res = std::move(tp_sv);
     }
 
     site_tensors_.at(max_site) = std::move(tp_res);
