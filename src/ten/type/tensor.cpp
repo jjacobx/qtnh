@@ -3,8 +3,10 @@
 #include <mpi.h>
 #include <numeric>
 
+#include "ten/type/dense.hpp"
 #include "ten/type/tensor.hpp"
 #include "util/indexing.hpp"
+#include "util/ops.hpp"
 
 #ifndef AUTO_COMM_INIT
 #define AUTO_COMM_INIT 0
@@ -68,6 +70,45 @@ namespace qtnh {
     } else {
       throw std::invalid_argument("Incompatible new dimensions.");
     }
+  }
+
+  void Tensor::print_serial(std::string name, bool skip_inactive) {
+    auto tp = Tensor::convert<DenseTensor>(this->copy());
+    auto loc_els = tp->extractEls();
+
+    MPI_Request req1 = MPI_REQUEST_NULL;
+    MPI_Request req2 = MPI_REQUEST_NULL;
+    auto is_active = bc_.isActive();
+    MPI_Isend(&is_active, 1, MPI_CXX_BOOL, 0, 0, MPI_COMM_WORLD, &req1);
+    
+    if (is_active) {
+      MPI_Isend(loc_els.data(), int(locSize()), MPI_DOUBLE_COMPLEX, 0, 0, 
+                MPI_COMM_WORLD, &req2);
+
+      std::cout << bc_.env().proc_id << "|" << loc_els.size() << " == " << locSize() << "\n";
+    }
+
+    if (utils::is_root()) {
+      for (auto i = 0UL; i < bc_.env().num_processes; ++i) {
+        bool is_active_target;
+        MPI_Recv(&is_active_target, 1, MPI_CXX_BOOL, int(i), 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+        if (is_active_target) {
+          std::vector<tel> loc_els_target(locSize());
+          MPI_Recv(loc_els_target.data(), int(locSize()), MPI_DOUBLE_COMPLEX, int(i), 0, 
+                   MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+          
+          std::cout << "P" << i << " | " << name << " = " << loc_els_target << "\n";
+        } else if (!skip_inactive) {
+          std::cout << "P" << i << " | " << name << " = Inactive\n";
+        }
+      }
+    }
+
+    MPI_Wait(&req1, MPI_STATUS_IGNORE);
+    MPI_Wait(&req2, MPI_STATUS_IGNORE);
+    if (req1 != MPI_REQUEST_NULL) MPI_Request_free(&req1);
+    if (req2 != MPI_REQUEST_NULL) MPI_Request_free(&req2);
   }
 
 

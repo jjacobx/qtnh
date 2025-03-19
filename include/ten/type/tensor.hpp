@@ -219,6 +219,8 @@ namespace qtnh {
       /// Both distributed and local dimensions must be compatible with the old values. 
       virtual void reshape(qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims);
 
+      void print_serial(std::string name, bool skip_inactive = false);
+
       /// @brief Swap indices on current tensor. 
       /// @param tp Ownership of tptr to tensor to swap. 
       /// @param idx1 First index to swap. 
