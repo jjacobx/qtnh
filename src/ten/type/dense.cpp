@@ -196,7 +196,7 @@ namespace qtnh {
       bc_ = std::move(new_bc);
     } else {
       loc_dims_.at(0) = size;
-      loc_els_.resize(loc_els_.size());
+      loc_els_.resize(locSize());
     }
 
     permute(ptup.inv().toTar().tup());
