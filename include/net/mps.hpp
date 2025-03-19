@@ -36,6 +36,8 @@ namespace qtnh {
       qtnh::tel self_overlap();
       qtnh::tel overlap(MPS& mps);
 
+      std::unique_ptr<DenseTensor> toDense() &&;
+
     private:
       std::vector<qtnh::tptr> site_tensors_;
       std::vector<MPS_NORM> site_norms_;

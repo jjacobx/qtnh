@@ -62,7 +62,7 @@ namespace qtnh {
     pcon con(std::move(tp_res), std::move(tp), ConParams(wires));
     tp_res = con.contract();
 
-    std::cout << tp_res->bc().env().proc_id << " | Tres = " << *tp_res << "\n";
+    tp_res->print_serial("Tres");
     if (utils::is_root()) std::cout << "AFTER OP\n";
 
     // Decompose back into site tensors. 
@@ -110,19 +110,13 @@ namespace qtnh {
 
       if (utils::is_root()) std::cout << "TRUNCATED\n";
 
-      utils::barrier();
       if (utils::is_root()) std::cout << "U: " << tp_u->disDims() << ", " << tp_u->locDims() << "\n";
       if (utils::is_root()) std::cout << "S: " << tp_s->disDims() << ", " << tp_s->locDims() << "\n";
       if (utils::is_root()) std::cout << "V: " << tp_v->disDims() << ", " << tp_v->locDims() << "\n";
 
-      utils::barrier();
-      std::cout << tp_u->bc().env().proc_id << " | U = " << *tp_u << "\n";
-
-      utils::barrier();
-      std::cout << tp_s->bc().env().proc_id << " | S = " << *tp_s << "\n";
-
-      utils::barrier();
-      std::cout << tp_v->bc().env().proc_id << " | V = " << *tp_v << "\n";
+      tp_u->print_serial("U");
+      tp_s->print_serial("S");
+      tp_v->print_serial("V");
 
       // Calculate SV. 
       auto&& els = tp_s->cast<DenseTensor>()->extractEls();
@@ -136,7 +130,9 @@ namespace qtnh {
 
       tp_s = SymmTensorBase::rescatterIO(std::move(tp_s), 1);
 
-      std::cout << tp_s->bc().env().proc_id << " | S = " << *tp_s << "\n";
+      std::cout << int(tp_s->type()) << "\n";
+      std::cout << "Is shrunk: " << tp_s->cast<DiagTensor>()->shrunk() << "\n";
+      tp_s->print_serial("S (resc)");
 
       using repl_vec = std::vector<tidx_tup_st>;
       repl_vec phys_repls(loc_size - 3);
@@ -170,5 +166,37 @@ namespace qtnh {
   qtnh::tel MPS::overlap(MPS& mps) {
     utils::throw_unimplemented();
     return 0;
+  }
+
+  std::unique_ptr<DenseTensor> MPS::toDense() && {
+    tptr tp_res = std::move(site_tensors_.at(0));
+    for (auto i = 1UL; i < site_tensors_.size(); ++i) {
+      tptr tp_tmp = std::move(site_tensors_.at(i));
+      auto tot_size = tp_res->totDims().size();
+
+      ConParams params({{ 1, 0 }, { tot_size - 1, 3 }});
+      pcon con(std::move(tp_res), std::move(tp_tmp), params);
+      tp_res = con.contract();
+    }
+
+    auto rank = tp_res->totDims().size();
+    PTupleSrc ptup(rank);
+    ptup.at(rank - 1) << int(rank - 2);
+
+    tp_res = Tensor::permute(std::move(tp_res), ptup.toTar().tup());
+    tp_res = Tensor::rebcast(std::move(tp_res), { 1, 1, tp_res->bc().params().off });
+
+    const auto& bc = tp_res->bc();
+    auto [void_dims, new_loc_dims] = utils::split_vec(tp_res->locDims(), 2);
+    (void)void_dims; // Unused. 
+    auto els = tp_res->cast<DenseTensor>()->extractEls();
+
+    if (bc.gid() == 0) {
+      els.resize(utils::dims_to_size(new_loc_dims));
+    } else {
+      els.clear();
+    }
+
+    return DenseTensor::make(bc.env(), {}, new_loc_dims, std::move(els), bc.params());
   }
 }
