@@ -167,6 +167,8 @@ namespace qtnh {
       /// Both distributed and local dimensions must be compatible with the old values. 
       virtual void reshape(qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims) override;
 
+      const DenseTensor& diagonal() const { return diagonal_; }
+
     protected: 
       /// @brief Construct diagonal tensor with default distribution parameters. 
       /// @param env Environment to use for construction. 
