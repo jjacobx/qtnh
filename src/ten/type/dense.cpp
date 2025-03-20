@@ -439,8 +439,10 @@ namespace qtnh {
           std::cout << "Recv extent: " << count2 * ext2 << ", expected: " << new_ext2 << "\n";
         #endif
 
+        // ! Using Type_vector(*, 1, 1, ...) instead of Type_contiguous(*, ...)
+        // ! due to a bug in Cray-MPICH on ARCHER2. 
         if (count1 * ext1 != new_ext1){
-          MPI_Type_contiguous(int(count1), send_types.at(i1), &send_types.at(i1 + 1));
+          MPI_Type_vector(int(count1), 1, 1, send_types.at(i1), &send_types.at(i1 + 1));
           MPI_Type_create_resized(send_types.at(i1 + 1), 0, new_ext1, &send_types.at(i1 + 2));
           #ifdef DEBUG
             std::cout << "Send: t_contiguous (count = " << count1 << ", ext = " << ext1 << ")\n";
@@ -453,7 +455,7 @@ namespace qtnh {
         }
 
         if (count2 * ext2 != new_ext2){
-          MPI_Type_contiguous(int(count2), recv_types.at(i2), &recv_types.at(i2 + 1));
+          MPI_Type_vector(int(count2), 1, 1, recv_types.at(i2), &recv_types.at(i2 + 1));
           MPI_Type_create_resized(recv_types.at(i2 + 1), 0, new_ext2, &recv_types.at(i2 + 2));
           #ifdef DEBUG
             std::cout << "Recv: t_contiguous (count = " << count2 << ", ext = " << ext2 << ")\n";
@@ -471,7 +473,7 @@ namespace qtnh {
     }
 
     if (count1 > 1) {
-      MPI_Type_contiguous(int(count1), send_types.at(i1), &send_types.at(i1 + 1));
+      MPI_Type_vector(int(count1), 1, 1, send_types.at(i1), &send_types.at(i1 + 1));
       #ifdef DEBUG
         std::cout << "Send: t_contiguous (count = " << count1 << ", ext = " << ext1 << ")\n";
       #endif
@@ -480,7 +482,7 @@ namespace qtnh {
     }
 
     if (count2 > 1) {
-      MPI_Type_contiguous(int(count2), recv_types.at(i2), &recv_types.at(i2 + 1));
+      MPI_Type_vector(int(count2), 1, 1, recv_types.at(i2), &recv_types.at(i2 + 1));
       #ifdef DEBUG
         std::cout << "Recv: t_contiguous (count = " << count2 << ", ext = " << ext2 << ")\n";
       #endif
