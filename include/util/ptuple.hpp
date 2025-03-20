@@ -65,7 +65,7 @@ namespace qtnh {
         }
 
         return res;
-      };
+      }
   };
 
   class PTupleSrc : public PTuple {
@@ -87,7 +87,7 @@ namespace qtnh {
         }
 
         return res;
-      };
+      }
   };
 
   class IndexGroup {
