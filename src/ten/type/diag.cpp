@@ -108,11 +108,15 @@ namespace qtnh {
                          bool shrunk, std::vector<qtnh::tel>&& diag_els, BcParams params)
   : DiagTensorBase(env, dis_dims, loc_dims, shrunk, params)
   , diagonal_(env, utils::halve_dims(dis_dims), utils::halve_dims(loc_dims), std::move(diag_els)) 
-  {}
+  {
+    auto diag_params = params;
+    if (!shrunk_) diag_params.cyc *= qtnh::uint(diagonal_.disSize());
+    diagonal_.bc_ = { diagonal_.bc_.env(), diagonal_.bc_.base(), diag_params };
+  }
 
   std::unique_ptr<Tensor> DiagTensor::copy() const noexcept {
     auto els = diagonal_.loc_els_;
-    auto tp = new DiagTensor(bc_.env(), dis_dims_, loc_dims_, shrunk_, std::move(els));
+    auto tp = new DiagTensor(bc_.env(), dis_dims_, loc_dims_, shrunk_, std::move(els), bc_.params());
     return std::unique_ptr<DiagTensor>(tp);
   }
 
