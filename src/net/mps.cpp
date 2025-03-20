@@ -130,8 +130,6 @@ namespace qtnh {
 
       tp_s = SymmTensorBase::rescatterIO(std::move(tp_s), 1);
 
-      std::cout << int(tp_s->type()) << "\n";
-      std::cout << "Is shrunk: " << tp_s->cast<DiagTensor>()->shrunk() << "\n";
       tp_s->print_serial("S (resc)");
 
       using repl_vec = std::vector<tidx_tup_st>;

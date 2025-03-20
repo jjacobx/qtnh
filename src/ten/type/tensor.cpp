@@ -84,8 +84,6 @@ namespace qtnh {
     if (is_active) {
       MPI_Isend(loc_els.data(), int(locSize()), MPI_DOUBLE_COMPLEX, 0, 0, 
                 MPI_COMM_WORLD, &req2);
-
-      std::cout << bc_.env().proc_id << "|" << loc_els.size() << " == " << locSize() << "\n";
     }
 
     if (utils::is_root()) {
