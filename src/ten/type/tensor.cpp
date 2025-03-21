@@ -72,7 +72,7 @@ namespace qtnh {
     }
   }
 
-  void Tensor::print_serial(std::string name, bool skip_inactive) {
+  void Tensor::print_serial(std::string name, bool skip_inactive) const {
     auto tp = Tensor::convert<DenseTensor>(this->copy());
     auto loc_els = tp->extractEls();
 
