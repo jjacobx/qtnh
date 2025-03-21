@@ -197,4 +197,29 @@ namespace qtnh {
 
     return DenseTensor::make(bc.env(), {}, new_loc_dims, std::move(els), bc.params());
   }
+
+  void MPS::print() const {
+    utils::barrier();
+
+    if (utils::is_root()) {
+      std::cout << "================================================================\n";
+      std::cout << "MPS with N=" << site_tensors_.size() << 
+        " chi=(" << dis_chi_ << "," << loc_chi_ << ")\n";
+      std::cout << "Phys: " << site_dims_ << "\n";
+
+      std::cout << "----------------------------------------------------------------\n";
+      std::cout << "Sites: \n";
+    }
+
+    for (auto i = 0UL; i < site_tensors_.size(); ++i) {
+      std::string label = "S" + std::to_string(i);
+      site_tensors_.at(i)->print_serial(label);
+    }
+
+    if (utils::is_root()) {
+      std::cout << "================================================================\n";
+    }
+
+    utils::barrier();
+  }
 }

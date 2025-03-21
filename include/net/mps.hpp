@@ -38,6 +38,8 @@ namespace qtnh {
 
       std::unique_ptr<DenseTensor> toDense() &&;
 
+      void print() const;
+
     private:
       std::vector<qtnh::tptr> site_tensors_;
       std::vector<MPS_NORM> site_norms_;
