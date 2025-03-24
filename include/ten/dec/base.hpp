@@ -27,7 +27,7 @@ namespace qtnh {
   class Decomposer {
     public:
       Decomposer() = delete;
-      Decomposer(qtnh::tptr tp, DecParams params);
+      Decomposer(qtnh::tptr tp, DecParams params, bool skip_permute = false);
       Decomposer(qtnh::tptr tp, DecParams params, PTupleSrc init_ptup);
       ~Decomposer() = default;
 
@@ -41,6 +41,7 @@ namespace qtnh {
       qtnh::tptr tp_m_;
       DecParams params_;
       PTupleSrc ptup_;
+      bool skip_permute_;
 
       qtnh::tptr tp_u_;
       qtnh::tptr tp_s_;
