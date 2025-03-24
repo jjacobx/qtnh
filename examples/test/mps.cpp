@@ -47,6 +47,9 @@ int main() {
 
   mps.print();
 
+  std::cout << mps.self_overlap() << "\n";
+  mps.renormalise();
+
   tptr tmps = std::move(mps).toDense();
   tmps->print_serial("TMPS");
 
