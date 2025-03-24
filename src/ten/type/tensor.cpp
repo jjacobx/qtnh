@@ -72,7 +72,7 @@ namespace qtnh {
     }
   }
 
-  void Tensor::print_serial(std::string name, bool skip_inactive) const {
+  void Tensor::print_serial(std::string name, bool skip_inactive, bool print_frame) const {
     auto tp = Tensor::convert<DenseTensor>(this->copy());
     auto loc_els = tp->extractEls();
 
@@ -87,6 +87,15 @@ namespace qtnh {
     }
 
     if (utils::is_root()) {
+      if (print_frame) {
+        std::cout << "================================================================\n";
+        std::cout << "Tensor " << name << ": " << disDims() << ", " << locDims() << "\n";
+        std::cout << "----------------------------------------------------------------\n";
+        std::cout << "Elements: \n";
+      } else {
+        std::cout << "Tensor " << name << ": " << disDims() << ", " << locDims() << "\n";
+      }
+
       for (auto i = 0UL; i < bc_.env().num_processes; ++i) {
         bool is_active_target;
         MPI_Recv(&is_active_target, 1, MPI_CXX_BOOL, int(i), 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -96,10 +105,14 @@ namespace qtnh {
           MPI_Recv(loc_els_target.data(), int(locSize()), MPI_DOUBLE_COMPLEX, int(i), 0, 
                    MPI_COMM_WORLD, MPI_STATUS_IGNORE);
           
-          std::cout << "P" << i << " | " << name << " = " << loc_els_target << "\n";
+          std::cout << "P" << i << ": " << loc_els_target << "\n";
         } else if (!skip_inactive) {
-          std::cout << "P" << i << " | " << name << " = Inactive\n";
+          std::cout << "P" << i << ": Inactive\n";
         }
+      }
+      
+      if (print_frame) {
+        std::cout << "================================================================\n";
       }
     }
 
