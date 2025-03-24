@@ -39,6 +39,7 @@ namespace qtnh {
 
   void MPS::apply(std::unique_ptr<SymmTensorBase> tp, 
                   std::vector<std::size_t> sites) {
+    using repl_vec = std::vector<tidx_tup_st>;
     auto min_site = *std::min_element(sites.begin(), sites.end());
     auto max_site = *std::max_element(sites.begin(), sites.end());
 
@@ -56,14 +57,14 @@ namespace qtnh {
     // Contract sites with applied tensor. 
     std::vector<wire> wires(sites.size());
     for (auto i = 0UL; i < sites.size(); ++i) {
-      wires.at(i) = { sites.at(i) + 2, i };
+      auto rel_site = sites.at(i) - min_site;
+      auto incr = rel_site == 0UL ? 0UL : 1UL;
+      wires.at(i) = { 2 + rel_site + incr, i };
     }
-    
+
+    // Symmetric tensor contraction should replace wires in-place. 
     pcon con(std::move(tp_res), std::move(tp), ConParams(wires));
     tp_res = con.contract();
-
-    tp_res->print_serial("Tres");
-    if (utils::is_root()) std::cout << "AFTER OP\n";
 
     // Decompose back into site tensors. 
     for (auto i = min_site; i < max_site; ++i) {
@@ -77,22 +78,10 @@ namespace qtnh {
         { 1, 1 }
       };
 
-      if (utils::is_root()) std::cout << 
-        "dp.in_dis_splits" << dp.in_dis_splits << "\n" << 
-        "dp.in_loc_splits" << dp.in_loc_splits << "\n" << 
-        "dp.cyc_splits" << dp.cyc_splits << "\n" << 
-        "dp.dis_splits" << dp.dis_splits << "\n" << 
-        "dp.loc_splits" << dp.loc_splits << "\n";
-
-      Decomposer dec(std::move(tp_res), dp);
+      Decomposer dec(std::move(tp_res), dp, true);
       dec.decompose();
 
       auto [tp_u, tp_s, tp_v] = dec.extract_results();
-
-      utils::barrier();
-      if (utils::is_root()) std::cout << "U: " << tp_u->disDims() << ", " << tp_u->locDims() << "\n";
-      if (utils::is_root()) std::cout << "S: " << tp_s->disDims() << ", " << tp_s->locDims() << "\n";
-      if (utils::is_root()) std::cout << "V: " << tp_v->disDims() << ", " << tp_v->locDims() << "\n";
 
       // Truncate. 
       auto fmul = std::multiplies<tidx>();
@@ -108,16 +97,6 @@ namespace qtnh {
       tp_s = Tensor::truncate(std::move(tp_s), 1, loc_chi_);
       tp_v = Tensor::truncate(std::move(tp_v), 2, loc_chi_);
 
-      if (utils::is_root()) std::cout << "TRUNCATED\n";
-
-      if (utils::is_root()) std::cout << "U: " << tp_u->disDims() << ", " << tp_u->locDims() << "\n";
-      if (utils::is_root()) std::cout << "S: " << tp_s->disDims() << ", " << tp_s->locDims() << "\n";
-      if (utils::is_root()) std::cout << "V: " << tp_v->disDims() << ", " << tp_v->locDims() << "\n";
-
-      tp_u->print_serial("U");
-      tp_s->print_serial("S");
-      tp_v->print_serial("V");
-
       // Calculate SV. 
       auto&& els = tp_s->cast<DenseTensor>()->extractEls();
       tp_s = DiagTensor::make(
@@ -130,21 +109,16 @@ namespace qtnh {
 
       tp_s = SymmTensorBase::rescatterIO(std::move(tp_s), 1);
 
-      tp_s->print_serial("S (resc)");
-
-      using repl_vec = std::vector<tidx_tup_st>;
-      repl_vec phys_repls(loc_size - 3);
-      std::iota(phys_repls.begin(), phys_repls.end(), 2);
+      auto dim_repls_2 = utils::concat_vecs(
+        repl_vec { X, 1, X, 2 }, 
+        utils::vec_incr(4UL, loc_size)
+      );
 
       ConParams params(
         {{ 1, 0 }, { 3, 2 }}, 
-        { 0, X, loc_size - 1, X }, 
-        utils::concat_vecs(repl_vec { X, 1, X }, phys_repls, repl_vec { loc_size })
+        { 0, X, 3, X }, 
+        dim_repls_2
       );
-
-      if (utils::is_root()) std::cout << "Wires: " << params.wires << "\n";
-      if (utils::is_root()) std::cout << "Repls1: " << params.dimRepls1 << "\n";
-      if (utils::is_root()) std::cout << "Repls2: " << params.dimRepls2 << "\n";
       
       pcon con(std::move(tp_s), std::move(tp_v), params);
       tptr tp_sv = con.contract();
@@ -179,7 +153,8 @@ namespace qtnh {
 
     auto rank = tp_res->totDims().size();
     PTupleSrc ptup(rank);
-    ptup.at(rank - 1) << int(rank - 2);
+    ptup.at(3) << 1;
+    ptup.at(rank - 1) << int(rank - 4);
 
     tp_res = Tensor::permute(std::move(tp_res), ptup.toTar().tup());
     tp_res = Tensor::rebcast(std::move(tp_res), { 1, 1, tp_res->bc().params().off });
@@ -213,7 +188,7 @@ namespace qtnh {
 
     for (auto i = 0UL; i < site_tensors_.size(); ++i) {
       std::string label = "S" + std::to_string(i);
-      site_tensors_.at(i)->print_serial(label);
+      site_tensors_.at(i)->print_serial(label, true, false);
     }
 
     if (utils::is_root()) {
