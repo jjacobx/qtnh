@@ -87,6 +87,13 @@ namespace qtnh {
 
       return vec;
     }
+
+    template <typename T>
+    std::vector<T> vec_incr(T from, T to) {
+      std::vector<T> res(to - from + 1);
+      std::iota(res.begin(), res.end(), from);
+      return res;
+    }
   }
 }
 
