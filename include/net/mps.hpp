@@ -35,6 +35,7 @@ namespace qtnh {
       
       qtnh::tel self_overlap();
       qtnh::tel overlap(MPS& mps);
+      void renormalise();
 
       std::unique_ptr<DenseTensor> toDense() &&;
 

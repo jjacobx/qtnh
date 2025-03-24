@@ -146,8 +146,6 @@ namespace qtnh {
     tptr tp_res = DenseTensor::make(env, { dis_chi_, dis_chi_ }, { loc_chi_, loc_chi_ }, std::move(els));
 
     for (auto i = 0UL; i < site_tensors_.size(); ++i) {
-      tp_res->print_serial("Tres");
-
       tptr tp_up = site_tensors_.at(i)->copy();
       tptr tp_dn = site_tensors_.at(i)->copy();
 
@@ -178,6 +176,20 @@ namespace qtnh {
   qtnh::tel MPS::overlap(MPS& mps) {
     utils::throw_unimplemented();
     return 0;
+  }
+
+  void MPS::renormalise() {
+    auto div = self_overlap();
+    div = std::pow(div, 1.0 / double(nSites()));
+
+    for (auto i = 0UL; i < site_tensors_.size(); ++i) {
+      tptr tp = std::move(site_tensors_.at(i));
+      for (auto i = 0UL; tp->bc().isActive() && i < tp->locSize(); ++i) {
+        (*tp)[i] = (*tp)[i] / div;
+      }
+
+      site_tensors_.at(i) = std::move(tp);
+    }
   }
 
   std::unique_ptr<DenseTensor> MPS::toDense() && {
