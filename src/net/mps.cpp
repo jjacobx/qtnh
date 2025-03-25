@@ -130,6 +130,85 @@ namespace qtnh {
     site_tensors_.at(max_site) = std::move(tp_res);
   }
 
+  void MPS::apply(const MPO& mpo, std::size_t from) {
+    tptr tp_s1 = std::move(site_tensors_.at(from));
+    tptr tp_op1 = mpo.at(0).copy();
+
+    ConParams params1({{2, 0}});
+    pcon con1(std::move(tp_s1), std::move(tp_op1), params1);
+    tp_s1 = con1.contract();
+
+    for (auto i = 1UL; i < mpo.nSites(); ++i) {
+      auto is_last = i == (mpo.nSites() - 1);
+      tptr tp_s2 = std::move(site_tensors_.at(from + i));
+      tptr tp_op2 = mpo.at(i).copy();
+
+      ConParams params2({{2, 0}});
+      pcon con2(std::move(tp_s2), std::move(tp_op2), params2);
+      tp_s2 = con2.contract();
+
+      auto repls2 = is_last
+        ? std::vector<tidx_tup_st> { X, 1, X, 5, 4, X }
+        : std::vector<tidx_tup_st> { X, 1, X, 6, 4, X, 5 };
+      ConParams params3({{1, 0}, {3, 2}, {5, 5}}, { 0, X, 3, X, 2, X }, repls2);
+      pcon con3(std::move(tp_s1), std::move(tp_s2), params3);
+      tptr tp_s3 = con3.contract();
+
+      DecParams dp {
+        { 1, 1 }, 
+        { 2, is_last ? 2 : 3 }, 
+        { 1, is_last ? 1 : 2 }, 
+        { 1, 1 }, 
+        { 1, 1 }
+      };
+
+      Decomposer dec(std::move(tp_s3), dp, true);
+      dec.decompose();
+
+      auto [tp_u, tp_s, tp_v] = dec.extract_results();
+
+      // Truncate. 
+      auto fmul = std::multiplies<tidx>();
+      auto loc_dims_u = utils::combine_part(tp_u->locDims(), 2, 3, tidx(1.0), fmul);
+      auto loc_dims_s = utils::combine_part(tp_s->locDims(), 1, 2, tidx(1.0), fmul);
+      auto loc_dims_v = utils::combine_part(tp_v->locDims(), 0, 1, tidx(1.0), fmul);
+
+      tp_u->reshape(tp_u->disDims(), loc_dims_u);
+      tp_s->reshape(tp_s->disDims(), loc_dims_s);
+      tp_v->reshape(tp_v->disDims(), loc_dims_v);
+
+      tp_s->print_serial("S (truncating 1)");
+
+      tp_u = Tensor::truncate(std::move(tp_u), 4, loc_chi_);
+      tp_s = Tensor::truncate(std::move(tp_s), 1, loc_chi_);
+      tp_v = Tensor::truncate(std::move(tp_v), 2, loc_chi_);
+
+      // Calculate SV. 
+      auto&& els = tp_s->cast<DenseTensor>()->extractEls();
+      tp_s = DiagTensor::make(
+        tp_s->bc().env(), 
+        {}, 
+        { dis_chi_, loc_chi_, dis_chi_, loc_chi_ }, 
+        false, 
+        std::move(els)
+      );
+
+      tp_s = SymmTensorBase::rescatterIO(std::move(tp_s), 1);
+
+      auto params4 = is_last
+       ? ConParams({{ 1, 0 }, { 3, 2 }}, { 0, X, 3, X }, { X, 1, X, 2, 4})
+       : ConParams({{ 1, 0 }, { 3, 2 }}, { 0, X, 2, X }, { X, 1, X, 4, 5, 3});
+      
+      pcon con4(std::move(tp_s), std::move(tp_v), params4);
+      tptr tp_sv = con4.contract();
+
+      site_tensors_.at(from + i - 1) = std::move(tp_u);
+      tp_s1 = std::move(tp_sv);
+    }
+
+    site_tensors_.at(from + mpo.nSites() - 1) = std::move(tp_s1);
+  }
+
   qtnh::tel MPS::self_overlap() {
     //
     // XXX - XXX - XXX - XXX - XXX
@@ -241,6 +320,33 @@ namespace qtnh {
     for (auto i = 0UL; i < site_tensors_.size(); ++i) {
       std::string label = "S" + std::to_string(i);
       site_tensors_.at(i)->print_serial(label, true, false);
+    }
+
+    if (utils::is_root()) {
+      std::cout << "================================================================\n";
+    }
+
+    utils::barrier();
+  }
+
+  MPO::MPO(std::vector<qtnh::tptr>&& site_ops) 
+  : site_ops_(std::move(site_ops))
+  {}
+
+  void MPO::print() const {
+    utils::barrier();
+
+    if (utils::is_root()) {
+      std::cout << "================================================================\n";
+      std::cout << "MPO with N=" << site_ops_.size() << ")\n";
+
+      std::cout << "----------------------------------------------------------------\n";
+      std::cout << "Sites: \n";
+    }
+
+    for (auto i = 0UL; i < site_ops_.size(); ++i) {
+      std::string label = "O" + std::to_string(i);
+      site_ops_.at(i)->print_serial(label, true, false);
     }
 
     if (utils::is_root()) {
