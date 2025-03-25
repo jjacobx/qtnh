@@ -10,6 +10,8 @@ namespace qtnh {
     none
   };
 
+  class MPO;
+
   class MPS {
     public:
       using chi_pair = std::pair<std::size_t, std::size_t>;
@@ -30,8 +32,8 @@ namespace qtnh {
       constexpr std::size_t locChi() const { return loc_chi_; }
       constexpr std::size_t totChi() const { return dis_chi_ * loc_chi_; }
 
-      void apply(std::unique_ptr<SymmTensorBase> tp, 
-                 std::vector<std::size_t> sites);
+      void apply(std::unique_ptr<SymmTensorBase> tp, std::vector<std::size_t> sites);
+      void apply(const MPO& mpo, std::size_t from);
       
       qtnh::tel self_overlap();
       qtnh::tel overlap(MPS& mps);
@@ -48,6 +50,22 @@ namespace qtnh {
 
       std::size_t dis_chi_;
       std::size_t loc_chi_;
+  };
+
+  class MPO {
+    public:
+      MPO() = delete;
+      MPO(std::vector<qtnh::tptr>&& site_ops);
+      ~MPO() = default;
+
+      const Tensor& at(std::size_t k) const { return *site_ops_.at(k); }
+      qtnh::tptr extract(std::size_t k) { return std::move(site_ops_.at(k)); }
+      std::size_t nSites() const { return site_ops_.size(); }
+
+      void print() const;
+
+    private:
+      std::vector<qtnh::tptr> site_ops_;
   };
 }
 
