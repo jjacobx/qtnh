@@ -261,8 +261,47 @@ namespace qtnh {
   }
 
   qtnh::tel MPS::overlap(MPS& mps) {
-    utils::throw_unimplemented();
-    return 0;
+    //
+    // XXX - XXX - XXX - XXX - XXX
+    // XXX = XXX = XXX = XXX = XXX
+    //  |     |     |     |     |
+    // XXX - XXX - XXX - XXX - XXX
+    // XXX = XXX = XXX = XXX = XXX 
+    //
+
+    // TODO: Start at lowest rank in MPS. 
+    const auto& env = site_tensors_.at(0)->bc().env();
+    std::vector<tel> els(loc_chi_ * loc_chi_ , 0);
+    if (utils::is_root()) els.at(0) = 1.0;
+    tptr tp_res = DenseTensor::make(env, { mps.disChi(), disChi() }, 
+                                    { mps.locChi(), locChi() }, std::move(els));
+
+    for (auto i = 0UL; i < site_tensors_.size(); ++i) {
+      tptr tp_up = mps.at(i).copy();
+      tptr tp_dn = site_tensors_.at(i)->copy();
+
+      // Conjugate UP tensor. 
+      for (auto i = 0UL; tp_up->bc().isActive() && i < tp_up->locSize(); ++i) {
+        (*tp_up)[i] = std::conj((*tp_up)[i]);
+      }
+
+      ConParams params1({{ 0, 0 }, { 2, 3 }});
+      pcon con1(std::move(tp_res), std::move(tp_up), params1);
+      tp_res = con1.contract();
+
+      ConParams params2({{ 0, 0 }, { 2, 3 }, { 3, 2 }});
+      pcon con2(std::move(tp_res), std::move(tp_dn), params2);
+      tp_res = con2.contract();
+    }
+
+    qtnh::tel res;
+    if (utils::is_root()) {
+      res = tp_res->at({ 0, 0, 0, 0 });
+    }
+
+    MPI_Bcast(&res, 1, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
+
+    return res;
   }
 
   void MPS::renormalise() {
