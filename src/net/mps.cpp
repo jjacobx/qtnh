@@ -43,6 +43,9 @@ namespace qtnh {
     auto min_site = *std::min_element(sites.begin(), sites.end());
     auto max_site = *std::max_element(sites.begin(), sites.end());
 
+    leftCanonicalise(min_site);
+    rightCanonicalise(max_site);
+
     // Contract all sites within range (min, max). 
     tptr tp_res = std::move(site_tensors_.at(min_site));
     for (auto i = min_site + 1; i <= max_site; ++i) {
@@ -123,14 +126,19 @@ namespace qtnh {
       pcon con(std::move(tp_s), std::move(tp_v), params);
       tptr tp_sv = con.contract();
 
+      site_norms_.at(i) = MPS_NORM::left;
       site_tensors_.at(i) = std::move(tp_u);
       tp_res = std::move(tp_sv);
     }
 
+    site_norms_.at(max_site) = MPS_NORM::none;
     site_tensors_.at(max_site) = std::move(tp_res);
   }
 
   void MPS::apply(const MPO& mpo, std::size_t from) {
+    leftCanonicalise(from);
+    rightCanonicalise(from);
+
     tptr tp_s1 = std::move(site_tensors_.at(from));
     tptr tp_op1 = mpo.at(0).copy();
 
@@ -177,8 +185,6 @@ namespace qtnh {
       tp_s->reshape(tp_s->disDims(), loc_dims_s);
       tp_v->reshape(tp_v->disDims(), loc_dims_v);
 
-      tp_s->print_serial("S (truncating 1)");
-
       tp_u = Tensor::truncate(std::move(tp_u), 4, loc_chi_);
       tp_s = Tensor::truncate(std::move(tp_s), 1, loc_chi_);
       tp_v = Tensor::truncate(std::move(tp_v), 2, loc_chi_);
@@ -202,10 +208,12 @@ namespace qtnh {
       pcon con4(std::move(tp_s), std::move(tp_v), params4);
       tptr tp_sv = con4.contract();
 
+      site_norms_.at(from + i - 1) = MPS_NORM::left;
       site_tensors_.at(from + i - 1) = std::move(tp_u);
       tp_s1 = std::move(tp_sv);
     }
 
+    site_norms_.at(from + mpo.nSites() - 1) = MPS_NORM::none;
     site_tensors_.at(from + mpo.nSites() - 1) = std::move(tp_s1);
   }
 
@@ -268,6 +276,126 @@ namespace qtnh {
       }
 
       site_tensors_.at(i) = std::move(tp);
+    }
+  }
+
+  void MPS::leftCanonicalise(std::size_t to) {
+    auto can_continue = true;
+    for (auto i = 0UL; i + 1 < to; ++i) {
+      if (can_continue && site_norms_.at(i) == MPS_NORM::left) {
+        continue;
+      } else {
+        can_continue = false;
+      }
+
+      tptr tp1 = std::move(site_tensors_.at(i));
+      tptr tp2 = std::move(site_tensors_.at(i + 1));
+
+      ConParams params({{ 1, 0 }, { 4, 3 }});
+      pcon con(std::move(tp1), std::move(tp2), params);
+      tptr tp12 = con.contract();
+
+      DecParams dp {{ 1, 1 }, { 2, 2 }, { 1, 1 }, { 1, 1 }, { 1, 1 }};
+      Decomposer dec(std::move(tp12), dp, true);
+      dec.decompose();
+
+      auto [tp_u, tp_s, tp_v] = dec.extract_results();
+
+      // Truncate. 
+      auto fmul = std::multiplies<tidx>();
+      auto loc_dims_u = utils::combine_part(tp_u->locDims(), 2, 3, tidx(1.0), fmul);
+      auto loc_dims_s = utils::combine_part(tp_s->locDims(), 1, 2, tidx(1.0), fmul);
+      auto loc_dims_v = utils::combine_part(tp_v->locDims(), 0, 1, tidx(1.0), fmul);
+
+      tp_u->reshape(tp_u->disDims(), loc_dims_u);
+      tp_s->reshape(tp_s->disDims(), loc_dims_s);
+      tp_v->reshape(tp_v->disDims(), loc_dims_v);
+
+      // TODO: Check for non-zero truncation. 
+      tp_u = Tensor::truncate(std::move(tp_u), 4, loc_chi_);
+      tp_s = Tensor::truncate(std::move(tp_s), 1, loc_chi_);
+      tp_v = Tensor::truncate(std::move(tp_v), 2, loc_chi_);
+
+      // Calculate SV. 
+      auto&& els = tp_s->cast<DenseTensor>()->extractEls();
+      tp_s = DiagTensor::make(
+        tp_s->bc().env(), 
+        {}, 
+        { dis_chi_, loc_chi_, dis_chi_, loc_chi_ }, 
+        false, 
+        std::move(els)
+      );
+
+      tp_s = SymmTensorBase::rescatterIO(std::move(tp_s), 1);
+
+      ConParams params_sv({{ 1, 0 }, { 3, 2 }}, { 0, X, 3, X }, { X, 1, X, 2, 4 });
+      pcon con_sv(std::move(tp_s), std::move(tp_v), params_sv);
+
+      site_norms_.at(i) = MPS_NORM::left;
+      site_norms_.at(i + 1) = MPS_NORM::none;
+      site_tensors_.at(i) = std::move(tp_u);
+      site_tensors_.at(i + 1) = con_sv.contract();
+    }
+  }
+
+  void MPS::rightCanonicalise(std::size_t to) {
+    auto n = nSites();
+    auto can_continue = true;
+    for (auto i = 1UL; i < n - to; ++i) {
+      if (can_continue && site_norms_.at(n - i) == MPS_NORM::right) {
+        continue;
+      } else {
+        can_continue = false;
+      }
+
+      tptr tp1 = std::move(site_tensors_.at(n - i - 1));
+      tptr tp2 = std::move(site_tensors_.at(n - i));
+
+      ConParams params({{ 1, 0 }, { 4, 3 }});
+      pcon con(std::move(tp1), std::move(tp2), params);
+      tptr tp12 = con.contract();
+
+      DecParams dp {{ 1, 1 }, { 2, 2 }, { 1, 1 }, { 1, 1 }, { 1, 1 }};
+      Decomposer dec(std::move(tp12), dp, true);
+      dec.decompose();
+
+      auto [tp_u, tp_s, tp_v] = dec.extract_results();
+
+      // Truncate. 
+      auto fmul = std::multiplies<tidx>();
+      auto loc_dims_u = utils::combine_part(tp_u->locDims(), 2, 3, tidx(1.0), fmul);
+      auto loc_dims_s = utils::combine_part(tp_s->locDims(), 1, 2, tidx(1.0), fmul);
+      auto loc_dims_v = utils::combine_part(tp_v->locDims(), 0, 1, tidx(1.0), fmul);
+
+      tp_u->reshape(tp_u->disDims(), loc_dims_u);
+      tp_s->reshape(tp_s->disDims(), loc_dims_s);
+      tp_v->reshape(tp_v->disDims(), loc_dims_v);
+
+      // TODO: Check for non-zero truncation. 
+      tp_u = Tensor::truncate(std::move(tp_u), 4, loc_chi_);
+      tp_s = Tensor::truncate(std::move(tp_s), 1, loc_chi_);
+      tp_v = Tensor::truncate(std::move(tp_v), 2, loc_chi_);
+
+      // Calculate US. 
+      auto&& els = tp_s->cast<DenseTensor>()->extractEls();
+      tp_s = DiagTensor::make(
+        tp_s->bc().env(), 
+        {}, 
+        { dis_chi_, loc_chi_, dis_chi_, loc_chi_ }, 
+        false, 
+        std::move(els)
+      );
+
+      tp_s = SymmTensorBase::rescatterIO(std::move(tp_s), 1);
+
+      pcon con_us(std::move(tp_u), std::move(tp_s), ConParams({{ 1, 0 }, { 4, 2 }}));
+      PTupleSrc ptup(tp_v->totDims().size());
+      ptup.at(3) << 1;
+
+      site_norms_.at(n - i) = MPS_NORM::right;
+      site_norms_.at(n - i - 1) = MPS_NORM::none;
+      site_tensors_.at(n - i) = Tensor::permute(std::move(tp_v), ptup.toTar().tup());
+      site_tensors_.at(n - i - 1) = con_us.contract();
     }
   }
 
