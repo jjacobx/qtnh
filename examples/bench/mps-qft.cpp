@@ -36,6 +36,31 @@ MPO controlledGate(const QTNHEnv& env, std::size_t n, std::vector<tel> els) {
   return MPO(std::move(ops));
 }
 
+tel urot(int k) {
+  return std::exp(2i * M_PI / std::pow(2, k));
+}
+
+MPO cMultiPhase(const QTNHEnv& env, std::size_t n) {
+  std::vector<tptr> ops(n);
+  std::vector<tel> op;
+
+  op = { 1, 0, 0, 0, 0, 0, 0, 1 };
+  ops.at(0) = DenseTensor::make(env, {}, { 2, 2, 2 }, std::move(op));
+  ops.at(0) = Tensor::permute(std::move(ops.at(0)), { 2, 1, 0 });
+
+  for (auto i = 1UL; i + 1 < n; ++i) {
+    op = { 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, urot(i + 1) };
+    ops.at(i) = DenseTensor::make(env, {}, { 2, 2, 2, 2 }, std::move(op));
+    ops.at(i) = Tensor::permute(std::move(ops.at(i)), { 2, 3, 1, 0 });
+  }
+  
+  op = { 1, 0, 0, 1, 1, 0, 0, urot(n) };
+  ops.at(n - 1) = DenseTensor::make(env, {}, { 2, 2, 2 }, std::move(op));
+  ops.at(n - 1) = Tensor::permute(std::move(ops.at(n - 1)), { 2, 1, 0 });
+
+  return MPO(std::move(ops));
+}
+
 void qft(const QTNHEnv& env, MPS& mps) {
   auto n = mps.nSites();
 
@@ -43,14 +68,22 @@ void qft(const QTNHEnv& env, MPS& mps) {
     if (utils::is_root()) {
       std::cout << "Iteration " << i + 1 << "/" << n << "\n";
     }
-    
+
     mps.apply(H(env), { i });
-    for (auto j = i + 1; j < n; ++j) {
-      auto k = j - i + 1;
-      auto c = std::exp(2i * M_PI / std::pow(2, k));
-      MPO cp_mpo = controlledGate(env, k, { 1, 0, 0, c });
-      mps.apply(cp_mpo, i);
-    }
+    mps.leftCanonicalise(i);
+    mps.rightCanonicalise(i);
+
+    if (i + 1 == n) break;
+
+    MPO mpo = cMultiPhase(env, n - i);
+    mps.apply(mpo, i);
+
+    // for (auto j = i + 1; j < n; ++j) {
+    //   auto k = j - i + 1;
+    //   auto c = std::exp(2i * M_PI / std::pow(2, k));
+    //   MPO cp_mpo = controlledGate(env, k, { 1, 0, 0, c });
+    //   mps.apply(cp_mpo, i);
+    // }
   }
 }
 
@@ -81,7 +114,7 @@ int main(int argc, char* argv[]) {
   auto stop = high_resolution_clock::now();
 
   MPS zero_amp(env, N_SITES, SITE_DIM, { 1, 1 });
-  auto norm = mps.overlap(mps);
+  auto norm = mps.norm();
   auto amp0 = mps.overlap(zero_amp);
   auto delta = duration_cast<milliseconds>(stop - start);
   
@@ -90,4 +123,7 @@ int main(int argc, char* argv[]) {
     std::cout << "T[0] = " << amp0 << "\n";
     std::cout << "Time taken: " << delta.count() << " ms\n";
   }
+
+  // mps.print();
+  // std::move(mps).toDense()->print_serial("Res");
 }
