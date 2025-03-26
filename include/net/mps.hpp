@@ -4,7 +4,7 @@
 #include "net/network.hpp"
 
 namespace qtnh {
-  enum class MPS_NORM {
+  enum class SITE_CANON {
     left, 
     right, 
     none
@@ -19,13 +19,12 @@ namespace qtnh {
       MPS() = delete;
       MPS(const QTNHEnv& env, std::size_t n_sites, qtnh::tidx site_dim, chi_pair chis);
       MPS(const QTNHEnv& env, std::size_t n_sites, qtnh::tidx_tup site_dims, chi_pair chis);
-      MPS(qtnh::tptr tp, chi_pair chis, MPS_NORM norm = MPS_NORM::left);
+      MPS(qtnh::tptr tp, chi_pair chis, SITE_CANON norm = SITE_CANON::left);
       ~MPS() = default;
 
-      const Tensor& at(std::size_t k) const { return *site_tensors_.at(k); }
-      MPS_NORM norm(std::size_t k) const { return site_norms_.at(k); }
-
-      qtnh::tidx_tup siteDims() const { return site_dims_; }
+      const Tensor& site(std::size_t k) const { return *site_tensors_.at(k); }
+      const std::vector<SITE_CANON>& siteCanons(std::size_t k) const { return site_canons_; }
+      const qtnh::tidx_tup& siteDims() const { return site_dims_; }
       std::size_t nSites() const { return site_tensors_.size(); }
 
       constexpr std::size_t disChi() const { return dis_chi_; }
@@ -35,8 +34,8 @@ namespace qtnh {
       void apply(std::unique_ptr<SymmTensorBase> tp, std::vector<std::size_t> sites);
       void apply(const MPO& mpo, std::size_t from);
       
-      qtnh::tel self_overlap();
       qtnh::tel overlap(MPS& mps);
+      qtnh::tel norm();
       
       void renormalise();
       void leftCanonicalise(std::size_t to);
@@ -48,7 +47,7 @@ namespace qtnh {
 
     private:
       std::vector<qtnh::tptr> site_tensors_;
-      std::vector<MPS_NORM> site_norms_;
+      std::vector<SITE_CANON> site_canons_;
       qtnh::tidx_tup site_dims_;
 
       std::size_t dis_chi_;

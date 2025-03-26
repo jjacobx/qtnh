@@ -15,7 +15,7 @@ namespace qtnh {
 
   MPS::MPS(const QTNHEnv& env, std::size_t n_sites, qtnh::tidx_tup site_dims, chi_pair chis) 
   : site_tensors_(n_sites)
-  , site_norms_(n_sites, MPS_NORM::none)
+  , site_canons_(n_sites, SITE_CANON::none)
   , site_dims_(site_dims)
   , dis_chi_(chis.first)
   , loc_chi_(chis.second)
@@ -33,7 +33,7 @@ namespace qtnh {
     }
   }
 
-  MPS::MPS(qtnh::tptr tp, chi_pair chis, MPS_NORM norm) {
+  MPS::MPS(qtnh::tptr tp, chi_pair chis, SITE_CANON norm) {
     utils::throw_unimplemented();
   }
 
@@ -126,12 +126,12 @@ namespace qtnh {
       pcon con(std::move(tp_s), std::move(tp_v), params);
       tptr tp_sv = con.contract();
 
-      site_norms_.at(i) = MPS_NORM::left;
+      site_canons_.at(i) = SITE_CANON::left;
       site_tensors_.at(i) = std::move(tp_u);
       tp_res = std::move(tp_sv);
     }
 
-    site_norms_.at(max_site) = MPS_NORM::none;
+    site_canons_.at(max_site) = SITE_CANON::none;
     site_tensors_.at(max_site) = std::move(tp_res);
   }
 
@@ -208,56 +208,13 @@ namespace qtnh {
       pcon con4(std::move(tp_s), std::move(tp_v), params4);
       tptr tp_sv = con4.contract();
 
-      site_norms_.at(from + i - 1) = MPS_NORM::left;
+      site_canons_.at(from + i - 1) = SITE_CANON::left;
       site_tensors_.at(from + i - 1) = std::move(tp_u);
       tp_s1 = std::move(tp_sv);
     }
 
-    site_norms_.at(from + mpo.nSites() - 1) = MPS_NORM::none;
+    site_canons_.at(from + mpo.nSites() - 1) = SITE_CANON::none;
     site_tensors_.at(from + mpo.nSites() - 1) = std::move(tp_s1);
-  }
-
-  qtnh::tel MPS::self_overlap() {
-    //
-    // XXX - XXX - XXX - XXX - XXX
-    // XXX = XXX = XXX = XXX = XXX
-    //  |     |     |     |     |
-    // XXX - XXX - XXX - XXX - XXX
-    // XXX = XXX = XXX = XXX = XXX 
-    //
-
-    // TODO: Start at lowest rank in MPS. 
-    const auto& env = site_tensors_.at(0)->bc().env();
-    std::vector<tel> els(loc_chi_ * loc_chi_ , 0);
-    if (utils::is_root()) els.at(0) = 1.0;
-    tptr tp_res = DenseTensor::make(env, { dis_chi_, dis_chi_ }, { loc_chi_, loc_chi_ }, std::move(els));
-
-    for (auto i = 0UL; i < site_tensors_.size(); ++i) {
-      tptr tp_up = site_tensors_.at(i)->copy();
-      tptr tp_dn = site_tensors_.at(i)->copy();
-
-      // Conjugate UP tensor. 
-      for (auto i = 0UL; tp_up->bc().isActive() && i < tp_up->locSize(); ++i) {
-        (*tp_up)[i] = std::conj((*tp_up)[i]);
-      }
-
-      ConParams params1({{ 0, 0 }, { 2, 3 }});
-      pcon con1(std::move(tp_res), std::move(tp_up), params1);
-      tp_res = con1.contract();
-
-      ConParams params2({{ 0, 0 }, { 2, 3 }, { 3, 2 }});
-      pcon con2(std::move(tp_res), std::move(tp_dn), params2);
-      tp_res = con2.contract();
-    }
-
-    qtnh::tel res;
-    if (utils::is_root()) {
-      res = tp_res->at({ 0, 0, 0, 0 });
-    }
-
-    MPI_Bcast(&res, 1, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
-
-    return res;
   }
 
   qtnh::tel MPS::overlap(MPS& mps) {
@@ -277,7 +234,7 @@ namespace qtnh {
                                     { mps.locChi(), locChi() }, std::move(els));
 
     for (auto i = 0UL; i < site_tensors_.size(); ++i) {
-      tptr tp_up = mps.at(i).copy();
+      tptr tp_up = mps.site(i).copy();
       tptr tp_dn = site_tensors_.at(i)->copy();
 
       // Conjugate UP tensor. 
@@ -304,9 +261,12 @@ namespace qtnh {
     return res;
   }
 
+  qtnh::tel MPS::norm() {
+    return overlap(*this);
+  }
+
   void MPS::renormalise() {
-    auto div = self_overlap();
-    div = std::pow(div, 1.0 / double(nSites()));
+    auto div = std::pow(norm(), 1.0 / double(nSites()));
 
     for (auto i = 0UL; i < site_tensors_.size(); ++i) {
       tptr tp = std::move(site_tensors_.at(i));
@@ -321,7 +281,7 @@ namespace qtnh {
   void MPS::leftCanonicalise(std::size_t to) {
     auto can_continue = true;
     for (auto i = 0UL; i + 1 < to; ++i) {
-      if (can_continue && site_norms_.at(i) == MPS_NORM::left) {
+      if (can_continue && site_canons_.at(i) == SITE_CANON::left) {
         continue;
       } else {
         can_continue = false;
@@ -370,8 +330,8 @@ namespace qtnh {
       ConParams params_sv({{ 1, 0 }, { 3, 2 }}, { 0, X, 3, X }, { X, 1, X, 2, 4 });
       pcon con_sv(std::move(tp_s), std::move(tp_v), params_sv);
 
-      site_norms_.at(i) = MPS_NORM::left;
-      site_norms_.at(i + 1) = MPS_NORM::none;
+      site_canons_.at(i) = SITE_CANON::left;
+      site_canons_.at(i + 1) = SITE_CANON::none;
       site_tensors_.at(i) = std::move(tp_u);
       site_tensors_.at(i + 1) = con_sv.contract();
     }
@@ -381,7 +341,7 @@ namespace qtnh {
     auto n = nSites();
     auto can_continue = true;
     for (auto i = 1UL; i < n - to; ++i) {
-      if (can_continue && site_norms_.at(n - i) == MPS_NORM::right) {
+      if (can_continue && site_canons_.at(n - i) == SITE_CANON::right) {
         continue;
       } else {
         can_continue = false;
@@ -431,8 +391,8 @@ namespace qtnh {
       PTupleSrc ptup(tp_v->totDims().size());
       ptup.at(3) << 1;
 
-      site_norms_.at(n - i) = MPS_NORM::right;
-      site_norms_.at(n - i - 1) = MPS_NORM::none;
+      site_canons_.at(n - i) = SITE_CANON::right;
+      site_canons_.at(n - i - 1) = SITE_CANON::none;
       site_tensors_.at(n - i) = Tensor::permute(std::move(tp_v), ptup.toTar().tup());
       site_tensors_.at(n - i - 1) = con_us.contract();
     }
@@ -471,6 +431,16 @@ namespace qtnh {
     return DenseTensor::make(bc.env(), {}, new_loc_dims, std::move(els), bc.params());
   }
 
+  std::ostream& operator<<(std::ostream& out, const SITE_CANON& o) {
+    switch(o) {
+      case SITE_CANON::left : out << "L"; break;
+      case SITE_CANON::right: out << "R"; break;
+      default               : out << "N";
+    }
+
+    return out;
+  }
+
   void MPS::print() const {
     utils::barrier();
 
@@ -478,7 +448,8 @@ namespace qtnh {
       std::cout << "================================================================\n";
       std::cout << "MPS with N=" << site_tensors_.size() << 
         " chi=(" << dis_chi_ << "," << loc_chi_ << ")\n";
-      std::cout << "Phys: " << site_dims_ << "\n";
+      std::cout << "Phys:  " << site_dims_ << "\n";
+      std::cout << "Canons: " << site_canons_ << "\n";
 
       std::cout << "----------------------------------------------------------------\n";
       std::cout << "Sites: \n";
