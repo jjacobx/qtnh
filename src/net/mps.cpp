@@ -43,8 +43,8 @@ namespace qtnh {
     auto min_site = *std::min_element(sites.begin(), sites.end());
     auto max_site = *std::max_element(sites.begin(), sites.end());
 
-    leftCanonicalise(min_site);
-    rightCanonicalise(max_site);
+    // leftCanonicalise(min_site);
+    // rightCanonicalise(max_site);
 
     // Contract all sites within range (min, max). 
     tptr tp_res = std::move(site_tensors_.at(min_site));
@@ -136,8 +136,9 @@ namespace qtnh {
   }
 
   void MPS::apply(const MPO& mpo, std::size_t from) {
-    leftCanonicalise(from);
-    rightCanonicalise(from);
+    // ! Check if this is correct. 
+    // leftCanonicalise(from);
+    // rightCanonicalise(from + mpo.nSites() - 1);
 
     tptr tp_s1 = std::move(site_tensors_.at(from));
     tptr tp_op1 = mpo.at(0).copy();
