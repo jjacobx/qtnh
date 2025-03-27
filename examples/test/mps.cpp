@@ -88,7 +88,7 @@ void qft(const QTNHEnv& env, MPS& mps) {
 int main() {
   QTNHEnv env;
 
-  constexpr auto N_SITES  = 4UL;
+  constexpr auto N_SITES  = 8UL;
   constexpr auto SITE_DIM = 2UL;
   constexpr auto CHI_DIS  = 2UL;
   constexpr auto CHI_LOC  = 2UL;
@@ -134,48 +134,15 @@ int main() {
   // mps.apply(cp_mpo, 0);
   // mps.print();
 
-  // qft(env, mps);
-  tel c;
+  qft(env, mps);
 
-  mps.apply(Tensor::cast<SymmTensor>(h->copy()), { 0 });
-
-  c = std::exp(2i * M_PI / std::pow(2, 2));
-  MPO cp_mpo1 = controlledGate(env, 2, { 1, 0, 0, c});
-  mps.apply(cp_mpo1, 0);
-
-  c = std::exp(2i * M_PI / std::pow(2, 3));
-  MPO cp_mpo2 = controlledGate(env, 3, { 1, 0, 0, c});
-  mps.apply(cp_mpo2, 0);
-
-  c = std::exp(2i * M_PI / std::pow(2, 4));
-  MPO cp_mpo3 = controlledGate(env, 4, { 1, 0, 0, c});
-  mps.apply(cp_mpo3, 0);
-
-  mps.apply(Tensor::cast<SymmTensor>(h->copy()), { 1 });
-
-  c = std::exp(2i * M_PI / std::pow(2, 2));
-  MPO cp_mpo4 = controlledGate(env, 2, { 1, 0, 0, c});
-  mps.apply(cp_mpo4, 1);
-
-  c = std::exp(2i * M_PI / std::pow(2, 3));
-  MPO cp_mpo5 = controlledGate(env, 3, { 1, 0, 0, c});
-  mps.apply(cp_mpo5, 1);
-
-  mps.apply(Tensor::cast<SymmTensor>(h->copy()), { 2 });
-
-  c = std::exp(2i * M_PI / std::pow(2, 2));
-  MPO cp_mpo6 = controlledGate(env, 2, { 1, 0, 0, c});
-  mps.apply(cp_mpo6, 2);
-
-  mps.apply(Tensor::cast<SymmTensor>(h->copy()), { 3 });
+  std::cout << mps.norm() << "\n";
+  mps.renormalise();
 
   mps.print();
 
-  std::cout << mps.self_overlap() << "\n";
-  mps.renormalise();
-
-  tptr tmps = std::move(mps).toDense();
-  tmps->print_serial("TMPS");
+  MPS zero_amp(env, N_SITES, SITE_DIM, { 1, 1 });
+  std::cout << "T[0] = " << mps.overlap(zero_amp) << "\n";
 
   return 0;
 }
