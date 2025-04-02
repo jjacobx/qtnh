@@ -15,6 +15,7 @@ namespace qtnh {
 
 #include "net/mps.hpp"
 #include "net/network.hpp"
+#include "net/qops.hpp"
 
 #include "ten/con/base.hpp"
 #include "ten/con/pair.hpp"
