@@ -134,7 +134,7 @@ int main() {
   // mps.apply(cp_mpo, 0);
   // mps.print();
 
-  qft(env, mps);
+  // qft(env, mps);
 
   std::cout << mps.norm() << "\n";
   mps.renormalise();
@@ -143,6 +143,12 @@ int main() {
 
   MPS zero_amp(env, N_SITES, SITE_DIM, { 1, 1 });
   std::cout << "T[0] = " << mps.overlap(zero_amp) << "\n";
+
+  auto swap = qops::swap(env, 3);
+  swap.print();
+
+  auto cswap = qops::cmpo(env, swap, 5);
+  cswap.print();
 
   return 0;
 }
