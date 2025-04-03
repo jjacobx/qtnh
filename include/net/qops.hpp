@@ -5,9 +5,15 @@
 
 namespace qtnh {
   namespace qops {
+    tptr_symm x(const QTNHEnv& env);
+    tptr_symm h(const QTNHEnv& env);
+
     MPO swap(const QTNHEnv& env, std::size_t n);
     MPO cmpo(const QTNHEnv& env, const MPO& mpo, std::size_t n);
     std::vector<qtnh::wire> rotate_swaps(std::size_t n, int d);
+
+    MPO cmp(const QTNHEnv& env, std::size_t n);
+    MPO icmp(const QTNHEnv& env, std::size_t n);
   }
 }
 
