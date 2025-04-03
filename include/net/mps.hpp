@@ -25,6 +25,7 @@ namespace qtnh {
       const Tensor& site(std::size_t k) const { return *site_tensors_.at(k); }
       const std::vector<SITE_CANON>& siteCanons(std::size_t k) const { return site_canons_; }
       const qtnh::tidx_tup& siteDims() const { return site_dims_; }
+      const qtnh::tidx_tup& bondDims() const { return bond_dims_; }
       std::size_t nSites() const { return site_tensors_.size(); }
 
       constexpr std::size_t disChi() const { return dis_chi_; }
@@ -49,6 +50,7 @@ namespace qtnh {
       std::vector<qtnh::tptr> site_tensors_;
       std::vector<SITE_CANON> site_canons_;
       qtnh::tidx_tup site_dims_;
+      qtnh::tidx_tup bond_dims_;
 
       std::size_t dis_chi_;
       std::size_t loc_chi_;

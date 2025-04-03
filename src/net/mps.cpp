@@ -17,6 +17,7 @@ namespace qtnh {
   : site_tensors_(n_sites)
   , site_canons_(n_sites, SITE_CANON::none)
   , site_dims_(site_dims)
+  , bond_dims_(n_sites - 1, 1)
   , dis_chi_(chis.first)
   , loc_chi_(chis.second)
   {
@@ -35,6 +36,16 @@ namespace qtnh {
 
   MPS::MPS(qtnh::tptr tp, chi_pair chis, SITE_CANON norm) {
     utils::throw_unimplemented();
+  }
+
+  std::size_t count_bond_dim(const std::vector<tel>& els, double tol = 1E-10) {
+    auto counter = 0UL;
+    for (auto& e : els) {
+      if (std::abs(e) < tol) break;
+      counter++;
+    }
+
+    return counter;
   }
 
   void MPS::apply(std::unique_ptr<SymmTensorBase> tp, 
@@ -102,6 +113,8 @@ namespace qtnh {
 
       // Calculate SV. 
       auto&& els = tp_s->cast<DenseTensor>()->extractEls();
+      bond_dims_.at(i) = count_bond_dim(els);
+
       tp_s = DiagTensor::make(
         tp_s->bc().env(), 
         {}, 
@@ -192,6 +205,8 @@ namespace qtnh {
 
       // Calculate SV. 
       auto&& els = tp_s->cast<DenseTensor>()->extractEls();
+      bond_dims_.at(from + i - 1) = count_bond_dim(els);
+
       tp_s = DiagTensor::make(
         tp_s->bc().env(), 
         {}, 
@@ -318,6 +333,8 @@ namespace qtnh {
 
       // Calculate SV. 
       auto&& els = tp_s->cast<DenseTensor>()->extractEls();
+      bond_dims_.at(i) = count_bond_dim(els);
+
       tp_s = DiagTensor::make(
         tp_s->bc().env(), 
         {}, 
@@ -378,6 +395,8 @@ namespace qtnh {
 
       // Calculate US. 
       auto&& els = tp_s->cast<DenseTensor>()->extractEls();
+      bond_dims_.at(n - i - 1) = count_bond_dim(els);
+
       tp_s = DiagTensor::make(
         tp_s->bc().env(), 
         {}, 
