@@ -4,6 +4,8 @@
 #include "net/network.hpp"
 
 namespace qtnh {
+  using tptr_symm = std::unique_ptr<SymmTensorBase>;
+
   enum class SITE_CANON {
     left, 
     right, 
@@ -32,7 +34,7 @@ namespace qtnh {
       constexpr std::size_t locChi() const { return loc_chi_; }
       constexpr std::size_t totChi() const { return dis_chi_ * loc_chi_; }
 
-      void apply(std::unique_ptr<SymmTensorBase> tp, std::vector<std::size_t> sites);
+      void apply(tptr_symm tp, std::vector<std::size_t> sites);
       void apply(const MPO& mpo, std::size_t from);
       
       qtnh::tel overlap(MPS& mps);

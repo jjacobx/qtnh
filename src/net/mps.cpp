@@ -48,8 +48,7 @@ namespace qtnh {
     return counter;
   }
 
-  void MPS::apply(std::unique_ptr<SymmTensorBase> tp, 
-                  std::vector<std::size_t> sites) {
+  void MPS::apply(tptr_symm tp, std::vector<std::size_t> sites) {
     using repl_vec = std::vector<tidx_tup_st>;
     auto min_site = *std::min_element(sites.begin(), sites.end());
     auto max_site = *std::max_element(sites.begin(), sites.end());
