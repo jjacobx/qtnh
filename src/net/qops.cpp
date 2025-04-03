@@ -1,24 +1,24 @@
 #include "net/qops.hpp"
 
-// #include <iostream>
-// #include "util/ops.hpp"
+#include <iostream>
+#include "util/ops.hpp"
 
 namespace qtnh {
   namespace qops {
     MPO swap(const QTNHEnv& env, std::size_t n) {
-      std::vector<tel> t1_op { 
+      std::vector<tel> t1_op {
         1, 0, 0, 0, 
         0, 1, 0, 0, 
         0, 0, 1, 0, 
         0, 0, 0, 1
       };
-      std::vector<tel> id_op { 
+      std::vector<tel> id_op {
         1, 0, 0, 1,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 
         0, 0, 0, 0,  1, 0, 0, 1,  0, 0, 0, 0,  0, 0, 0, 0, 
         0, 0, 0, 0,  0, 0, 0, 0,  1, 0, 0, 1,  0, 0, 0, 0, 
         0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  1, 0, 0, 1
       };
-      std::vector<tel> t2_op { 
+      std::vector<tel> t2_op {
         1, 0, 0, 0, 
         0, 0, 1, 0, 
         0, 1, 0, 0, 
@@ -42,11 +42,11 @@ namespace qtnh {
     }
 
     MPO cmpo(const QTNHEnv& env, const MPO& mpo, std::size_t n) {
-      std::vector<tel> c_op { 
+      std::vector<tel> c_op {
         1, 0, 0, 0, 
         0, 0, 0, 1
       };
-      std::vector<tel> id_op { 
+      std::vector<tel> id_op {
         1, 0, 0, 1,  0, 0, 0, 0, 
         0, 0, 0, 0,  1, 0, 0, 1
       };
@@ -79,7 +79,7 @@ namespace qtnh {
         // TODO: Implement for non-root processes. 
         if (utils::is_root()) {
           for (auto j = 0UL; j < nrow; ++j) {
-            els.insert(els.begin() + ncol * (nrow - j - 1), 4, 0);
+            els.insert(els.begin() + 4 * ncol * (nrow - j - 1), 4, 0);
           }
           els.insert(els.begin(), 4 * ncol, 0);
           els.insert(els.begin(), { 1, 0, 0, 1 });
@@ -102,5 +102,45 @@ namespace qtnh {
 
       return MPO(std::move(ops));
     }
+
+    std::vector<qtnh::wire> naive_rotate(std::size_t n, std::size_t d) {
+      std::vector<qtnh::wire> targets(0);
+
+      auto s = n - d;
+      for (auto i = 0UL; i < s / 2; ++i) {
+        targets.push_back({ i, s - i - 1 });
+      }
+      for (auto i = 0UL; i < d / 2; ++i) {
+        targets.push_back({ s + i, n - i - 1 });
+      }
+      for (auto i = 0UL; i < n / 2; ++i) {
+        targets.push_back({ i, n - i - 1 });
+      }
+
+      return targets;
+    }
+
+    std::vector<qtnh::wire> rotate_swaps(std::size_t n, int d) {
+      std::vector<qtnh::wire> targets(0);
+      std::vector<bool> rotated(n, false);
+      
+      for (auto l = 0UL; l < n; ++l) {
+        auto i = l;
+        while(!rotated.at(i)) {
+          auto k = (int(i) + d) % int(n);
+          auto j = k >= 0 ? std::size_t(k) : std::size_t(n + k);
+
+          rotated.at(i) = true;
+          if (rotated.at(j)) break;
+
+          targets.push_back({ std::min(i, j), std::max(i, j) });
+          i = j;
+        }
+      }
+
+      return targets;
+    }
+
+
   }
 }
