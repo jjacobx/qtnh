@@ -159,8 +159,8 @@ namespace qtnh {
       return targets;
     }
 
-    tel urot(std::size_t k) {
-      return std::exp(tel(0, 2) * M_PI / std::pow(2, k));
+    tel urot(std::size_t k, double a = 1.0) {
+      return std::exp(a * tel(0, 2) * M_PI / std::pow(2, k));
     }
 
     MPO cmp(const QTNHEnv& env, std::size_t n) {
@@ -193,7 +193,7 @@ namespace qtnh {
       ops.at(0) = Tensor::permute(std::move(ops.at(0)), { 2, 1, 0 });
     
       for (auto i = 1UL; i + 1 < n; ++i) {
-        op = { 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, urot(n - i) };
+        op = { 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, urot(n - i, -1.0) };
         ops.at(i) = DenseTensor::make(env, {}, { 2, 2, 2, 2 }, std::move(op));
         ops.at(i) = Tensor::permute(std::move(ops.at(i)), { 2, 3, 1, 0 });
       }
