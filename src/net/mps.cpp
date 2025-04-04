@@ -45,6 +45,9 @@ namespace qtnh {
       counter++;
     }
 
+    // Debug print. 
+    if (utils::is_root()) std::cout << els << "\n";
+
     return counter;
   }
 
@@ -52,9 +55,6 @@ namespace qtnh {
     using repl_vec = std::vector<tidx_tup_st>;
     auto min_site = *std::min_element(sites.begin(), sites.end());
     auto max_site = *std::max_element(sites.begin(), sites.end());
-
-    // leftCanonicalise(min_site);
-    // rightCanonicalise(max_site);
 
     // Contract all sites within range (min, max). 
     tptr tp_res = std::move(site_tensors_.at(min_site));
@@ -148,10 +148,6 @@ namespace qtnh {
   }
 
   void MPS::apply(const MPO& mpo, std::size_t from) {
-    // ! Check if this is correct. 
-    // leftCanonicalise(from);
-    // rightCanonicalise(from + mpo.nSites() - 1);
-
     tptr tp_s1 = std::move(site_tensors_.at(from));
     tptr tp_op1 = mpo.at(0).copy();
 
@@ -159,6 +155,7 @@ namespace qtnh {
     pcon con1(std::move(tp_s1), std::move(tp_op1), params1);
     tp_s1 = con1.contract();
 
+    // TODO: Factor site at a time instead of 2. 
     for (auto i = 1UL; i < mpo.nSites(); ++i) {
       auto is_last = i == (mpo.nSites() - 1);
       tptr tp_s2 = std::move(site_tensors_.at(from + i));
@@ -293,6 +290,7 @@ namespace qtnh {
     }
   }
 
+  // TODO: Use QR decomposition. 
   void MPS::leftCanonicalise(std::size_t to) {
     auto can_continue = true;
     for (auto i = 0UL; i + 1 < to; ++i) {
@@ -325,7 +323,8 @@ namespace qtnh {
       tp_s->reshape(tp_s->disDims(), loc_dims_s);
       tp_v->reshape(tp_v->disDims(), loc_dims_v);
 
-      // TODO: Check for non-zero truncation. 
+      // // TODO: Check for non-zero truncation. 
+      // Unnecessary if decomposing a tensor at a time. 
       tp_u = Tensor::truncate(std::move(tp_u), 4, loc_chi_);
       tp_s = Tensor::truncate(std::move(tp_s), 1, loc_chi_);
       tp_v = Tensor::truncate(std::move(tp_v), 2, loc_chi_);
@@ -354,6 +353,7 @@ namespace qtnh {
     }
   }
 
+  // TODO: Use RQ decomposition. 
   void MPS::rightCanonicalise(std::size_t to) {
     auto n = nSites();
     auto can_continue = true;
@@ -387,7 +387,8 @@ namespace qtnh {
       tp_s->reshape(tp_s->disDims(), loc_dims_s);
       tp_v->reshape(tp_v->disDims(), loc_dims_v);
 
-      // TODO: Check for non-zero truncation. 
+      // // TODO: Check for non-zero truncation. 
+      // Unnecessary if decomposing a tensor at a time. 
       tp_u = Tensor::truncate(std::move(tp_u), 4, loc_chi_);
       tp_s = Tensor::truncate(std::move(tp_s), 1, loc_chi_);
       tp_v = Tensor::truncate(std::move(tp_v), 2, loc_chi_);
@@ -489,6 +490,19 @@ namespace qtnh {
   MPO::MPO(std::vector<qtnh::tptr>&& site_ops) 
   : site_ops_(std::move(site_ops))
   {}
+
+  void MPO::rightCanonicalise() {
+    auto n = nSites();
+    for (auto i = 1UL; i < n; ++i) {
+      tptr tp = std::move(site_ops_.at(n - i));
+
+      DecParams dp {{ 0, 0 }, { 3, 0 }, { 3, 0 }, { 0, 0 }, { 0, 0 }};
+      Decomposer dec(std::move(tp), dp, true);
+      dec.decompose();
+
+      auto [tp_u, tp_s, tp_v] = dec.extract_results();
+    }
+  }
 
   void MPO::print() const {
     utils::barrier();
