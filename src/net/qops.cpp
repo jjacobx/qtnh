@@ -23,6 +23,27 @@ namespace qtnh {
       return SymmTensor::make(env, {}, { 2, 2 }, std::move(els));
     }
 
+    MPO ca(const QTNHEnv& env, std::size_t n, std::vector<tel> els) {
+      std::vector<tel> c_op { 1, 0, 0, 0, 0, 0, 0, 1 };
+      std::vector<tel> i_op { 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1 };
+      std::vector<tel> t_op { 1, 0, 0, 1, els.at(0), els.at(1), els.at(2), els.at(3) };
+    
+      std::vector<tptr> ops(n);
+    
+      ops.at(0) = DenseTensor::make(env, {}, { 2, 2, 2 }, std::move(c_op));
+      ops.at(0) = Tensor::permute(std::move(ops.at(0)), { 2, 1, 0 });
+    
+      for (auto i = 1UL; i < n - 1; ++i) {
+        ops.at(i) = DenseTensor::make(env, {}, { 2, 2, 2, 2 }, std::vector<tel>(i_op));
+        ops.at(i) = Tensor::permute(std::move(ops.at(i)), { 2, 3, 1, 0 });
+      }
+    
+      ops.at(n - 1) = DenseTensor::make(env, {}, { 2, 2, 2 }, std::move(t_op));
+      ops.at(n - 1) = Tensor::permute(std::move(ops.at(n - 1)), { 2, 1, 0 });
+    
+      return MPO(std::move(ops));
+    }
+
     MPO swap(const QTNHEnv& env, std::size_t n) {
       std::vector<tel> t1_op {
         1, 0, 0, 0, 
