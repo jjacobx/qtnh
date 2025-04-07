@@ -6,62 +6,7 @@ using namespace qtnh;
 using namespace std::chrono;
 using namespace std::complex_literals;
 
-std::unique_ptr<SymmTensor> H(const QTNHEnv& env) {
-  std::vector<tel> els_h = {
-    1 / std::sqrt(2),  1 / std::sqrt(2), 
-    1 / std::sqrt(2), -1 / std::sqrt(2)
-  };
-
-  return SymmTensor::make(env, {}, { 2, 2 }, std::move(els_h));
-}
-
-MPO controlledGate(const QTNHEnv& env, std::size_t n, std::vector<tel> els) {
-  std::vector<tel> c_op { 1, 0, 0, 0, 0, 0, 0, 1 };
-  std::vector<tel> i_op { 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1 };
-  std::vector<tel> t_op { 1, 0, 0, 1, els.at(0), els.at(1), els.at(2), els.at(3) };
-
-  std::vector<tptr> ops(n);
-
-  ops.at(0) = DenseTensor::make(env, {}, { 2, 2, 2 }, std::move(c_op));
-  ops.at(0) = Tensor::permute(std::move(ops.at(0)), { 2, 1, 0 });
-
-  for (auto i = 1UL; i < n - 1; ++i) {
-    ops.at(i) = DenseTensor::make(env, {}, { 2, 2, 2, 2 }, std::vector<tel>(i_op));
-    ops.at(i) = Tensor::permute(std::move(ops.at(i)), { 2, 3, 1, 0 });
-  }
-
-  ops.at(n - 1) = DenseTensor::make(env, {}, { 2, 2, 2 }, std::move(t_op));
-  ops.at(n - 1) = Tensor::permute(std::move(ops.at(n - 1)), { 2, 1, 0 });
-
-  return MPO(std::move(ops));
-}
-
-tel urot(int k) {
-  return std::exp(2i * M_PI / std::pow(2, k));
-}
-
-MPO cMultiPhase(const QTNHEnv& env, std::size_t n) {
-  std::vector<tptr> ops(n);
-  std::vector<tel> op;
-
-  op = { 1, 0, 0, 0, 0, 0, 0, 1 };
-  ops.at(0) = DenseTensor::make(env, {}, { 2, 2, 2 }, std::move(op));
-  ops.at(0) = Tensor::permute(std::move(ops.at(0)), { 2, 1, 0 });
-
-  for (auto i = 1UL; i + 1 < n; ++i) {
-    op = { 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, urot(i + 1) };
-    ops.at(i) = DenseTensor::make(env, {}, { 2, 2, 2, 2 }, std::move(op));
-    ops.at(i) = Tensor::permute(std::move(ops.at(i)), { 2, 3, 1, 0 });
-  }
-  
-  op = { 1, 0, 0, 1, 1, 0, 0, urot(n) };
-  ops.at(n - 1) = DenseTensor::make(env, {}, { 2, 2, 2 }, std::move(op));
-  ops.at(n - 1) = Tensor::permute(std::move(ops.at(n - 1)), { 2, 1, 0 });
-
-  return MPO(std::move(ops));
-}
-
-void qft(const QTNHEnv& env, MPS& mps) {
+void qft(const QTNHEnv& env, MPS& mps, bool swap_out = false) {
   auto n = mps.nSites();
 
   for (auto i = 0UL; i < n; ++i) {
@@ -69,21 +14,26 @@ void qft(const QTNHEnv& env, MPS& mps) {
       std::cout << "Iteration " << i + 1 << "/" << n << "\n";
     }
 
-    mps.apply(H(env), { i });
+    mps.apply(qops::h(env), { i });
     mps.leftCanonicalise(i);
     mps.rightCanonicalise(i);
 
     if (i + 1 == n) break;
 
-    MPO mpo = cMultiPhase(env, n - i);
+    MPO mpo = qops::cmp(env, n - i);
+    mpo.rightCanonicalise();
     mps.apply(mpo, i);
+  }
 
-    // for (auto j = i + 1; j < n; ++j) {
-    //   auto k = j - i + 1;
-    //   auto c = std::exp(2i * M_PI / std::pow(2, k));
-    //   MPO cp_mpo = controlledGate(env, k, { 1, 0, 0, c });
-    //   mps.apply(cp_mpo, i);
-    // }
+  if (swap_out) {
+    for (auto i = 0UL; i < n / 2; ++i) {
+      MPO mpo = qops::swap(env, n - 2 * i);
+      mpo.rightCanonicalise();
+  
+      mps.leftCanonicalise(i);
+      mps.rightCanonicalise(i);
+      mps.apply(mpo, i);
+    }
   }
 }
 
