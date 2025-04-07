@@ -166,7 +166,6 @@ namespace qtnh {
     auto ptup_v = (ig_v2.ptup() * ig_v1.ptup()).inv();
 
     if (!skip_permute_) {
-
       tp_u_ = Tensor::permute(std::move(tp_u_), ptup_u.toTar().tup());
       tp_v_ = Tensor::permute(std::move(tp_v_), ptup_v.toTar().tup());
     } else {
