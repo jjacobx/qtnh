@@ -25,6 +25,7 @@ namespace qtnh {
   using wire = std::pair<qtnh::tidx_tup_st, qtnh::tidx_tup_st>; ///< A pair of contracted indices. 
 
   constexpr std::size_t X = std::numeric_limits<std::size_t>::max();
+  constexpr double ZERO_TOL = 1E-12;
 }
 
 #endif
