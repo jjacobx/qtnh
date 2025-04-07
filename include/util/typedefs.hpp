@@ -17,14 +17,16 @@ namespace qtnh {
   using uint = unsigned int;         ///< Unsigned int for IDs. 
 
   using tidx_tup = std::vector<qtnh::tidx>;  ///< Tuple of tensor indices – used for accessing tensor elements. 
+  
   // * This might be useful in the future if tuples are reimplemented with a smaller size type. 
-  using tidx_tup_st = std::size_t;           ///< Tensor index tuple dimensions. 
+  using tidx_tup_st = std::size_t;                      ///< tidx_tup position. 
+  using tidx_tup_ids = std::vector<qtnh::tidx_tup_st>;  ///< Group of tidx_tup positions. 
 
   using tel = std::complex<double>;  ///< Tensor element type. 
   
   using wire = std::pair<qtnh::tidx_tup_st, qtnh::tidx_tup_st>; ///< A pair of contracted indices. 
 
-  constexpr std::size_t X = std::numeric_limits<std::size_t>::max();
+  constexpr std::size_t X = std::numeric_limits<qtnh::tidx_tup_st>::max();
   constexpr double ZERO_TOL = 1E-12;
 }
 
