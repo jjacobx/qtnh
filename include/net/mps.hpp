@@ -68,12 +68,15 @@ namespace qtnh {
       qtnh::tptr extract(std::size_t k) { return std::move(site_ops_.at(k)); }
       std::size_t nSites() const { return site_ops_.size(); }
 
+      constexpr std::size_t pDim() const { return pdim_; }
+
       void rightCanonicalise();
 
       void print() const;
 
     private:
       std::vector<qtnh::tptr> site_ops_;
+      std::size_t pdim_;
   };
 }
 

@@ -38,7 +38,7 @@ namespace qtnh {
     utils::throw_unimplemented();
   }
 
-  std::size_t count_bond_dim(const std::vector<tel>& els, double tol = 1E-10) {
+  std::size_t count_bond_dim(const std::vector<tel>& els, double tol = ZERO_TOL) {
     auto counter = 0UL;
     for (auto& e : els) {
       if (std::abs(e) < tol) break;
@@ -489,6 +489,7 @@ namespace qtnh {
 
   MPO::MPO(std::vector<qtnh::tptr>&& site_ops) 
   : site_ops_(std::move(site_ops))
+  , pdim_(site_ops_.at(0)->locDims().at(0))
   {}
 
   void MPO::rightCanonicalise() {
@@ -496,11 +497,65 @@ namespace qtnh {
     for (auto i = 1UL; i < n; ++i) {
       tptr tp = std::move(site_ops_.at(n - i));
 
-      DecParams dp {{ 0, 0 }, { 3, 0 }, { 3, 0 }, { 0, 0 }, { 0, 0 }};
+      auto dims = tp->locDims();
+      dims.erase(dims.begin(), dims.begin() + 2);
+      dims.insert(dims.begin(), pdim_ * pdim_);
+      tp->reshape({}, dims);
+
+      std::vector<tidx_tup_st> ptup { 1, 0 };
+      if (i > 1) ptup.push_back(2);
+
+      tp = Tensor::permute(std::move(tp), ptup);
+
+      auto c = (i > 1) ? 2UL : 1UL;
+      DecParams dp {{ 0, 0 }, { 1, c }, { 1, c }, { 0, 0 }, { 0, 0 }};
       Decomposer dec(std::move(tp), dp, true);
       dec.decompose();
 
       auto [tp_u, tp_s, tp_v] = dec.extract_results();
+      auto bond_size = tp_s->locSize();
+
+      // auto dims_u = tp_u->locDims();
+      // auto dims_s = tp_s->locDims();
+      // auto dims_v = tp_v->locDims();
+
+      // tp_u->reshape({}, { dims_u.at(0), dims_u.at(1) * dims_u.at(2) });
+      // tp_s->reshape({}, { dims_s.at(0) * dims_u.at(1) });
+      // tp_v->reshape({}, { dims_v.at(0), dims_v.at(1), dims_v.at(2) * dims_v.at(3) });
+
+      // tp_u->print_serial("U");
+      // tp_s->print_serial("S");
+      // tp_v->print_serial("V");
+
+      ptup = { 1, 0 };
+      if (i > 1) ptup.push_back(2);
+      tp_v = Tensor::permute(std::move(tp_v), ptup);
+      
+      dims = tp_v->locDims();
+      dims.erase(dims.begin(), dims.begin() + 1);
+      dims.insert(dims.begin(), { pdim_, pdim_ });
+      tp_v->reshape({}, dims);
+
+      site_ops_.at(n - i) = std::move(tp_v);
+
+      // Calculate US. 
+      auto&& els = tp_s->cast<DenseTensor>()->extractEls();
+
+      tp_s = DiagTensor::make(
+        tp_s->bc().env(), 
+        {}, 
+        { bond_size, bond_size }, 
+        false, 
+        std::move(els)
+      );
+
+      pcon con_us(std::move(tp_u), std::move(tp_s), ConParams({{ 1, 0 }}));
+      auto tp_us = con_us.contract();
+
+      auto w = (n - i > 1) ? 3UL : 2UL;
+      ConParams params({{ w, 0 }});
+      pcon con_prev(std::move(site_ops_.at(n - i - 1)), std::move(tp_us), params);
+      site_ops_.at(n - i - 1) = con_prev.contract();
     }
   }
 
