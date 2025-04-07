@@ -3,6 +3,19 @@
 #include "util/ops.hpp"
 
 namespace qtnh {
+  template<>
+  std::ostream& operator<<(std::ostream& out, const std::vector<qtnh::tel>& v) {
+    for (std::size_t i = 0; i < v.size(); ++i) {
+      auto el = v.at(i);
+      if (std::abs(el) < ZERO_TOL) el = 0;
+
+      out << el;
+      if (i + 1 < v.size()) out << ", ";
+    }
+
+    return out;
+  }
+  
   std::ostream& operator<<(std::ostream& out, const TensorNetwork::Bond& o) {
     out << "(" << o.tensor_ids.first << ", " << o.tensor_ids.second << "); ";
     out << "{";

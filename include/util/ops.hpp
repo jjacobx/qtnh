@@ -31,6 +31,9 @@ namespace qtnh {
     return out;
   }
 
+  template<>
+  std::ostream& operator<<(std::ostream& out, const std::vector<qtnh::tel>& v);
+
   /// Print bond information via std::cout. 
   std::ostream& operator<<(std::ostream&, const TensorNetwork::Bond&);
 
