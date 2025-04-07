@@ -16,25 +16,35 @@ void order_finding(MPS& mps, std::size_t m, std::size_t n, std::size_t q) {
 
     auto swap_tars = qops::rotate_swaps(n, q * (1 << i));
     for (auto [a, b] : swap_tars) {
-      if (utils::is_root()) {
-        std::cout << a << ", " << b << "\n";
-        std::cout << "Bond dims = " << mps.bondDims() << "\n";
-      }
+      // if (utils::is_root()) {
+      //   std::cout << a << ", " << b << "\n";
+      //   std::cout << "Bond dims = " << mps.bondDims() << "\n";
+      // }
       auto swap_mpo = qops::swap(env, b - a + 1);
       auto cswap_mpo = qops::cmpo(env, swap_mpo, m - i + b + 1);
+      cswap_mpo.rightCanonicalise();
 
-      mps.apply(cswap_mpo, i);
       mps.leftCanonicalise(m + n - 1);
       mps.rightCanonicalise(i);
+      mps.apply(cswap_mpo, i);
     }
   }
 
   for (auto i = 0UL; i < m; ++i) {
+    mps.leftCanonicalise(m + n - 1);
     mps.rightCanonicalise(0);
 
     if (i > 0) {
       MPO mpo = qops::icmp(env, i + 1);
+      // mpo.print();
+
+      mpo.rightCanonicalise();
       mps.apply(mpo, 0);
+    }
+
+    if (utils::is_root()) {
+      std::cout << "i = " << i << "\n";
+      std::cout << "Bond dims = " << mps.bondDims() << "\n";
     }
 
     mps.apply(qops::h(env), { i });
@@ -83,5 +93,10 @@ int main(int argc, char* argv[]) {
     std::cout << "T[0] = " << amp0 << "\n";
     std::cout << "Bond dims = " << mps.bondDims() << "\n";
     std::cout << "Time taken: " << delta.count() << " ms\n";
+  }
+
+  if (M + N <= 5) {
+    auto tp = std::move(mps).toDense();
+    tp->print_serial("Psi");
   }
 }
