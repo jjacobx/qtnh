@@ -148,6 +148,94 @@ namespace qtnh {
   }
 
   void MPS::apply(const MPO& mpo, std::size_t from) {
+    tptr tp_site = std::move(site_tensors_.at(from));
+    tptr tp_op = mpo.at(0).copy();
+
+    // ! Doesn't work for 1-site MPO. 
+    ConParams params({{ 2, 0 }}, { 0, 1, X, 3, 5 }, { X, 2, 4 });
+    pcon con(std::move(tp_site), std::move(tp_op), params);
+    tp_site = con.contract();
+
+    for (auto i = 0UL; i + 1 < mpo.nSites(); ++i) {
+      DecParams dp {
+        { 1, 1 }, 
+        { 2, 2 }, 
+        { 1, 1 }, 
+        { 1, 1 }, 
+        { 1, 1 }
+      };
+
+      tp_site->print_serial("SITE");
+
+      Decomposer dec(std::move(tp_site), dp, true);
+      dec.decompose();
+
+      auto [tp_u, tp_s, tp_v] = dec.extract_results();
+
+      tp_s->print_serial("S");
+
+      // Truncate. 
+      tp_u = Tensor::truncate(std::move(tp_u), 4, 1);
+      tp_s = Tensor::truncate(std::move(tp_s), 1, 1);
+      tp_v = Tensor::truncate(std::move(tp_v), 2, 1);
+
+      auto loc_dims_u = tp_u->locDims();
+      auto loc_dims_v = tp_v->locDims();
+      loc_dims_u.erase(loc_dims_u.begin() + 2);
+      loc_dims_v.erase(loc_dims_v.begin());
+      tp_u->reshape(tp_u->disDims(), loc_dims_u);
+      tp_v->reshape(tp_v->disDims(), loc_dims_v);
+
+      // tp_u->print_serial("U");
+      // tp_s->print_serial("S");
+      // tp_v->print_serial("V");
+
+      // Calculate SV. 
+      auto&& els = tp_s->cast<DenseTensor>()->extractEls();
+      bond_dims_.at(from + i) = count_bond_dim(els);
+
+      tp_s = DiagTensor::make(
+        tp_s->bc().env(), 
+        {}, 
+        { dis_chi_, loc_chi_, dis_chi_, loc_chi_ }, 
+        false, 
+        std::move(els)
+      );
+
+      tp_s = SymmTensorBase::rescatterIO(std::move(tp_s), 1);
+
+      params = ConParams({{ 1, 0 }, { 3, 2 }});
+      con = pcon(std::move(tp_s), std::move(tp_v), params);
+      tptr tp_sv = con.contract();
+
+      // Apply op to next site. 
+      tp_site = std::move(site_tensors_.at(from + i + 1));
+      tp_op = mpo.at(i + 1).copy();
+
+      auto is_last = (i + 2 == mpo.nSites());
+
+      params = ConParams({{ 2, 0 }});
+      con = pcon(std::move(tp_site), std::move(tp_op), params);
+      tp_site = con.contract();
+
+      // Apply SV to next state. 
+      tidx_tup_ids repls1 { 0, X, 3, X, X };
+      auto repls2 = is_last
+        ? tidx_tup_ids { X, 1, X, 4, 2, X }
+        : tidx_tup_ids { X, 1, X, 5, 2, X, 4 };
+      params = ConParams({{ 1, 0 }, { 4, 2 }, { 3, 5 }}, repls1, repls2);
+      con = pcon(std::move(tp_sv), std::move(tp_site), params);
+      tp_site = con.contract();
+
+      site_canons_.at(from + i) = SITE_CANON::left;
+      site_tensors_.at(from + i) = std::move(tp_u);
+    }
+
+    site_canons_.at(from + mpo.nSites() - 1) = SITE_CANON::none;
+    site_tensors_.at(from + mpo.nSites() - 1) = std::move(tp_site);
+  }
+
+  void MPS::apply_old(const MPO& mpo, std::size_t from) {
     tptr tp_s1 = std::move(site_tensors_.at(from));
     tptr tp_op1 = mpo.at(0).copy();
 
@@ -497,6 +585,7 @@ namespace qtnh {
     for (auto i = 1UL; i < n; ++i) {
       tptr tp = std::move(site_ops_.at(n - i));
 
+      // Group physical dims together. 
       auto dims = tp->locDims();
       dims.erase(dims.begin(), dims.begin() + 2);
       dims.insert(dims.begin(), pdim_ * pdim_);
@@ -504,7 +593,6 @@ namespace qtnh {
 
       std::vector<tidx_tup_st> ptup { 1, 0 };
       if (i > 1) ptup.push_back(2);
-
       tp = Tensor::permute(std::move(tp), ptup);
 
       auto c = (i > 1) ? 2UL : 1UL;
@@ -515,22 +603,13 @@ namespace qtnh {
       auto [tp_u, tp_s, tp_v] = dec.extract_results();
       auto bond_size = tp_s->locSize();
 
-      // auto dims_u = tp_u->locDims();
-      // auto dims_s = tp_s->locDims();
-      // auto dims_v = tp_v->locDims();
-
-      // tp_u->reshape({}, { dims_u.at(0), dims_u.at(1) * dims_u.at(2) });
-      // tp_s->reshape({}, { dims_s.at(0) * dims_u.at(1) });
-      // tp_v->reshape({}, { dims_v.at(0), dims_v.at(1), dims_v.at(2) * dims_v.at(3) });
-
-      // tp_u->print_serial("U");
-      // tp_s->print_serial("S");
-      // tp_v->print_serial("V");
+      // TODO: Truncate elements close to 0. 
 
       ptup = { 1, 0 };
       if (i > 1) ptup.push_back(2);
       tp_v = Tensor::permute(std::move(tp_v), ptup);
       
+      // Ungroup physical dims and update. 
       dims = tp_v->locDims();
       dims.erase(dims.begin(), dims.begin() + 1);
       dims.insert(dims.begin(), { pdim_, pdim_ });

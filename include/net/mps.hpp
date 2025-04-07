@@ -36,6 +36,9 @@ namespace qtnh {
 
       void apply(tptr_symm tp, std::vector<std::size_t> sites);
       void apply(const MPO& mpo, std::size_t from);
+
+      // TODO: Remove. 
+      void apply_old(const MPO& mpo, std::size_t from);
       
       qtnh::tel overlap(MPS& mps);
       qtnh::tel norm();
