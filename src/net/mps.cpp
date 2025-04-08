@@ -165,14 +165,10 @@ namespace qtnh {
         { 1, 1 }
       };
 
-      tp_site->print_serial("SITE");
-
       Decomposer dec(std::move(tp_site), dp, true);
       dec.decompose();
 
       auto [tp_u, tp_s, tp_v] = dec.extract_results();
-
-      tp_s->print_serial("S");
 
       // Truncate. 
       tp_u = Tensor::truncate(std::move(tp_u), 4, 1);
@@ -338,8 +334,9 @@ namespace qtnh {
       tptr tp_dn = site_tensors_.at(i)->copy();
 
       // Conjugate UP tensor. 
+      auto& t = *tp_up->cast<DenseTensor>();
       for (auto i = 0UL; tp_up->bc().isActive() && i < tp_up->locSize(); ++i) {
-        (*tp_up)[i] = std::conj((*tp_up)[i]);
+        t[i] = std::conj(t[i]);
       }
 
       ConParams params1({{ 0, 0 }, { 2, 3 }});
@@ -507,36 +504,26 @@ namespace qtnh {
   }
 
   std::unique_ptr<DenseTensor> MPS::toDense() && {
-    tptr tp_res = std::move(site_tensors_.at(0));
-    for (auto i = 1UL; i < site_tensors_.size(); ++i) {
-      tptr tp_tmp = std::move(site_tensors_.at(i));
-      auto tot_size = tp_res->totDims().size();
+    const auto& bc = site_tensors_.at(0)->bc();
+    std::vector<tel> els(locChi(), 0);
+    if (utils::is_root()) els.at(0) = 1.0;
 
-      ConParams params({{ 1, 0 }, { tot_size - 1, 3 }});
+    tptr tp_res = DenseTensor::make(bc.env(), { disChi() }, { locChi() }, std::move(els));
+    tptr tp_last = tp_res->copy();
+
+    // tptr tp_res = std::move(site_tensors_.at(0));
+    for (auto i = 0UL; i < nSites(); ++i) {
+      tptr tp_tmp = std::move(site_tensors_.at(i));
+      // auto tot_size = tp_res->totDims().size();
+
+      ConParams params({{ 0, 0 }, { i + 1, 3 }});
       pcon con(std::move(tp_res), std::move(tp_tmp), params);
       tp_res = con.contract();
     }
 
-    auto rank = tp_res->totDims().size();
-    PTupleSrc ptup(rank);
-    ptup.at(3) << 1;
-    ptup.at(rank - 1) << int(rank - 4);
-
-    tp_res = Tensor::permute(std::move(tp_res), ptup.toTar().tup());
-    tp_res = Tensor::rebcast(std::move(tp_res), { 1, 1, tp_res->bc().params().off });
-
-    const auto& bc = tp_res->bc();
-    auto [void_dims, new_loc_dims] = utils::split_vec(tp_res->locDims(), 2);
-    (void)void_dims; // Unused. 
-    auto els = tp_res->cast<DenseTensor>()->extractEls();
-
-    if (bc.gid() == 0) {
-      els.resize(utils::dims_to_size(new_loc_dims));
-    } else {
-      els.clear();
-    }
-
-    return DenseTensor::make(bc.env(), {}, new_loc_dims, std::move(els), bc.params());
+    ConParams params({{ 0, 0 }, { nSites() + 1, 1 }});
+    pcon con(std::move(tp_res), std::move(tp_last), params);
+    return Tensor::cast<DenseTensor>(con.contract());
   }
 
   std::ostream& operator<<(std::ostream& out, const SITE_CANON& o) {
