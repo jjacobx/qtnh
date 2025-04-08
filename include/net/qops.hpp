@@ -13,8 +13,8 @@ namespace qtnh {
     MPO cmpo(const QTNHEnv& env, const MPO& mpo, std::size_t n);
     std::vector<qtnh::wire> rotate_swaps(std::size_t n, int d);
 
-    MPO cmp(const QTNHEnv& env, std::size_t n);
-    MPO icmp(const QTNHEnv& env, std::size_t n);
+    MPO cmp(const QTNHEnv& env, std::size_t n, double mul = 1.0);
+    MPO cmp_rev(const QTNHEnv& env, std::size_t n, double mul = -1.0);
   }
 }
 
