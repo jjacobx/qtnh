@@ -83,6 +83,22 @@ int main(int argc, char* argv[]) {
     std::cout << "Time taken: " << delta.count() << " ms\n";
   }
 
+  mps.rightCanonicalise(M - 1);
+  const auto& bc = mps.site(0).bc();
+  std::vector<tel> els(CHI_LOC, 0);
+  if (utils::is_root()) els.at(0) = 1.0;
+  tptr tp_res = DenseTensor::make(bc.env(), { CHI_DIS }, { CHI_LOC }, std::move(els));
+
+  for (auto i = 0UL; i < M; ++i) {
+    tptr tp_tmp = mps.site(i).copy();
+    ConParams params({{ 0, 0 }, { i + 1, 3 }});
+    pcon con(std::move(tp_res), std::move(tp_tmp), params);
+    tp_res = con.contract();
+  }
+
+  tp_res = Tensor::fold(std::move(tp_res), { 0, M + 1 }, utils::binops::add_sq, 0.0);
+  tp_res->print_serial("Psi_M");
+
   if (M + N <= 5) {
     auto tp = std::move(mps).toDense();
     tp->print_serial("Psi");
