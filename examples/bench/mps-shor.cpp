@@ -16,10 +16,6 @@ void order_finding(MPS& mps, std::size_t m, std::size_t n, std::size_t q) {
 
     auto swap_tars = qops::rotate_swaps(n, q * (1 << i));
     for (auto [a, b] : swap_tars) {
-      // if (utils::is_root()) {
-      //   std::cout << a << ", " << b << "\n";
-      //   std::cout << "Bond dims = " << mps.bondDims() << "\n";
-      // }
       auto swap_mpo = qops::swap(env, b - a + 1);
       auto cswap_mpo = qops::cmpo(env, swap_mpo, m - i + b + 1);
       cswap_mpo.rightCanonicalise();
@@ -31,20 +27,12 @@ void order_finding(MPS& mps, std::size_t m, std::size_t n, std::size_t q) {
   }
 
   for (auto i = 0UL; i < m; ++i) {
-    mps.leftCanonicalise(m + n - 1);
-    mps.rightCanonicalise(0);
-
     if (i > 0) {
-      MPO mpo = qops::icmp(env, i + 1);
-      // mpo.print();
-
+      MPO mpo = qops::cmp_rev(env, i + 1, -1.0);
       mpo.rightCanonicalise();
-      mps.apply(mpo, 0);
-    }
 
-    if (utils::is_root()) {
-      std::cout << "i = " << i << "\n";
-      std::cout << "Bond dims = " << mps.bondDims() << "\n";
+      mps.rightCanonicalise(0);
+      mps.apply(mpo, 0);
     }
 
     mps.apply(qops::h(env), { i });
