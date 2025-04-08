@@ -4,6 +4,7 @@
 #include <complex>
 #include <limits>
 #include <functional>
+#include <mpi.h>
 #include <numeric>
 #include <vector>
 
@@ -25,6 +26,9 @@ namespace qtnh {
   using tel = std::complex<double>;  ///< Tensor element type. 
   
   using wire = std::pair<qtnh::tidx_tup_st, qtnh::tidx_tup_st>; ///< A pair of contracted indices. 
+
+  using tel_fun = qtnh::tel(*)(qtnh::tel, qtnh::tel);
+  using mpi_fun = void(*)(void*, void*, int*, MPI_Datatype*);
 
   constexpr std::size_t X = std::numeric_limits<qtnh::tidx_tup_st>::max();
   constexpr double ZERO_TOL = 1E-12;
