@@ -7,8 +7,8 @@ namespace qtnh {
   std::ostream& operator<<(std::ostream& out, const std::vector<qtnh::tel>& v) {
     for (std::size_t i = 0; i < v.size(); ++i) {
       auto el = v.at(i);
-      auto real = el.real() < ZERO_TOL ? 0.0 : el.real();
-      auto imag = el.imag() < ZERO_TOL ? 0.0 : el.imag();
+      auto real = std::abs(el.real()) < ZERO_TOL ? 0.0 : el.real();
+      auto imag = std::abs(el.imag()) < ZERO_TOL ? 0.0 : el.imag();
 
       out << tel(real, imag);
       if (i + 1 < v.size()) out << ", ";
