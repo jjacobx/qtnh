@@ -86,5 +86,14 @@ namespace qtnh {
     bool compatible(qtnh::tidx_tup dims1, qtnh::tidx_tup dims2) {
       return (dims_to_size(dims1) == dims_to_size(dims2));
     }
+
+    namespace binops {
+      void add_sq(void* a, void* b, int*, MPI_Datatype*) {
+        auto& at = *reinterpret_cast<tel*>(a);
+        auto& bt = *reinterpret_cast<tel*>(b);
+
+        bt = bt + at * std::conj(at);
+      }
+    }
   }
 }

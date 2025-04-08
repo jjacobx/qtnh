@@ -91,6 +91,18 @@ namespace qtnh {
       if (dynamic_cast<T*>(p) != t) delete p;
       return std::unique_ptr<T>(t);
     }
+
+    template<typename Op>
+    void to_mpi_fun(void* a, void* b, int*, MPI_Datatype*) {
+      auto at = reinterpret_cast<tel*>(a);
+      auto bt = reinterpret_cast<tel*>(b);
+
+      *bt = Op(*at, *bt);
+    };
+
+    namespace binops {
+      void add_sq(void* a, void* b, int*, MPI_Datatype*);
+    }
   }
 }
 
