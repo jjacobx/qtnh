@@ -67,6 +67,10 @@ namespace qtnh {
     return this->toDense()->truncate(idx, size);
   }
 
+  Tensor* DenseTensorBase::fold(qtnh::tidx_tup_ids idxs, qtnh::mpi_fun fun, qtnh::tel init) {
+    return this->toDense()->fold(idxs, fun, init);
+  }
+
   DenseTensor::DenseTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, 
                            std::vector<qtnh::tel>&& els)
   : DenseTensorBase(env, dis_dims, loc_dims)
@@ -201,6 +205,84 @@ namespace qtnh {
 
     permute(ptup.inv().toTar().tup());
     return this;
+  }
+
+  DenseTensor* DenseTensor::fold(qtnh::tidx_tup_ids idxs, qtnh::mpi_fun fun, qtnh::tel init) {
+    auto n_dis_folds = 0UL, n_loc_folds = 0UL;
+    auto dis_fold_size = 1UL, loc_fold_size = 1UL;
+    PTupleSrc ptup(totDims().size());
+
+    for (auto idx : idxs) {
+      if (idx < disDims().size()) {
+        ptup.at(idx) << int(idx - n_dis_folds);
+        dis_fold_size *= totDims().at(idx);
+        ++n_dis_folds;
+      } else {
+        ptup.at(idx) >> int(totDims().size() - idx - 1);
+        loc_fold_size *= totDims().at(idx);
+        ++n_loc_folds;
+      }
+    }
+
+    BcParams params { 1, 1, bc().params().off };
+    if (!(params == bc_.params())) {
+      bc_ = _rebcast_internal(this, params);
+    }
+
+    bc_ = _permute_internal(this, ptup.toTar().tup());
+
+    // Update dimensions. 
+    auto dims = ptup.apply(totDims());
+    auto [dis_dims, loc_dims] = utils::split_dims(dims, dis_dims_.size());
+    dis_dims_ = dis_dims;
+    loc_dims_ = loc_dims;
+
+    auto tel_fun = [fun](tel a, tel b) {
+      fun(reinterpret_cast<void*>(&b), reinterpret_cast<void*>(&a), nullptr, nullptr);
+      return a;
+    };
+    
+    std::vector<tel> new_els;
+
+    if (bc_.isActive()) {
+      new_els.resize(locSize() / loc_fold_size);
+      for (auto i = 0UL; i < new_els.size(); ++i) {
+        auto begin = loc_els_.begin() + i * loc_fold_size;
+        auto end = begin + loc_fold_size;
+        new_els.at(i) = std::accumulate(begin, end, init, tel_fun);
+      }
+      
+      if (dis_fold_size > 1) {
+        MPI_Comm fold_comm;
+        MPI_Comm_split(bc_.gcomm(), int(bc_.gid() / dis_fold_size), int(bc_.gid()), &fold_comm);
+    
+        int rank;
+        MPI_Comm_rank(fold_comm, &rank);
+        
+        // TODO: Reconsider this. 
+        MPI_Op op;
+        if (loc_fold_size > 1) {
+          op = MPI_SUM;
+        } else {
+          MPI_Op_create(fun, 1, &op);
+        }
+        
+        if (rank == 0) {
+          MPI_Reduce(MPI_IN_PLACE, new_els.data(), int(new_els.size()), 
+                     MPI_DOUBLE_COMPLEX, op, 0, fold_comm);
+        } else {
+          MPI_Reduce(new_els.data(), new_els.data(), int(new_els.size()), 
+                     MPI_DOUBLE_COMPLEX, op, 0, fold_comm);
+          new_els.clear();
+        }
+      }
+    }
+
+    auto [tmp_dis_dims, new_dis_dims] = utils::split_dims(dis_dims_, n_dis_folds);
+    auto [new_loc_dims, tmp_loc_dims] = utils::split_dims(loc_dims_, locDims().size() - n_loc_folds);
+    (void)tmp_dis_dims; (void)tmp_loc_dims;
+
+    return new DenseTensor(bc_.env(), new_dis_dims, new_loc_dims, std::move(new_els), bc_.params());
   }
 
   Broadcaster TIDense::_swap_internal(Tensor* target, qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) {

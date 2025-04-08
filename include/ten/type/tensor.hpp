@@ -264,6 +264,17 @@ namespace qtnh {
         auto p = tp->truncate(idx, size);
         return utils::one_unique(std::move(tp), p);
       }
+      /// @brief Fold tensor indices with a given function. 
+      /// @param tp Ownership of tptr to tensor to fold. 
+      /// @param idxs Vector of indices to fold. 
+      /// @param fun Commutative binary function to use in fold. 
+      /// @param init Initial value to the binary function. 
+      /// @return Ownership of tptr to folded tensor. 
+      static qtnh::tptr fold(qtnh::tptr tp, qtnh::tidx_tup_ids idxs, 
+                             qtnh::mpi_fun fun, qtnh::tel init) {
+        auto p = tp->fold(idxs, fun, init);
+        return utils::one_unique(std::move(tp), p);
+      }
 
     protected:
       /// @brief Construct empty tensor of zero size within environment and with default distribution parameters. 
@@ -317,6 +328,12 @@ namespace qtnh {
       /// @param size Target size of the index. 
       /// @return Pointer to truncated tensor, which might be of a different derived type. 
       virtual Tensor* truncate(qtnh::tidx_tup_st idx, std::size_t size) = 0;
+      /// @brief Fold tensor indices with a given function. 
+      /// @param idxs Vector of indices to fold. 
+      /// @param fun Commutative binary function to use in fold. 
+      /// @param init Initial value to the binary function. 
+      /// @return Pointer to folded tensor, which might be of a different derived type. 
+      virtual Tensor* fold(qtnh::tidx_tup_ids idxs, qtnh::mpi_fun fun, qtnh::tel init) = 0;
 
   };
 

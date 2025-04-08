@@ -24,6 +24,7 @@ namespace qtnh {
       Broadcaster _rescatter_internal(Tensor* target, int offset);
       Broadcaster _permute_internal(Tensor* target, std::vector<tidx_tup_st> ptup);
       Broadcaster _shift_internal(Tensor* target, qtnh::tidx_tup_st from, qtnh::tidx_tup_st to, int offset);
+      // Broadcaster _fold_internal(qtnh::tidx_tup_ids idxs, qtnh::tel_fun fun, qtnh::tel init);
 
       std::vector<qtnh::tel> loc_els_;  ///< Local elements. 
   };
@@ -78,6 +79,12 @@ namespace qtnh {
       /// @param size Target size of the index. 
       /// @return Pointer to truncated tensor, which might be of a different derived type. 
       virtual Tensor* truncate(qtnh::tidx_tup_st idx, std::size_t size) override;
+      /// @brief Fold tensor indices with a given function. 
+      /// @param idxs Vector of indices to fold. 
+      /// @param fun Commutative binary function to use in fold. 
+      /// @param init Initial value to the binary function. 
+      /// @return Pointer to folded tensor, which might be of a different derived type. 
+      virtual Tensor* fold(qtnh::tidx_tup_ids idxs, qtnh::mpi_fun fun, qtnh::tel init) override;
   };
 
   /// Writable dense tensor class, which allows direct access to all elements. 
@@ -212,11 +219,17 @@ namespace qtnh {
       /// @param ptup Permutation tuple of the same size as total dimensions, and each entry unique. 
       /// @return Pointer to permuted tensor, which might be of a different derived type. 
       virtual DenseTensor* permute(std::vector<qtnh::tidx_tup_st> ptup) override;
-            /// @brief Truncate tensor index down to a given dimension. 
+      /// @brief Truncate tensor index down to a given dimension. 
       /// @param idx Index to truncate. 
       /// @param size Target size of the index. 
       /// @return Pointer to truncated tensor, which might be of a different derived type. 
       virtual DenseTensor* truncate(qtnh::tidx_tup_st idx, std::size_t size) override;
+      /// @brief Fold tensor indices with a given function. 
+      /// @param idxs Vector of indices to fold. 
+      /// @param fun Commutative binary function to use in fold. 
+      /// @param init Initial value to the binary function. 
+      /// @return Pointer to folded tensor, which might be of a different derived type. 
+      virtual DenseTensor* fold(qtnh::tidx_tup_ids idxs, qtnh::mpi_fun fun, qtnh::tel init) override;
   };
 
   /// Rank-2 rescatter tensor, which can be used to scatter/gather specific indices. 
