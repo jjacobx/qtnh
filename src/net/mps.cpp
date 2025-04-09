@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <functional>
 #include <iostream>
+#include <random>
 
 #include "net/mps.hpp"
 #include "ten/con/pair-defs.hpp"
@@ -501,6 +502,96 @@ namespace qtnh {
       site_tensors_.at(n - i) = Tensor::permute(std::move(tp_v), ptup.toTar().tup());
       site_tensors_.at(n - i - 1) = con_us.contract();
     }
+  }
+
+  std::map<MPS::sample_t, std::size_t> MPS::sample(std::size_t from, std::size_t to, std::size_t n) {
+    std::map<sample_t, std::size_t> occs {{{}, n}};
+    const auto& bc = site(0).bc();
+
+    leftCanonicalise(from);
+    rightCanonicalise(from);
+
+    for (auto i = 0UL; bc.isActive() && i < to - from; ++i) {
+      std::map<sample_t, std::size_t> occs_new;
+      
+      // Iterate all samples generated so far. 
+      for (const auto& [samp, m] : occs) {
+        tptr tp_site = site(from).copy();
+
+        // Contract current sample. 
+        for (auto j = 0UL; j < from + i; ++j) {
+          auto pdim = siteDims().at(from + j);
+          std::vector<tel> els(pdim, 0);
+          els.at(samp.at(j)) = 1;
+
+          tptr tp_proj = DenseTensor::make(bc.env(), {}, { pdim }, std::move(els));
+
+          ConParams con_params({{ 2, 0 }});
+          tp_site = pcon(std::move(tp_site), std::move(tp_proj), con_params).contract();
+          
+          tptr tp_site_next = site(from + j + 1).copy();
+          con_params = ConParams({{ 1, 0 }, { 3, 3 }});
+          tp_site = pcon(std::move(tp_site), std::move(tp_site_next), con_params).contract();
+        }
+
+        tptr tp_up = std::move(tp_site);
+        tptr tp_dn = tp_up->copy();
+  
+        // Conjugate DN tensor. 
+        auto& t = *tp_dn->cast<DenseTensor>();
+        for (auto j = 0UL; j < tp_dn->locSize(); ++j) {
+          t[j] = std::conj(t[j]);
+        }
+  
+        ConParams con_params({{ 0, 0 }, { 1, 1 }, { 3, 3 }, { 4, 4 }});
+        tptr tp_rho = pcon(std::move(tp_up), std::move(tp_dn), con_params).contract();
+        
+        BcParams bc_params { 1, uint(disChi() * disChi()), bc.params().off };
+        tp_rho = Tensor::rebcast(std::move(tp_rho), bc_params);
+        
+        // Extract site value probabilities. 
+        auto pdim = siteDims().at(from + i);
+        std::vector<double> cumul_ps(pdim);
+        auto sum = 0.0;
+        for (auto j = 0UL; j < pdim; ++j) {
+          auto p = tp_rho->at({ j, j }).real();
+          cumul_ps.at(j) = sum + p;
+          sum += p;
+        }
+
+        // TODO: Can this be moved? 
+        std::random_device rd;
+        std::mt19937 gen (rd());
+        gen.seed(1);
+
+        // Generate site value samples. 
+        std::vector<std::size_t> val_freqs(pdim);
+        std::uniform_real_distribution<> dis(0.0, sum);
+        for (auto j = 0UL; j < m; ++j) {
+          auto r = dis(gen);
+          for (auto k = 0UL; k < pdim; ++k) {
+            if (r < cumul_ps.at(k)) {
+              ++val_freqs.at(k);
+              break;
+            }
+          }
+        }
+
+        // Insert non-zero site value samples. 
+        for (auto j = 0UL; j < pdim; ++j) {
+          auto freq = val_freqs.at(j);
+          if (freq > 0) {
+            auto samp_new = samp;
+            samp_new.push_back(j);
+            occs_new.at(samp_new) = freq;
+          }
+        }
+      }
+
+      occs = occs_new;
+    }
+
+    return occs;
   }
 
   std::unique_ptr<DenseTensor> MPS::toDense() && {

@@ -1,6 +1,7 @@
 #ifndef __NET_MPS__
 #define __NET_MPS__
 
+#include <map>
 #include "net/network.hpp"
 
 namespace qtnh {
@@ -17,6 +18,7 @@ namespace qtnh {
   class MPS {
     public:
       using chi_pair = std::pair<std::size_t, std::size_t>;
+      using sample_t = std::vector<std::size_t>;
 
       MPS() = delete;
       MPS(const QTNHEnv& env, std::size_t n_sites, qtnh::tidx site_dim, chi_pair chis);
@@ -47,6 +49,7 @@ namespace qtnh {
       void leftCanonicalise(std::size_t to);
       void rightCanonicalise(std::size_t to);
 
+      std::map<sample_t, std::size_t> sample(std::size_t from, std::size_t to, std::size_t n);
       std::unique_ptr<DenseTensor> toDense() &&;
 
       void print() const;
