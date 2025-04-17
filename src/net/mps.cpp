@@ -719,7 +719,7 @@ namespace qtnh {
 
     if (utils::is_root()) {
       std::cout << "================================================================\n";
-      std::cout << "MPO with N=" << site_ops_.size() << ")\n";
+      std::cout << "MPO with N=" << site_ops_.size() << "\n";
 
       std::cout << "----------------------------------------------------------------\n";
       std::cout << "Sites: \n";
