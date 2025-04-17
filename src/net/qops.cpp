@@ -23,6 +23,33 @@ namespace qtnh {
       return SymmTensor::make(env, {}, { 2, 2 }, std::move(els));
     }
 
+    tptr_symm sqrt_x(const QTNHEnv& env) {
+      std::vector<tel> els = {
+        tel(1, 0) / std::sqrt(2), -tel(0, 1) / std::sqrt(2), 
+       -tel(0, 1) / std::sqrt(2),  tel(1, 0) / std::sqrt(2)
+     };
+    
+      return SymmTensor::make(env, {}, { 2, 2 }, std::move(els));
+    }
+
+    tptr_symm sqrt_y(const QTNHEnv& env) {
+      std::vector<tel> els = {
+        1 / std::sqrt(2), -1 / std::sqrt(2), 
+        1 / std::sqrt(2),  1 / std::sqrt(2)
+      };
+    
+      return SymmTensor::make(env, {}, { 2, 2 }, std::move(els));
+    }
+
+    tptr_symm sqrt_w(const QTNHEnv& env) {
+      std::vector<tel> els = {
+        tel(1, 0) / std::sqrt(2), -tel(1, 1) / 2.0, 
+       tel(1, -1) / 2.0,           tel(1, 0) / std::sqrt(2)
+      };
+    
+      return SymmTensor::make(env, {}, { 2, 2 }, std::move(els));
+    }
+
     MPO ca(const QTNHEnv& env, std::size_t n, std::vector<tel> els) {
       std::vector<tel> c_op { 1, 0, 0, 0, 0, 0, 0, 1 };
       std::vector<tel> i_op { 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1 };
@@ -50,6 +77,42 @@ namespace qtnh {
         0, 1, 0, 0, 
         0, 0, 1, 0, 
         0, 0, 0, 1
+      };
+      std::vector<tel> id_op {
+        1, 0, 0, 1,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 
+        0, 0, 0, 0,  1, 0, 0, 1,  0, 0, 0, 0,  0, 0, 0, 0, 
+        0, 0, 0, 0,  0, 0, 0, 0,  1, 0, 0, 1,  0, 0, 0, 0, 
+        0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  1, 0, 0, 1
+      };
+      std::vector<tel> t2_op {
+        1, 0, 0, 0, 
+        0, 0, 1, 0, 
+        0, 1, 0, 0, 
+        0, 0, 0, 1
+      };
+
+      std::vector<tptr> ops(n);
+
+      ops.at(0) = DenseTensor::make(env, {}, { 4, 2, 2 }, std::move(t1_op));
+      ops.at(0) = Tensor::permute(std::move(ops.at(0)), { 2, 1, 0 });
+
+      for (auto i = 1UL; i < n - 1; ++i) {
+        ops.at(i) = DenseTensor::make(env, {}, { 4, 4, 2, 2 }, std::vector<tel>(id_op));
+        ops.at(i) = Tensor::permute(std::move(ops.at(i)), { 2, 3, 1, 0 });
+      }
+    
+      ops.at(n - 1) = DenseTensor::make(env, {}, { 4, 2, 2 }, std::move(t2_op));
+      ops.at(n - 1) = Tensor::permute(std::move(ops.at(n - 1)), { 2, 1, 0 });
+    
+      return MPO(std::move(ops));
+    }
+
+    MPO fsim(const QTNHEnv& env, std::size_t n, double phi) {
+      std::vector<tel> t1_op {
+        1, 0,          0,          0, 
+        0, tel(0, -1), 0,          0, 
+        0, 0,          tel(0, -1), 0, 
+        0, 0,          0,          std::exp(tel(0, -phi))
       };
       std::vector<tel> id_op {
         1, 0, 0, 1,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 
