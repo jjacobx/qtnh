@@ -63,25 +63,32 @@ void rcs(const QTNHEnv& env, MPS& mps, std::size_t m, std::size_t n, std::size_t
   std::uniform_int_distribution<std::size_t> dist02(0, 2);
 
   for (auto i = 0UL; i < d; ++i) {
+    if (utils::is_root()) {
+      std::cout << "Iteration " << i + 1 << "/" << d << "\n";
+    }
+
     for (auto j = 0UL; j < mn; ++j) {
       mps.apply(rand_gate(dist02(gen))(env), { j });
     }
 
     auto targets = fsim_targets(patterns.at(i % patterns.size()), m, n);
-    if (utils::is_root()) std::cout << targets << "\n";
+    if (utils::is_root()) {
+      std::cout << targets << "\n";
+    }
 
     for (auto ts : targets) {
       MPO mpo = qops::fsim(env, ts.second - ts.first + 1);
       mpo.rightCanonicalise();
-      // mpo.print();
       
       mps.leftCanonicalise(mps.nSites() - 1);
       mps.rightCanonicalise(ts.first);
       mps.apply(mpo, ts.first);
-      
-      auto norm = mps.norm();
-      if (utils::is_root()) std::cout << "bonds = " << mps.bondDims() << "\n";
-      if (utils::is_root()) std::cout << "norm = " << norm << "\n";
+    }
+
+    auto norm = mps.norm();
+    if (utils::is_root()) {
+      std::cout << "bonds = " << mps.bondDims() << "\n";
+      std::cout << "norm = " << norm << "\n";
     }
   }
 }
@@ -93,7 +100,7 @@ int main(int argc, char* argv[]) {
   auto NCOL = 4UL;
   auto DEPTH = 4UL;
   auto CHI_DIS = 2UL;
-  auto CHI_LOC = 2UL;
+  auto CHI_LOC = 8UL;
 
   if (argc > 2) {
     NROW = static_cast<unsigned int>(strtol(argv[1], nullptr, 0));
@@ -121,9 +128,6 @@ int main(int argc, char* argv[]) {
 
   utils::barrier();
   auto stop = high_resolution_clock::now();
-
-  mps.leftCanonicalise(mps.nSites() - 1);
-  mps.rightCanonicalise(0);
 
   MPS zero_amp(env, NROW * NCOL, SITE_DIM, { 1, 1 });
   auto norm = mps.norm();
