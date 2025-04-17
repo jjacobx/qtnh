@@ -1,5 +1,8 @@
+#include <algorithm>
 #include <chrono>
+#include <iomanip>
 #include <iostream>
+#include <numeric>
 #include "qtnh.hpp"
 
 using namespace qtnh;
@@ -12,30 +15,32 @@ void order_finding(MPS& mps, std::size_t m, std::size_t n, std::size_t q) {
 
   mps.apply(qops::x(env), { m + n - 1 });
   for (auto i = 0UL; i < m; ++i) {
-    mps.apply(qops::h(env), { i });
+    mps.apply(qops::h(env), { m - i - 1 });
 
     auto swap_tars = qops::rotate_swaps(n, q * (1 << i));
     for (auto [a, b] : swap_tars) {
       auto swap_mpo = qops::swap(env, b - a + 1);
-      auto cswap_mpo = qops::cmpo(env, swap_mpo, m - i + b + 1);
+      auto cswap_mpo = qops::cmpo(env, swap_mpo, i + b + 2);
       cswap_mpo.rightCanonicalise();
 
       mps.leftCanonicalise(m + n - 1);
-      mps.rightCanonicalise(i);
-      mps.apply(cswap_mpo, i);
+      mps.rightCanonicalise(m - i - 1);
+      mps.apply(cswap_mpo, m - i - 1);
     }
   }
 
+  // IQFT. 
   for (auto i = 0UL; i < m; ++i) {
     if (i > 0) {
-      MPO mpo = qops::cmp_rev(env, i + 1, -1.0);
+      MPO mpo = qops::cmp(env, i + 1, -1.0);
       mpo.rightCanonicalise();
 
-      mps.rightCanonicalise(0);
-      mps.apply(mpo, 0);
+      mps.leftCanonicalise(m - i - 1);
+      mps.rightCanonicalise(m - i - 1);
+      mps.apply(mpo, m - i - 1);
     }
 
-    mps.apply(qops::h(env), { i });
+    mps.apply(qops::h(env), { m - i - 1 });
   }
 }
 
@@ -83,21 +88,58 @@ int main(int argc, char* argv[]) {
     std::cout << "Time taken: " << delta.count() << " ms\n";
   }
 
-  mps.rightCanonicalise(M - 1);
-  const auto& bc = mps.site(0).bc();
-  std::vector<tel> els(CHI_LOC, 0);
-  if (utils::is_root()) els.at(0) = 1.0;
-  tptr tp_res = DenseTensor::make(bc.env(), { CHI_DIS }, { CHI_LOC }, std::move(els));
+  auto R = N / std::gcd(N, Q);
 
-  for (auto i = 0UL; i < M; ++i) {
-    tptr tp_tmp = mps.site(i).copy();
-    ConParams params({{ 0, 0 }, { i + 1, 3 }});
-    pcon con(std::move(tp_res), std::move(tp_tmp), params);
-    tp_res = con.contract();
+  constexpr auto N_SAMP = 1000UL;
+
+  auto samples = mps.sample(0, M, N_SAMP);
+  auto flipped_samples = utils::flip_map(samples);
+
+  for (auto& [n, s] : flipped_samples) {
+    // auto res = 0UL;
+    // auto n_bits = s.size();
+    // for (auto i = 0UL ; i < n_bits; ++i) {
+    //   res += std::size_t(std::pow(2, i)) * s.at(n_bits - i - 1);
+    // }
+
+    // auto up_reg = res / (1 << N);
+    // auto dn_reg = res % (1 << N);
+    // if (utils::is_root()) {
+    //   std::cout << "|" << up_reg << ">|" << dn_reg << ">: " << n << "\n";
+    // }
+
+    auto frac = 0.0;
+    auto n_bits = s.size();
+    for (auto i = 0UL ; i < n_bits; ++i) {
+      frac += std::pow(2.0, -double(i) - 1) * s.at(i);
+    }
+
+    auto S = std::size_t(std::round(frac * R));
+    auto diff = std::abs(frac - double(S) / R);
+    auto abs = diff * R;
+
+    if (utils::is_root()) {
+      std::cout << std::fixed << std::setprecision(4) << 
+        S << "/" << R << " ± " << diff << " (" << 
+        abs << "): \t" << n << "\n";
+    }
   }
 
-  tp_res = Tensor::fold(std::move(tp_res), { 0, M + 1 }, utils::binops::add_sq, 0.0);
-  tp_res->print_serial("Psi_M");
+  // mps.rightCanonicalise(M - 1);
+  // const auto& bc = mps.site(0).bc();
+  // std::vector<tel> els(CHI_LOC, 0);
+  // if (utils::is_root()) els.at(0) = 1.0;
+  // tptr tp_res = DenseTensor::make(bc.env(), { CHI_DIS }, { CHI_LOC }, std::move(els));
+
+  // for (auto i = 0UL; i < M; ++i) {
+  //   tptr tp_tmp = mps.site(i).copy();
+  //   ConParams params({{ 0, 0 }, { i + 1, 3 }});
+  //   pcon con(std::move(tp_res), std::move(tp_tmp), params);
+  //   tp_res = con.contract();
+  // }
+
+  // tp_res = Tensor::fold(std::move(tp_res), { 0, M + 1 }, utils::binops::add_sq, 0.0);
+  // tp_res->print_serial("Psi_M");
 
   if (M + N <= 5) {
     auto tp = std::move(mps).toDense();
