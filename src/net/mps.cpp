@@ -47,7 +47,7 @@ namespace qtnh {
     }
 
     // Debug print. 
-    if (utils::is_root()) std::cout << els << "\n";
+    // if (utils::is_root()) std::cout << els << "\n";
 
     return counter;
   }
@@ -505,11 +505,13 @@ namespace qtnh {
   }
 
   std::map<MPS::sample_t, std::size_t> MPS::sample(std::size_t from, std::size_t to, std::size_t n) {
-    std::map<sample_t, std::size_t> occs {{{}, n}};
-    const auto& bc = site(0).bc();
-
     leftCanonicalise(from);
     rightCanonicalise(from);
+
+    std::mt19937 gen(2025);
+
+    std::map<sample_t, std::size_t> occs {{{}, n}};
+    const auto& bc = site(0).bc();
 
     for (auto i = 0UL; bc.isActive() && i < to - from; ++i) {
       std::map<sample_t, std::size_t> occs_new;
@@ -517,6 +519,7 @@ namespace qtnh {
       // Iterate all samples generated so far. 
       for (const auto& [samp, m] : occs) {
         tptr tp_site = site(from).copy();
+        tp_site = Tensor::permute(std::move(tp_site), { 0, 1, 3, 2, 4 });
 
         // Contract current sample. 
         for (auto j = 0UL; j < from + i; ++j) {
@@ -526,7 +529,7 @@ namespace qtnh {
 
           tptr tp_proj = DenseTensor::make(bc.env(), {}, { pdim }, std::move(els));
 
-          ConParams con_params({{ 2, 0 }});
+          ConParams con_params({{ 3, 0 }});
           tp_site = pcon(std::move(tp_site), std::move(tp_proj), con_params).contract();
           
           tptr tp_site_next = site(from + j + 1).copy();
@@ -542,8 +545,8 @@ namespace qtnh {
         for (auto j = 0UL; j < tp_dn->locSize(); ++j) {
           t[j] = std::conj(t[j]);
         }
-  
-        ConParams con_params({{ 0, 0 }, { 1, 1 }, { 3, 3 }, { 4, 4 }});
+        
+        ConParams con_params({{ 0, 0 }, { 1, 1 }, { 2, 2 }, { 4, 4 }});
         tptr tp_rho = pcon(std::move(tp_up), std::move(tp_dn), con_params).contract();
         
         BcParams bc_params { 1, uint(disChi() * disChi()), bc.params().off };
@@ -558,11 +561,6 @@ namespace qtnh {
           cumul_ps.at(j) = sum + p;
           sum += p;
         }
-
-        // TODO: Can this be moved? 
-        std::random_device rd;
-        std::mt19937 gen (rd());
-        gen.seed(1);
 
         // Generate site value samples. 
         std::vector<std::size_t> val_freqs(pdim);
@@ -583,7 +581,7 @@ namespace qtnh {
           if (freq > 0) {
             auto samp_new = samp;
             samp_new.push_back(j);
-            occs_new.at(samp_new) = freq;
+            occs_new.insert({ samp_new, freq });
           }
         }
       }
