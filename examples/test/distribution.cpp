@@ -2,8 +2,6 @@
 #include "qtnh.hpp"
 
 using namespace qtnh;
-using namespace qtnh::ops;
-
 using namespace std::complex_literals;
 
 int main(int argc, char* argv[]) {

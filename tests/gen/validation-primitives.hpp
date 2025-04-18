@@ -1,7 +1,7 @@
-#ifndef CONTRACTION_VALIDATION_HPP
-#define CONTRACTION_VALIDATION_HPP
+#ifndef __GEN_VALIDATION_PRIMITIVES__
+#define __GEN_VALIDATION_PRIMITIVES__
 
-#include "core/typedefs.hpp"
+#include "util/typedefs.hpp"
 
 struct tensor_info {
   qtnh::tidx_tup dims;

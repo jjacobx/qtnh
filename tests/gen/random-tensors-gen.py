@@ -6,7 +6,7 @@ from helpers import *
 def gen_random_tensors_header(contractions : list[Contraction], groups : list[(str, int)]):
   this_dir = os.path.dirname(os.path.realpath(__file__))
   with open(this_dir + '/random-tensors.hpp', 'w', encoding = "utf-8") as f:
-    f.write("#ifndef RANDOM_TENSORS_HPP\n#define RANDOM_TENSORS_HPP\n\n")
+    f.write("#ifndef __GEN_RANDOM_TENSORS__\n#define __GEN_RANDOM_TENSORS__\n\n")
     f.write("#include \"contraction-validation.hpp\"\n\n")
     f.write("using namespace std::complex_literals;\n\n")
 

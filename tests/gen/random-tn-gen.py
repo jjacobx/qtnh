@@ -27,7 +27,7 @@ def contract(tn: TensorNetwork):
 def gen_random_tn_header(tns : list[TensorNetwork], groups : list[(str, int)]):
   this_dir = os.path.dirname(os.path.realpath(__file__))
   with open(this_dir + '/random-tn.hpp', 'w', encoding = "utf-8") as f:
-    f.write("#ifndef RANDOM_TN_HPP\n#define RANDOM_TN_HPP\n\n")
+    f.write("#ifndef __GEN_RANDOM_TN__\n#define __GEN_RANDOM_TN__\n\n")
     f.write("#include \"contraction-validation.hpp\"\n\n")
     f.write("using namespace std::complex_literals;\n\n")
 

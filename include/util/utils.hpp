@@ -1,0 +1,126 @@
+#ifndef __UTIL_UTILS__
+#define __UTIL_UTILS__
+
+#include <algorithm>
+#include <map>
+#include <memory>
+#include <string>
+
+#include "util/indexing.hpp"
+#include "util/typedefs.hpp"
+
+namespace qtnh {
+  namespace utils {
+    /// Indicate a method is unimplemented. 
+    /// Throws error if invoked. 
+    void throw_unimplemented();
+
+    /// @brief Check if calling process is the root process. 
+    /// @return True if root, false otherwise. 
+    bool is_root();
+
+    /// @brief Call MPI Barrier. 
+    void barrier();
+
+    void report(std::string s = "");
+
+    /// @brief Convert tensor index dimensions tuple to tensor size. 
+    /// @param dims Tensor index dimensions. 
+    /// @return Number of tensor elements. 
+    std::size_t dims_to_size(qtnh::tidx_tup dims);
+
+    /// @brief Convert tensor indices tuple to array index. 
+    /// @param idxs Tuple of indices to convert. 
+    /// @param dims Tensor index dimensions. 
+    /// @return Array index, assuming all elements are stored sequentially. 
+    std::size_t idxs_to_i(qtnh::tidx_tup idxs, qtnh::tidx_tup dims);
+
+    /// @brief Convert array index back to tensor indices tuple. 
+    /// @param i Array index, assuming all elements are stored sequentially. 
+    /// @param dims Tensor index dimensions. 
+    /// @return Tuple of tensor indices pointing at the element. 
+    qtnh::tidx_tup i_to_idxs(std::size_t i, qtnh::tidx_tup dims);
+
+    /// @brief Concatenate two arrays of tensor index dimensions tuples. 
+    /// @param dims1 First index dimensions tuple. 
+    /// @param dims2 Second index dimensions tuple. 
+    /// @return Combined tensor index dimensions tuple. 
+    qtnh::tidx_tup concat_dims(qtnh::tidx_tup dims1, qtnh::tidx_tup dims2);
+
+    /// @brief Split tensor index dimensions tuple at given position. 
+    /// @param dims Tensor index dimensions to split. 
+    /// @param n Position of index dimension before which to insert the split. 
+    /// @return A pair of tensor index dimensions tuples. 
+    std::pair<qtnh::tidx_tup, qtnh::tidx_tup> split_dims(qtnh::tidx_tup dims, qtnh::tidx_tup_st n);
+
+    /// @brief Split tensor index dimensions into two equal parts, and return the first half. 
+    /// @param dims Tensor index dimensions to split. 
+    /// @return First half of dims. 
+    qtnh::tidx_tup halve_dims(qtnh::tidx_tup dims);
+    
+    /// @brief Invert the direction of tensor contraction wires. 
+    /// @param ws A vector of contraction wires to invert. 
+    /// @return A vector of contraction wires, where each wire has a reversed direction. 
+    std::vector<qtnh::wire> invert_wires(std::vector<qtnh::wire> ws);
+
+    /// @brief Compare two complex elements within given tolerance. 
+    /// @param a First complex element. 
+    /// @param b Second complex element. 
+    /// @param tol Maximum allowed magnitude of the difference between the elements (default 1E-5). 
+    /// @return True if elements are approximately equal and false otherwise. 
+    bool equal(qtnh::tel a, qtnh::tel b, double tol = 1E-5);
+
+    /// @brief Check if dimensions have the same total size. 
+    /// @param dims1 First dimension tuple. 
+    /// @param dims2 Second dimension tuple. 
+    /// @return True if dimensions are compatible. 
+    bool compatible(qtnh::tidx_tup dims1, qtnh::tidx_tup dims2);
+
+    namespace wirecomp {
+      constexpr bool first(qtnh::wire w1, qtnh::wire w2) { return (w1.first < w2.first); }
+      constexpr bool second(qtnh::wire w1, qtnh::wire w2) { return (w1.second < w2.second); }
+    }
+
+    template<typename T>
+    std::unique_ptr<T> one_unique(std::unique_ptr<T> u, T* t) {
+      if (u.get() == t) return u;
+      else return std::unique_ptr<T>(t);
+    }
+
+    template<typename T, typename U>
+    std::unique_ptr<T> one_unique(std::unique_ptr<U> u, T* t) {
+      auto p = u.release();
+      if (dynamic_cast<T*>(p) != t) delete p;
+      return std::unique_ptr<T>(t);
+    }
+
+    template<typename Op>
+    void to_mpi_fun(void* a, void* b, int*, MPI_Datatype*) {
+      auto at = reinterpret_cast<tel*>(a);
+      auto bt = reinterpret_cast<tel*>(b);
+
+      *bt = Op(*at, *bt);
+    };
+
+    namespace binops {
+      void add_sq(void* a, void* b, int*, MPI_Datatype*);
+    }
+
+    // Source: https://stackoverflow.com/questions/5056645/sorting-stdmap-using-value. 
+    template<typename A, typename B>
+    std::pair<B,A> flip_pair(const std::pair<A,B> &p)
+    {
+        return std::pair<B,A>(p.second, p.first);
+    }
+
+    template<typename A, typename B>
+    std::multimap<B,A> flip_map(const std::map<A,B> &src)
+    {
+      std::multimap<B,A> dst;
+      std::transform(src.begin(), src.end(), std::inserter(dst, dst.begin()), flip_pair<A,B>);
+      return dst;
+    }
+  }
+}
+
+#endif

@@ -1,9 +1,9 @@
 add_library(qtnh)
 
-add_subdirectory(con)
-add_subdirectory(core)
-add_subdirectory(lalg)
-add_subdirectory(tensor)
+add_subdirectory(blas)
+add_subdirectory(net)
+add_subdirectory(ten)
+add_subdirectory(util)
 
 target_compile_features(qtnh
   PUBLIC
@@ -120,23 +120,18 @@ if (ScaLAPACK_FOUND)
   )
 endif()
 
-install(TARGETS qtnh
-        EXPORT qtnh
+install(
+  TARGETS qtnh
+  EXPORT qtnh
 )
 
-install(FILES ${PROJECT_SOURCE_DIR}/include/qtnh.hpp
+install(
+  FILES ${PROJECT_SOURCE_DIR}/include/qtnh.hpp
   TYPE INCLUDE
 )
 
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/core
-  TYPE INCLUDE
-)
-
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/tensor
-  TYPE INCLUDE
-)
-
-install(EXPORT qtnh
+install(
+  EXPORT qtnh
   FILE qtnh.cmake
   NAMESPACE qtnh::
   DESTINATION lib/cmake

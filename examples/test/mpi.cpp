@@ -1,7 +1,6 @@
 #include <iostream>
 #include <mpi.h>
-
-#include "core/env.hpp"
+#include "util/env.hpp"
 
 const auto SIZE = 20UL;
 

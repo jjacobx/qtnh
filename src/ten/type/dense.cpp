@@ -1,0 +1,815 @@
+#include <iostream>
+#include <cassert>
+
+#include "ten/type/dense.hpp"
+#include "util/indexing.hpp"
+#include "util/ops.hpp"
+#include "util/ptuple.hpp"
+#include "util/vector.hpp"
+
+namespace qtnh {
+  DenseTensorBase::DenseTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims)
+  : Tensor(env, dis_dims, loc_dims) 
+  {}
+
+  DenseTensorBase::DenseTensorBase(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, 
+                                   BcParams params)
+  : Tensor(env, dis_dims, loc_dims, params) 
+  {}
+
+  // Specialised convert template from tensor header requires full class definition. 
+  template<> 
+  std::unique_ptr<DenseTensor> Tensor::convert<DenseTensor>(tptr tp) {
+    auto p = tp->toDense();
+    return utils::one_unique(std::move(tp), p);
+  }
+
+  DenseTensor* DenseTensorBase::toDense() noexcept {
+    std::vector<qtnh::tel> els;
+    els.reserve(locSize());
+    
+    std::vector<TIFlag> ifls(totDims().size(), { "local", 0 });
+    for (std::size_t i = 0; i < dis_dims_.size(); ++i) {
+      ifls.at(i) = { "distributed", 0 };
+    }
+
+    auto curr_idxs = utils::concat_dims(
+      utils::i_to_idxs(bc_.gid(), dis_dims_), 
+      qtnh::tidx_tup(loc_dims_.size(), 0)
+    );
+
+    TIndexing ti(totDims(), ifls);
+    for (auto idxs : ti.tup("local", curr_idxs)) {
+      els.push_back(this->at(idxs));
+    }
+
+    // ? Is it better to use local members or accessors? 
+    return new DenseTensor(bc_.env(), dis_dims_, loc_dims_, std::move(els), bc_.params());
+  }
+
+  Tensor* DenseTensorBase::swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) {
+    return this->toDense()->swap(idx1, idx2);
+  }
+
+  Tensor* DenseTensorBase::rebcast(BcParams params) {
+    return this->toDense()->rebcast(params);
+  }
+
+  Tensor* DenseTensorBase::rescatter(int offset) {
+    return this->toDense()->rescatter(offset);
+  }
+
+  Tensor* DenseTensorBase::permute(std::vector<qtnh::tidx_tup_st> ptup) {
+    return this->toDense()->permute(ptup);
+  }
+
+  Tensor* DenseTensorBase::truncate(qtnh::tidx_tup_st idx, std::size_t size) {
+    return this->toDense()->truncate(idx, size);
+  }
+
+  Tensor* DenseTensorBase::fold(qtnh::tidx_tup_ids idxs, qtnh::mpi_fun fun, qtnh::tel init) {
+    return this->toDense()->fold(idxs, fun, init);
+  }
+
+  DenseTensor::DenseTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, 
+                           std::vector<qtnh::tel>&& els)
+  : DenseTensorBase(env, dis_dims, loc_dims)
+  , TIDense(std::move(els)) 
+  {}
+
+  DenseTensor::DenseTensor(const QTNHEnv& env, qtnh::tidx_tup dis_dims, qtnh::tidx_tup loc_dims, 
+                           std::vector<qtnh::tel>&& els, BcParams params)
+  : DenseTensorBase(env, dis_dims, loc_dims, params)
+  , TIDense(std::move(els)) 
+  {}
+
+  qtnh::tptr DenseTensor::copy() const noexcept {
+    auto els = loc_els_;
+    auto tp = new DenseTensor(bc_.env(), dis_dims_, loc_dims_, std::move(els), bc_.params());
+    return std::unique_ptr<DenseTensor>(tp);
+  }
+
+  qtnh::tel DenseTensor::operator[](qtnh::tidx_tup loc_idxs) const {
+    auto i = utils::idxs_to_i(loc_idxs, loc_dims_);
+    return loc_els_.at(i);
+  }
+
+  qtnh::tel& DenseTensor::operator[](qtnh::tidx_tup loc_idxs) {
+    auto i = utils::idxs_to_i(loc_idxs, loc_dims_);
+    return loc_els_.at(i);
+  }
+
+  qtnh::tel DenseTensor::at(qtnh::tidx_tup tot_idxs) const {
+    auto [dis_idxs, loc_idxs] = utils::split_dims(tot_idxs, dis_dims_.size());
+    if (bc_.gid() != (int)utils::idxs_to_i(dis_idxs, dis_dims_)) {
+      throw std::invalid_argument("Element at given indices is not present on calling rank. ");
+    }
+
+    return loc_els_.at(utils::idxs_to_i(loc_idxs, loc_dims_));
+  }
+
+  qtnh::tel& DenseTensor::at(qtnh::tidx_tup tot_idxs) {
+    auto [dis_idxs, loc_idxs] = utils::split_dims(tot_idxs, dis_dims_.size());
+    if (bc_.gid() != (int)utils::idxs_to_i(dis_idxs, dis_dims_)) {
+      throw std::invalid_argument("Element at given indices is not present on calling rank. ");
+    }
+
+    return loc_els_.at(utils::idxs_to_i(loc_idxs, loc_dims_));
+  }
+
+  void DenseTensor::put(qtnh::tidx_tup tot_idxs, qtnh::tel el) {
+    auto [dis_idxs, loc_idxs] = utils::split_dims(tot_idxs, dis_dims_.size());
+    auto target_id = utils::idxs_to_i(dis_idxs, dis_dims_);
+
+    int call_id;
+    MPI_Comm_rank(bc_.gcomm(), &call_id);
+
+    if (call_id == (int)target_id) {
+      auto i = utils::idxs_to_i(loc_idxs, loc_dims_);
+      loc_els_.at(i) = el;
+    }
+  }
+
+  DenseTensor* DenseTensor::swap(qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) {
+    bc_ = _swap_internal(this, idx1, idx2);
+    return this;
+  }
+
+  DenseTensor* DenseTensor::rebcast(BcParams params) {
+    auto invariant = (params == bc_.params());
+
+    if (!invariant) bc_ = _rebcast_internal(this, params);
+    return this;
+  }
+
+  DenseTensor* DenseTensor::rescatter(int offset) {
+    bc_ = _rescatter_internal(this, offset);
+
+    // Update dimensions
+    if (offset < 0) {
+      auto loc_dims2 = qtnh::tidx_tup(dis_dims_.end() + offset, dis_dims_.end());
+      loc_dims_.insert(loc_dims_.begin(), loc_dims2.begin(), loc_dims2.end());
+      dis_dims_.erase(dis_dims_.end() + offset, dis_dims_.end());
+    } else if (offset > 0) {
+      auto dis_dims2 = qtnh::tidx_tup(loc_dims_.begin(), loc_dims_.begin() + offset);
+      loc_dims_.erase(loc_dims_.begin(), loc_dims_.begin() + offset);
+      dis_dims_.insert(dis_dims_.end(), dis_dims2.begin(), dis_dims2.end());
+    }
+
+    return this;
+  }
+
+  DenseTensor* DenseTensor::permute(std::vector<qtnh::tidx_tup_st> ptup) {
+    auto invariant = true;
+    for (auto i = 0UL; i < ptup.size(); ++i) {
+      if (ptup.at(i) != i) {
+        invariant = false;
+        break;
+      }
+    }
+
+    if (!invariant) bc_ = _permute_internal(this, ptup);
+
+    // Update dimensions. 
+    auto dims = PTupleTar(ptup).apply(totDims());
+    auto [dis_dims, loc_dims] = utils::split_dims(dims, dis_dims_.size());
+    dis_dims_ = dis_dims;
+    loc_dims_ = loc_dims;
+
+    return this;
+  }
+
+  DenseTensor* DenseTensor::truncate(qtnh::tidx_tup_st idx, std::size_t size) {
+    PTupleSrc ptup(totDims().size());
+    auto n_dis_dims = dis_dims_.size();
+
+    auto shift = (idx < n_dis_dims) ? idx : (idx - n_dis_dims);
+    ptup.at(idx) << int(shift);
+
+    // Naive implementation using permutation. 
+    permute(ptup.toTar().tup());
+
+    if (idx < n_dis_dims) {
+      BcParams params { bc_.params().str, 1, bc_.params().off };
+      rebcast(params);
+      dis_dims_.at(0) = size;
+      if (bc_.gid() > int(disSize())) loc_els_.clear();
+
+      // Update broadcaster base. 
+      Broadcaster new_bc(bc_.env(), qtnh::uint(disSize()), params);
+      bc_ = std::move(new_bc);
+    } else {
+      loc_dims_.at(0) = size;
+      loc_els_.resize(locSize());
+    }
+
+    permute(ptup.inv().toTar().tup());
+    return this;
+  }
+
+  DenseTensor* DenseTensor::fold(qtnh::tidx_tup_ids idxs, qtnh::mpi_fun fun, qtnh::tel init) {
+    auto n_dis_folds = 0UL, n_loc_folds = 0UL;
+    auto dis_fold_size = 1UL, loc_fold_size = 1UL;
+    PTupleSrc ptup(totDims().size());
+
+    for (auto idx : idxs) {
+      if (idx < disDims().size()) {
+        ptup.at(idx) << int(idx - n_dis_folds);
+        dis_fold_size *= totDims().at(idx);
+        ++n_dis_folds;
+      } else {
+        ptup.at(idx) >> int(totDims().size() - idx - 1);
+        loc_fold_size *= totDims().at(idx);
+        ++n_loc_folds;
+      }
+    }
+
+    BcParams params { 1, 1, bc().params().off };
+    if (!(params == bc_.params())) {
+      bc_ = _rebcast_internal(this, params);
+    }
+
+    bc_ = _permute_internal(this, ptup.toTar().tup());
+
+    // Update dimensions. 
+    auto dims = ptup.apply(totDims());
+    auto [dis_dims, loc_dims] = utils::split_dims(dims, dis_dims_.size());
+    dis_dims_ = dis_dims;
+    loc_dims_ = loc_dims;
+
+    auto tel_fun = [fun](tel a, tel b) {
+      fun(reinterpret_cast<void*>(&b), reinterpret_cast<void*>(&a), nullptr, nullptr);
+      return a;
+    };
+    
+    std::vector<tel> new_els;
+
+    if (bc_.isActive()) {
+      new_els.resize(locSize() / loc_fold_size);
+      for (auto i = 0UL; i < new_els.size(); ++i) {
+        auto begin = loc_els_.begin() + i * loc_fold_size;
+        auto end = begin + loc_fold_size;
+        new_els.at(i) = std::accumulate(begin, end, init, tel_fun);
+      }
+      
+      if (dis_fold_size > 1) {
+        MPI_Comm fold_comm;
+        MPI_Comm_split(bc_.gcomm(), int(bc_.gid() / dis_fold_size), int(bc_.gid()), &fold_comm);
+    
+        int rank;
+        MPI_Comm_rank(fold_comm, &rank);
+        
+        // TODO: Reconsider this. 
+        MPI_Op op;
+        if (loc_fold_size > 1) {
+          op = MPI_SUM;
+        } else {
+          MPI_Op_create(fun, 1, &op);
+        }
+        
+        if (rank == 0) {
+          MPI_Reduce(MPI_IN_PLACE, new_els.data(), int(new_els.size()), 
+                     MPI_DOUBLE_COMPLEX, op, 0, fold_comm);
+        } else {
+          MPI_Reduce(new_els.data(), new_els.data(), int(new_els.size()), 
+                     MPI_DOUBLE_COMPLEX, op, 0, fold_comm);
+          new_els.clear();
+        }
+      }
+    }
+
+    auto [tmp_dis_dims, new_dis_dims] = utils::split_dims(dis_dims_, n_dis_folds);
+    auto [new_loc_dims, tmp_loc_dims] = utils::split_dims(loc_dims_, locDims().size() - n_loc_folds);
+    (void)tmp_dis_dims; (void)tmp_loc_dims;
+
+    return new DenseTensor(bc_.env(), new_dis_dims, new_loc_dims, std::move(new_els), bc_.params());
+  }
+
+  Broadcaster TIDense::_swap_internal(Tensor* target, qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2) {
+    auto& bc = target->bc();
+
+    if (!bc.isActive()) return Broadcaster(std::move(bc));;
+    if (idx1 > idx2) std::swap(idx1, idx2);
+
+    // Case: asymmetric swap
+    if (target->totDims().at(idx1) != target->totDims().at(idx2)) {
+      throw std::runtime_error("Asymmetric swaps are currently not allowed");
+    }
+
+    #ifdef DEBUG
+      std::cout << "Swapping " << idx1 << " and " << idx2 << "\n";
+    #endif
+
+    // Case: same-index swap
+    if (idx1 == idx2) return Broadcaster(std::move(bc));
+
+    // Case: local swap
+    if (idx1 >= target->disDims().size()) {
+      qtnh::tidx_tup_st loc_idx1 = idx1 - target->disDims().size();
+      qtnh::tidx_tup_st loc_idx2 = idx2 - target->disDims().size();
+
+      auto loc_dims = target->locDims();
+      std::vector<TIFlag> ifls(loc_dims.size(), { "const", 0 });
+      ifls.at(loc_idx1) = ifls.at(loc_idx2) = { "swap", 0 };
+      TIndexing ti(loc_dims, ifls);
+
+      for (auto idxs : ti.tup("const")) {
+        auto idxs1 = idxs;
+        auto idxs2 = idxs;
+
+        // Swaps only invoked n * (n - 1) / 2 times, instead of n * n
+        for (qtnh::tidx i = 0; i < loc_dims.at(loc_idx1) - 1; ++i) {
+          idxs1.at(loc_idx1) = idxs2.at(loc_idx2) = i;
+          for (qtnh::tidx j = i + 1; j < loc_dims.at(loc_idx2); ++j) {
+            idxs1.at(loc_idx2) = idxs2.at(loc_idx1) = j;
+
+            auto i1 = utils::idxs_to_i(idxs1, loc_dims);
+            auto i2 = utils::idxs_to_i(idxs2, loc_dims);
+
+            std::swap(loc_els_.at(i1), loc_els_.at(i2));
+          }
+        }
+      }
+
+      return Broadcaster(std::move(bc));
+    }
+
+    // Case: mixed local/distributed swap
+    if (idx1 < target->disDims().size() && idx2 >= target->disDims().size()) {
+      auto dims = target->totDims();
+      qtnh::tidx_tup trail_dims(dims.begin() + idx2 + 1, dims.end());
+      auto block_length = utils::dims_to_size(trail_dims);
+      auto stride = dims.at(idx2) * block_length;
+
+      qtnh::tidx_tup mid_loc_dims(dims.begin() + target->disDims().size(), dims.begin() + idx2);
+      auto num_blocks = utils::dims_to_size(mid_loc_dims);
+
+      qtnh::tidx_tup mid_dist_dims(target->disDims().begin() + idx1 + 1, target->disDims().end());
+      auto dist_stride = utils::dims_to_size(mid_dist_dims);
+
+      auto dist_idxs = utils::i_to_idxs(target->bc().gid(), target->disDims());
+      auto rank_idx = dist_idxs.at(idx1);
+
+      MPI_Datatype strided, restrided;
+      MPI_Type_vector(int(num_blocks), int(block_length), int(stride), MPI_C_DOUBLE_COMPLEX, &strided);
+      MPI_Type_create_resized(strided, 0, int(block_length) * sizeof(qtnh::tel), &restrided);
+      MPI_Type_commit(&restrided);
+
+      MPI_Comm swap_comm;
+      MPI_Comm_split(bc.gcomm(), bc.gid() - int(rank_idx * dist_stride), bc.gid(), &swap_comm);
+
+      std::vector<qtnh::tel> new_els(loc_els_.size());
+      for (auto i = 0UL; i < dims.at(idx1); ++i) {
+        // TODO: Consider MPI message size limit. 
+        // * A scatter might already take it into account
+        MPI_Scatter(loc_els_.data(), 1, restrided, new_els.data() + int(i * block_length), 1, 
+                    restrided, int(i), swap_comm);
+      }
+
+      // ! new_els should not be copied, and original loc_els should be destroyed. 
+      loc_els_ = std::move(new_els);
+
+      MPI_Comm_free(&swap_comm);
+      MPI_Type_free(&restrided);
+      return Broadcaster(std::move(bc));
+    }
+
+    // Case: distributed swap
+    if (idx2 < target->disDims().size()) {
+      auto target_idxs = utils::i_to_idxs(bc.gid(), target->disDims());
+      std::swap(target_idxs.at(idx1), target_idxs.at(idx2));
+      auto target_i = utils::idxs_to_i(target_idxs, target->disDims());
+
+      std::vector<qtnh::tel> new_els(loc_els_.size());
+      // TODO: Consider MPI message size limit – not a scatter. 
+      MPI_Sendrecv(loc_els_.data(), int(loc_els_.size()), MPI_C_DOUBLE_COMPLEX, int(target_i), 0, 
+                   new_els.data(), int(new_els.size()), MPI_C_DOUBLE_COMPLEX, int(target_i), 0, 
+                   bc.gcomm(), MPI_STATUS_IGNORE);
+      
+      // ! new_els should not be copied, and original loc_els should be destroyed
+      loc_els_ = std::move(new_els);
+    }
+
+    return Broadcaster(std::move(bc));
+  }
+
+  Broadcaster TIDense::_rebcast_internal(Tensor* target, BcParams params) {
+    auto& bc = target->bc();
+    Broadcaster new_bc(bc.env(), bc.base(), params);
+    std::vector<MPI_Request> send_reqs(params.str * params.cyc, MPI_REQUEST_NULL);
+
+    if (bc.isActive()) {
+      std::vector<int> send_sources;
+      std::vector<int> send_targets;
+
+      for (qtnh::uint i = 0; i < bc.params().str; ++i) {
+        for (qtnh::uint j = 0; j < bc.params().cyc; ++j) {
+          send_sources.push_back(i + (bc.base() * j + bc.gid()) * bc.params().str + bc.params().off);
+        }
+      }
+
+      for (qtnh::uint i = 0; i < params.str; ++i) {
+        for (qtnh::uint j = 0; j < params.cyc; ++j) {
+          send_targets.push_back(i + (bc.base() * j + bc.gid()) * params.str + params.off);
+        }
+      }
+
+      // TODO: optimisation where if data is already present at target, it is not sent. 
+      if ((int)bc.env().proc_id == send_sources.at(0)) {
+        for (std::size_t i = 0; i < send_targets.size(); ++i) {
+          MPI_Isend(loc_els_.data(), int(loc_els_.size()), MPI_C_DOUBLE_COMPLEX, send_targets.at(i), 0, 
+                    MPI_COMM_WORLD, &send_reqs.at(i));
+        }
+      }
+    }
+
+    std::vector<qtnh::tel> new_els(0);
+    if (new_bc.isActive()) {
+      new_els.resize(target->locSize());
+      int recv_source = new_bc.gid() * bc.params().str + bc.params().off;
+      MPI_Recv(new_els.data(), int(new_els.size()), MPI_C_DOUBLE_COMPLEX, recv_source, 0, 
+               MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    }
+
+    MPI_Waitall(int(send_reqs.size()), send_reqs.data(), MPI_STATUSES_IGNORE);
+    loc_els_ = std::move(new_els);
+
+    return new_bc;
+  }
+
+  Broadcaster TIDense::_rescatter_internal(Tensor* target, int offset) {
+    auto& bc = target->bc();
+    auto dis_dims = target->disDims();
+
+    if (offset < 0) {
+      auto loc_dims2 = qtnh::tidx_tup(dis_dims.end() + offset, dis_dims.end());
+      auto shift = qtnh::uint(utils::dims_to_size(loc_dims2));
+
+      if (bc.isActive()) {
+        MPI_Comm gath_comm;
+        MPI_Comm_split(bc.gcomm(), bc.gid() / int(shift), bc.gid(), &gath_comm);
+
+        std::vector<qtnh::tel> new_els(target->locSize() * shift);
+        MPI_Allgather(loc_els_.data(), int(target->locSize()), MPI_C_DOUBLE_COMPLEX, 
+                      new_els.data(), int(target->locSize()), MPI_C_DOUBLE_COMPLEX, gath_comm);
+
+        MPI_Comm_free(&gath_comm);
+
+        loc_els_ = std::move(new_els);
+      }
+
+      auto params = bc.params();
+      params.str *= shift;
+      dis_dims.erase(dis_dims.end() + offset, dis_dims.end());
+      return Broadcaster(bc.env(), qtnh::uint(utils::dims_to_size(dis_dims)), params);
+    } else if (offset > 0) {
+      auto loc_dims = target->locDims();
+      auto dis_dims2 = qtnh::tidx_tup(loc_dims.begin(), loc_dims.begin() + offset);
+      auto shift = utils::dims_to_size(dis_dims2);
+
+      // Align with multiples of shift
+      auto params = bc.params();
+      params.str = (qtnh::uint)std::max(shift, (params.str / shift) * shift);
+      auto bc2 = _rebcast_internal(target, params);
+
+      if (bc2.isActive()) {
+        auto split_id = (((bc2.env().proc_id - params.off) % 
+          (bc2.base() * params.str)) / (params.str / shift)) % shift;
+        loc_els_.erase(loc_els_.begin(), loc_els_.begin() + target->locSize() / shift * split_id);
+        loc_els_.erase(loc_els_.begin() + target->locSize() / shift, loc_els_.end());
+      }
+
+      params = bc.params();
+      params.str = (qtnh::uint)std::max(1UL, params.str / shift);
+      dis_dims.insert(dis_dims.end(), dis_dims2.begin(), dis_dims2.end());
+      return Broadcaster(bc.env(), qtnh::uint(utils::dims_to_size(dis_dims)), params);
+    }
+
+    return Broadcaster(std::move(bc));
+  }
+
+  std::pair<MPI_Datatype, MPI_Datatype> _get_permute_datatypes(
+    std::vector<std::size_t> old_dims, 
+    std::vector<std::size_t> new_dims, 
+    std::size_t ndis,
+    std::vector<qtnh::tidx_tup_st> ptup
+  ) {
+    // ! Conversion between size_t and MPI_Aint might not work. 
+    std::vector<std::size_t> old_cumdims(old_dims.size(), 1);
+    std::vector<std::size_t> new_cumdims(new_dims.size(), 1);
+    for (auto i = old_dims.size() - 1; i > 0; --i) {
+      old_cumdims.at(i - 1) = old_cumdims.at(i) * old_dims.at(i);
+      new_cumdims.at(i - 1) = new_cumdims.at(i) * new_dims.at(i);
+    }
+
+    // Vectors for temporary datatypes. Size 128 should be enough for any realistic dense tensor. 
+    std::vector<MPI_Datatype> send_types(128, MPI_C_DOUBLE_COMPLEX);
+    std::vector<MPI_Datatype> recv_types(128, MPI_C_DOUBLE_COMPLEX);
+    auto ext1 = sizeof(qtnh::tel), ext2 = sizeof(qtnh::tel);
+    auto new_ext1 = sizeof(qtnh::tel), new_ext2 = sizeof(qtnh::tel);
+    auto count1 = 1UL, count2 = 1UL;
+    auto i1 = 0UL, i2 = 0UL;
+
+    for (auto k = old_dims.size(); k > ndis; --k) {
+      auto i = k - 1;
+      auto j = ptup.at(i);
+      if (j >= ndis) {
+        new_ext1 = old_cumdims.at(i) * sizeof(qtnh::tel);
+        new_ext2 = new_cumdims.at(j) * sizeof(qtnh::tel);
+        #ifdef DEBUG
+          std::cout << "Send extent: " << count1 * ext1 << ", expected: " << new_ext1 << "\n";
+          std::cout << "Recv extent: " << count2 * ext2 << ", expected: " << new_ext2 << "\n";
+        #endif
+
+        // ! Using Type_vector(*, 1, 1, ...) instead of Type_contiguous(*, ...)
+        // ! due to a bug in Cray-MPICH on ARCHER2. 
+        if (count1 * ext1 != new_ext1){
+          MPI_Type_vector(int(count1), 1, 1, send_types.at(i1), &send_types.at(i1 + 1));
+          MPI_Type_create_resized(send_types.at(i1 + 1), 0, new_ext1, &send_types.at(i1 + 2));
+          #ifdef DEBUG
+            std::cout << "Send: t_contiguous (count = " << count1 << ", ext = " << ext1 << ")\n";
+            std::cout << "Send: t_resized (ext = " << new_ext1 << ")\n";
+          #endif
+
+          ext1 = new_ext1;
+          count1 = 1UL;
+          i1 += 2;
+        }
+
+        if (count2 * ext2 != new_ext2){
+          MPI_Type_vector(int(count2), 1, 1, recv_types.at(i2), &recv_types.at(i2 + 1));
+          MPI_Type_create_resized(recv_types.at(i2 + 1), 0, new_ext2, &recv_types.at(i2 + 2));
+          #ifdef DEBUG
+            std::cout << "Recv: t_contiguous (count = " << count2 << ", ext = " << ext2 << ")\n";
+            std::cout << "Recv: t_resized (ext = " << new_ext2 << ")\n";
+          #endif
+
+          ext2 = new_ext2;
+          count2 = 1UL;
+          i2 += 2;
+        }
+
+        count1 *= old_dims.at(i);
+        count2 *= new_dims.at(j);
+      }
+    }
+
+    if (count1 > 1) {
+      MPI_Type_vector(int(count1), 1, 1, send_types.at(i1), &send_types.at(i1 + 1));
+      #ifdef DEBUG
+        std::cout << "Send: t_contiguous (count = " << count1 << ", ext = " << ext1 << ")\n";
+      #endif
+
+      ++i1;
+    }
+
+    if (count2 > 1) {
+      MPI_Type_vector(int(count2), 1, 1, recv_types.at(i2), &recv_types.at(i2 + 1));
+      #ifdef DEBUG
+        std::cout << "Recv: t_contiguous (count = " << count2 << ", ext = " << ext2 << ")\n";
+      #endif
+
+      ++i2;
+    }
+
+    MPI_Datatype send_type, recv_type;
+    MPI_Type_create_resized(send_types.at(i1), 0, sizeof(qtnh::tel), &send_type);
+    MPI_Type_create_resized(recv_types.at(i2), 0, sizeof(qtnh::tel), &recv_type);
+    #ifdef DEBUG
+      std::cout << "Send: t_resized (ext = " << sizeof(qtnh::tel) << ")\n";
+      std::cout << "Recv: t_resized (ext = " << sizeof(qtnh::tel) << ")\n";
+    #endif
+
+    MPI_Type_commit(&send_type);
+    MPI_Type_commit(&recv_type);
+
+    // Free unused datatypes to prevent memory leaks. 
+    for (std::size_t i = 0; i < 128; ++i) {
+      if (send_types.at(i) != MPI_C_DOUBLE_COMPLEX) MPI_Type_free(&send_types.at(i));
+      if (recv_types.at(i) != MPI_C_DOUBLE_COMPLEX) MPI_Type_free(&recv_types.at(i));
+    }
+
+    return { send_type, recv_type };
+  }
+
+  Broadcaster TIDense::_permute_internal(Tensor* target, std::vector<qtnh::tidx_tup_st> ptup) {
+    #ifdef DEBUG
+      utils::barrier();
+      if (utils::is_root()) {
+        std::cout << "Permuting: " << ptup << std::endl;
+      }
+      utils::barrier();
+    #endif
+    auto ndis = target->disDims().size();
+
+    auto old_dims = target->totDims();
+    qtnh::tidx_tup new_dims(old_dims.size());
+    for (std::size_t i = 0; i < old_dims.size(); ++i) {
+      new_dims.at(ptup.at(i)) = old_dims.at(i);
+    }
+
+    auto [send_type, recv_type] = _get_permute_datatypes(old_dims, new_dims, ndis, ptup);
+
+    std::vector<TIFlag> old_ifls(old_dims.size());
+    std::vector<TIFlag> new_ifls(new_dims.size());
+    for (auto i = 0UL; i < old_dims.size(); ++i) {
+      auto j = ptup.at(i);
+      old_ifls.at(i) = (j < ndis) ? TIFlag("to-dis", int(i)) : TIFlag("to-loc", int(i));
+      new_ifls.at(j) = (i < ndis) ? TIFlag("from-dis", int(i)) : TIFlag("from-loc", int(i));
+    }
+
+    auto [old_dis_dims, old_loc_dims] = utils::split_dims(old_dims, ndis);
+    auto [new_dis_dims, new_loc_dims] = utils::split_dims(new_dims, ndis);
+    auto [old_dis_ifls, old_loc_ifls] = utils::split_vec(old_ifls, ndis);
+    auto [new_dis_ifls, new_loc_ifls] = utils::split_vec(new_ifls, ndis);
+
+    // ! The broadcaster will fail if cyc > 1 and new base is of different size. 
+    // ! Might need to re-bcast to cyc = 1 in such case. 
+    auto& old_bc = target->bc();
+    Broadcaster temp_bc(old_bc.env(), qtnh::uint(utils::dims_to_size(new_dis_dims)), old_bc.params(), false);
+    auto& new_bc = utils::compatible(old_dis_dims, new_dis_dims) ? old_bc : temp_bc;
+
+    auto max_base = std::max(old_bc.base(), new_bc.base());
+    auto max_gid = (qtnh::uint)std::max(old_bc.gid(), new_bc.gid());
+    
+    std::vector<int> send_counts(max_base, 0), recv_counts(max_base, 0);
+    std::vector<int> send_displs(max_base, 0), recv_displs(max_base, 0);
+
+    TIndexing old_dis_ti(old_dis_dims, old_dis_ifls), old_loc_ti(old_loc_dims, old_loc_ifls);
+    TIndexing new_dis_ti(new_dis_dims, new_dis_ifls), new_loc_ti(new_loc_dims, new_loc_ifls);
+
+    auto old_dis_idxs = utils::i_to_idxs(old_bc.gid(), old_dis_dims);
+    qtnh::tidx_tup send_dis_idxs(ndis);
+    for (std::size_t i = 0; i < ndis; ++i) {
+      auto j = ptup.at(i);
+      if (j < ndis) send_dis_idxs.at(j) = old_dis_idxs.at(i);
+    }
+
+    auto old_loc_it = old_loc_ti.num("to-dis").begin();
+    auto new_dis_it = new_dis_ti.num("from-loc", send_dis_idxs).begin();
+    while (old_loc_it != old_loc_it.end() && new_dis_it != new_dis_it.end() && max_gid < old_bc.base()) {
+      send_counts.at(*new_dis_it) = 1; // Datatype should cover all data
+      send_displs.at(*new_dis_it) = int(*old_loc_it);
+      old_loc_it++, new_dis_it++;
+    }
+
+    // ! Possible error: old_dis_dims instead of new_dis_dims. 
+    auto new_dis_idxs = utils::i_to_idxs(new_bc.gid(), new_dis_dims);
+    qtnh::tidx_tup recv_dis_idxs(ndis);
+    for (std::size_t i = 0; i < ndis; ++i) {
+      auto j = ptup.at(i);
+      if (j < ndis) recv_dis_idxs.at(i) = new_dis_idxs.at(j);
+    }
+
+    auto new_loc_it = new_loc_ti.num("from-dis").begin();
+    auto old_dis_it = old_dis_ti.num("to-loc", recv_dis_idxs).begin();
+    while (new_loc_it != new_loc_it.end() && old_dis_it != old_dis_it.end() && max_gid < new_bc.base()) {
+      recv_counts.at(*old_dis_it) = 1; // Datatype should cover all data
+      recv_displs.at(*old_dis_it) = int(*new_loc_it);
+      new_loc_it++, old_dis_it++;
+    }
+
+    // Determine which communicator to use
+    MPI_Comm transpose_comm = new_bc.gcomm();
+    if (utils::dims_to_size(old_dis_dims) > utils::dims_to_size(new_dis_dims)) {
+      transpose_comm = target->bc().gcomm();
+    }
+
+    if (target->bc().isActive() || new_bc.isActive()) {
+      #ifdef DEBUG
+        std::cout << new_bc.env.proc_id << " | Sc: (" << send_counts << "); ";
+        std::cout << "Sd: (" << send_displs << ")" << std::endl;
+        std::cout << new_bc.env.proc_id << " | Rc: (" << recv_counts << "); ";
+        std::cout << "Rd: (" << recv_displs << ")" << std::endl;
+      #endif
+
+      std::vector<qtnh::tel> new_els(utils::dims_to_size(new_loc_dims), 1.0);
+      MPI_Alltoallv(loc_els_.data(), send_counts.data(), send_displs.data(), send_type, 
+                    new_els.data(), recv_counts.data(), recv_displs.data(), recv_type, 
+                    transpose_comm);
+
+      loc_els_ = std::move(new_els);
+    }
+
+    MPI_Type_free(&send_type);
+    MPI_Type_free(&recv_type);
+
+    return Broadcaster(std::move(new_bc));
+  }
+
+  Broadcaster TIDense::_shift_internal(Tensor* target, qtnh::tidx_tup_st from, qtnh::tidx_tup_st to, 
+                                       int offset) {
+    auto& bc = target->bc();
+    
+    qtnh::tidx_tup_st n = to - from;
+    for (qtnh::tidx_tup_st i = 0; i < n && offset < 0; ++i) {
+      if (i % -offset == 0) offset = -(-offset % int(n - i));
+      _swap_internal(target, from - offset - (i % -offset), to - i);
+    }
+
+    for (qtnh::tidx_tup_st i = 0; i < n && offset > 0; ++i) {
+      if (i % offset == 0) offset = offset % int(n - i);
+      _swap_internal(target, from + i, to - offset + (i % offset));
+    }
+
+    // Not updating dimensions as asymmetric swaps are not supported. 
+    return Broadcaster(std::move(bc));
+  }
+
+  RescTensor::RescTensor(const QTNHEnv& env, std::size_t n) 
+  : DenseTensorBase(env, { n }, { n }) 
+  {}
+
+  RescTensor::RescTensor(const QTNHEnv& env, std::size_t n, BcParams params) 
+  : DenseTensorBase(env, { n }, { n }, params) 
+  {}
+  
+  qtnh::tptr RescTensor::copy() const noexcept {
+    auto tp = new RescTensor(bc_.env(), dis_dims_.at(0), bc_.params());
+    return std::unique_ptr<RescTensor>(tp);
+  }
+
+  qtnh::tel RescTensor::operator[](qtnh::tidx_tup loc_idxs) const {
+    return (bc_.gid() == (int)loc_idxs.at(0));
+  }
+
+  qtnh::tel RescTensor::operator[](std::size_t i) const {
+    return (bc_.gid() == (int)i);
+  }
+
+  qtnh::tel RescTensor::at(qtnh::tidx_tup tot_idxs) const {
+    auto [dis_idxs, loc_idxs] = utils::split_dims(tot_idxs, dis_dims_.size());
+    if (bc_.gid() != (int)utils::idxs_to_i(dis_idxs, dis_dims_)) {
+      throw std::invalid_argument("Element at given indices is not present on calling rank. ");
+    }
+
+    return (tot_idxs.at(0) == tot_idxs.at(1));
+  }
+
+  RescTensor* RescTensor::rebcast(BcParams params) {
+    Broadcaster new_bc(bc_.env(), bc_.base(), params);
+    bc_ = std::move(new_bc);
+
+    return this;
+  }
+
+  CopyTensor::CopyTensor(const QTNHEnv& env, std::array<tidx_tup, 3> dis_dims_3, 
+                         std::array<tidx_tup, 3> loc_dims_3)
+  : DenseTensorBase(env, utils::concat_vecs(dis_dims_3), utils::concat_vecs(loc_dims_3))
+  , dis_dims_3_(dis_dims_3)
+  , loc_dims_3_(loc_dims_3)
+  {}
+
+  CopyTensor::CopyTensor(const QTNHEnv& env, std::array<tidx_tup, 3> dis_dims_3, 
+                         std::array<tidx_tup, 3> loc_dims_3, BcParams params)
+  : DenseTensorBase(env, utils::concat_vecs(dis_dims_3), utils::concat_vecs(loc_dims_3), params)
+  , dis_dims_3_(dis_dims_3)
+  , loc_dims_3_(loc_dims_3)
+  {}
+
+  qtnh::tptr CopyTensor::copy() const noexcept {
+    auto tp = new CopyTensor(bc_.env(), dis_dims_3_, loc_dims_3_, bc_.params());
+    return std::unique_ptr<CopyTensor>(tp);
+  }
+
+  qtnh::tel CopyTensor::operator[](qtnh::tidx_tup loc_idxs) const {
+    auto dis_idxs = utils::i_to_idxs(bc_.gid(), dis_dims_);
+    auto ids = utils::split_vec_rel(dis_idxs, dis_dims_3_.at(0).size(), dis_dims_3_.at(1).size());
+    auto ils = utils::split_vec_rel(loc_idxs, dis_dims_3_.at(0).size(), loc_dims_3_.at(1).size());
+
+    std::array<std::size_t, 3> is;
+    for (auto k = 0UL; k < 3UL; ++k) {
+      is.at(k) = utils::idxs_to_i(
+        utils::concat_vecs(ids.at(k), ils.at(k)), 
+        utils::concat_dims(dis_dims_3_.at(k), loc_dims_3_.at(k))
+      );
+    }
+    
+    if ((is.at(0) == is.at(1)) && (is.at(1) == is.at(2))) {
+      return 1.0;
+    } else {
+      return 0.0;
+    }
+  }
+
+  qtnh::tel CopyTensor::operator[](std::size_t i) const {
+    auto loc_idxs = utils::i_to_idxs(i, loc_dims_);
+    return operator[](loc_idxs);
+  }
+
+  qtnh::tel CopyTensor::at(qtnh::tidx_tup tot_idxs) const {
+    auto [dis_idxs, loc_idxs] = utils::split_dims(tot_idxs, dis_dims_.size());
+    if (bc_.gid() != (int)utils::idxs_to_i(dis_idxs, dis_dims_)) {
+      throw std::invalid_argument("Element at given indices is not present on calling rank. ");
+    }
+
+    return operator[](loc_idxs);
+  }
+
+  CopyTensor* CopyTensor::rebcast(BcParams params) {
+    Broadcaster new_bc(bc_.env(), bc_.base(), params);
+    bc_ = std::move(new_bc);
+
+    return this;
+  }
+}

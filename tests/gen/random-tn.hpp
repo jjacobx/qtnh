@@ -1,5 +1,5 @@
-#ifndef RANDOM_TN_HPP
-#define RANDOM_TN_HPP
+#ifndef __RANDOM_TN__
+#define __RANDOM_TN__
 
 #include "validation-primitives.hpp"
 

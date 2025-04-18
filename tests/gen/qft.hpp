@@ -1,8 +1,8 @@
-#ifndef QFT_TENSORS_HPP 
-#define QFT_TENSORS_HPP
+#ifndef __GEN_QFT__ 
+#define __GEN_QFT__
 
 #include "validation-primitives.hpp"
-#include "tensor/network.hpp"
+#include "net/network.hpp"
 
 using namespace std::complex_literals;
 

@@ -1,9 +1,9 @@
 #include <catch2/catch_test_macros.hpp>
 #include <iostream>
 
-#include "core/utils.hpp"
-#include "tensor/indexing.hpp"
-#include "tensor/network.hpp"
+#include "net/network.hpp"
+#include "util/indexing.hpp"
+#include "util/utils.hpp"
 
 #include "gen/random-tn.hpp"
 #include "gen/qft.hpp"
@@ -74,7 +74,6 @@ TEST_CASE("tn-contraction") {
 
         // ! Weird behaviour for larger contractions - the accuracy gets low quickly. 
         // if (!eq(t_res_u->getLocEl(idxs).value(), el, 1E-2)) {
-        //   using namespace qtnh::ops;
         //   std::cout << "ERROR: P" << ENV.proc_id << ", idxs = " << idxs << "\n";
         //   std::cout << "El: " << t_res_u->getLocEl(idxs).value() << " != " << el << "\n";
         //   std::cout << "Real diff: " << std::abs(t_res_u->getLocEl(idxs).value().real() - el.real()) << "\n";

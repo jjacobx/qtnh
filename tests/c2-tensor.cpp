@@ -3,12 +3,13 @@
 #include <memory>
 #include <vector>
 
-#include "core/utils.hpp"
-#include "tensor/tensor.hpp"
-#include "tensor/dense.hpp"
-#include "tensor/symm.hpp"
-#include "tensor/diag.hpp"
-#include "con/pair-defs.hpp"
+#include "ten/con/pair-defs.hpp"
+#include "ten/type/dense.hpp"
+#include "ten/type/diag.hpp"
+#include "ten/type/symm.hpp"
+#include "ten/type/tensor.hpp"
+#include "util/ops.hpp"
+#include "util/utils.hpp"
 
 #include "gen/random-tensors.hpp"
 
@@ -140,7 +141,6 @@ TEST_CASE("tensor-accessors") {
 
 void print_if_fail(tel el1, tel el2, Tensor& t, std::vector<tel>& els) {
   if (!utils::equal(el1, el2)) {
-    using namespace ops;
     std::cout << "FAILED\n";
     std::cout << el1 << " != " << el2 << "\n";
     std::cout << "T3 = " << t << "\n";
