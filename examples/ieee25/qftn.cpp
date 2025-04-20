@@ -35,6 +35,12 @@ auto qft_triangle(const QTNHEnv& env, TensorNetwork& tn, MPS& mps) {
       tp = Tensor::truncate(std::move(tp), 2, 1);
     }
 
+    // Another special case – Hadamard gate. 
+    if (i == 1UL) {
+      pcon con(std::move(tp), qops::h(env), ConParams({{ 1, 0 }}));
+      tp = con.contract();
+    }
+
     auto tid = tn.insert(std::move(tp));
     grid.insert({ { n - i - 1, 0 }, tid });
   }
@@ -42,8 +48,6 @@ auto qft_triangle(const QTNHEnv& env, TensorNetwork& tn, MPS& mps) {
   for (auto i = 1UL; i + 1 < n; ++i) {
     MPO mpo = qops::cmp(env, n - i);
     mpo.rightCanonicalise();
-
-    tptr tp_h = qops::h(env);
 
     // Insert operators. 
     auto m = mpo.nSites();
@@ -64,7 +68,7 @@ auto qft_triangle(const QTNHEnv& env, TensorNetwork& tn, MPS& mps) {
 
       // Add Hadamard gate for second operator. 
       if (j == 1UL) {
-        pcon con(std::move(tp), std::move(tp_h), ConParams({{ 1, 0 }}));
+        pcon con(std::move(tp), qops::h(env), ConParams({{ 1, 0 }}));
         tp = con.contract();
       }
 
@@ -108,6 +112,20 @@ int main(int argc, char* argv[]) {
   auto grid = qft_triangle(env, tn, mps);
   if (utils::is_root()) tn.print();
 
-  tn.contractTensors(1, 2);
-  if (utils::is_root()) tn.print();
+  if (N_SITES == 4UL) {
+    auto tid11 = tn.contractTensors(4, 7);
+    auto tid12 = tn.contractTensors(3, 6);
+    auto tid1 = tn.contractTensors(tid11, tid12);
+
+    auto tid21 = tn.contractTensors(2, 5);
+    auto tid2 = tn.contractTensors(tid21, 1);
+
+    auto tid3 = tn.contractTensors(8, 9);
+
+    auto tid4 = tn.contractTensors(tid1, tid2);
+    auto tid_final = tn.contractTensors(tid3, tid4);
+
+    tptr tp = tn.extract(tid_final);
+    tp->print_serial("Final");
+  }
 }
