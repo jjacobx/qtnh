@@ -1,13 +1,15 @@
 #include <chrono>
 #include <iostream>
+#include <map>
 #include "qtnh.hpp"
 
 using namespace qtnh;
 using namespace std::chrono;
 using namespace std::complex_literals;
 
-void qft_triangle(const QTNHEnv& env, TensorNetwork& tn, MPS& mps) {
+auto qft_triangle(const QTNHEnv& env, TensorNetwork& tn, MPS& mps) {
   auto n = mps.nSites();
+  std::map<std::pair<std::size_t, std::size_t>, qtnh::uint> grid;
 
   // Prepare initial state. 
   mps.apply(qops::h(env), { 0 });
@@ -33,7 +35,8 @@ void qft_triangle(const QTNHEnv& env, TensorNetwork& tn, MPS& mps) {
       tp = Tensor::truncate(std::move(tp), 2, 1);
     }
 
-    tn.insert(std::move(tp));
+    auto tid = tn.insert(std::move(tp));
+    grid.insert({ { n - i - 1, 0 }, tid });
   }
 
   for (auto i = 1UL; i + 1 < n; ++i) {
@@ -43,19 +46,18 @@ void qft_triangle(const QTNHEnv& env, TensorNetwork& tn, MPS& mps) {
     tptr tp_h = qops::h(env);
 
     // Insert operators. 
-    for (auto j = 0UL; j < mpo.nSites(); ++j) {
+    auto m = mpo.nSites();
+    for (auto j = 0UL; j < m; ++j) {
       tptr tp = mpo.at(j).copy();
 
       // Special cases when first/last operator. 
       if (j == 0UL) {
         tidx_tup loc_shape { tp->locDims().at(0), tp->locDims().at(1), 1, tp->locDims().at(2) };
         tp->reshape({}, loc_shape);
-      } else if (j == mpo.nSites() - 1) {
+      } else if (j == m - 1) {
         tidx_tup loc_shape { tp->locDims().at(0), tp->locDims().at(1), tp->locDims().at(2), 1 };
         tp->reshape({}, loc_shape);
       }
-
-      // tp->print_serial("TP");
 
       // TODO: Check convention. 
       tp = Tensor::permute(std::move(tp), { 3, 1, 0, 2 });
@@ -66,9 +68,22 @@ void qft_triangle(const QTNHEnv& env, TensorNetwork& tn, MPS& mps) {
         tp = con.contract();
       }
 
-      tn.insert(std::move(tp));
+      auto tid = tn.insert(std::move(tp));
+      grid.insert({ { m - j - 1, i }, tid });
     }
   }
+
+  // Connect tensors with bonds. 
+  for (auto& [p, i] : grid) {
+    if (grid.find({ p.first + 1, p.second }) != grid.end()) {
+      tn.addBond(i, grid.at({ p.first + 1, p.second }), {{ 0, 2 }});
+    }
+    if (grid.find({ p.first, p.second + 1 }) != grid.end()) {
+      tn.addBond(i, grid.at({ p.first, p.second + 1 }), {{ 1, 3 }});
+    }
+  }
+
+  return grid;
 }
 
 int main(int argc, char* argv[]) {
@@ -90,6 +105,9 @@ int main(int argc, char* argv[]) {
   MPS mps(env, N_SITES, SITE_DIM, { CHI_DIS, CHI_LOC });
 
   TensorNetwork tn;
-  qft_triangle(env, tn, mps);
+  auto grid = qft_triangle(env, tn, mps);
+  if (utils::is_root()) tn.print();
+
+  tn.contractTensors(1, 2);
   if (utils::is_root()) tn.print();
 }
