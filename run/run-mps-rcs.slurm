@@ -2,7 +2,7 @@
 
 # Slurm job options (job-name, compute nodes, job time)
 #SBATCH --job-name=qtnh
-#SBATCH --time=4:00:0
+#SBATCH --time=0:40:0
 #SBATCH --nodes=2
 #SBATCH --ntasks-per-node=128
 #SBATCH --cpus-per-task=1
