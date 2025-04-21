@@ -10,6 +10,7 @@ namespace qtnh {
       auto real = std::abs(el.real()) < ZERO_TOL ? 0.0 : el.real();
       auto imag = std::abs(el.imag()) < ZERO_TOL ? 0.0 : el.imag();
 
+      out << std::setprecision(2);
       out << tel(real, imag);
       if (i + 1 < v.size()) out << ", ";
     }
