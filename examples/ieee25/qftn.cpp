@@ -66,9 +66,15 @@ grid_t qft_triangle(const QTNHEnv& env, TensorNetwork& tn, uint tid_state) {
 
 uint contract1(TensorNetwork& tn, grid_t& grid, uint tid_state) {
   auto n = tn.tensor(tid_state)->totDims().size();
+  auto nts = tn.tensorIDs().size() - 1;
+  auto k = 0UL;
+
   for (auto i = 0UL; i + 1 < n; ++i) {
     for (auto j = 0UL; j < n - i; ++j) {
       tid_state = tn.contractTensors(tid_state, grid.at({ n - i - j - 1, i }));
+
+      ++k;
+      if (utils::is_root()) std::cout << "Contracted " << k << "/" << nts << " tensors\n";
     }
   }
 
@@ -88,8 +94,7 @@ int main(int argc, char* argv[]) {
 
   QTNHEnv env;
 
-  std::vector<tel> tels(1 << LQ, 0);
-  if (utils::is_root()) tels.at(0) = 1;
+  std::vector<tel> tels(1 << LQ, std::pow(2.0, -0.5 * (DQ + LQ)));
   tptr tp_state = DenseTensor::make(env, tidx_tup(DQ, 2), tidx_tup(LQ, 2), std::move(tels));
 
   TensorNetwork tn;
@@ -109,6 +114,7 @@ int main(int argc, char* argv[]) {
   tptr tp = tn.extract(tid_state);
   tp->reshape(tidx_tup(DQ, 2), tidx_tup(LQ, 2));
   if (utils::is_root()) {
+    std::cout << "\n";
     std::cout << "Result: " << (*tp)[0] << "\n";
     std::cout << "Time taken: " << delta.count() << " ms\n";
   }
