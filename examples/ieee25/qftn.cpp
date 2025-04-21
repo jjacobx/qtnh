@@ -64,14 +64,29 @@ grid_t qft_triangle(const QTNHEnv& env, TensorNetwork& tn, uint tid_state) {
   return grid;
 }
 
-uint contract1(TensorNetwork& tn, grid_t& grid, uint tid_state) {
+uint contract_multi(TensorNetwork& tn, grid_t& grid, uint tid_state, std::size_t multi = 2UL) {
   auto n = tn.tensor(tid_state)->totDims().size();
+  grid_t grid2;
+
+  for (auto i = 0UL; i + 1 < n; ++i) {
+    for (auto j = 0UL; j < n - i; j += multi) {
+      auto tid = grid.at({ j, i });
+
+      for (auto k = 1UL; k < multi && grid.find({ j + k, i }) != grid.end(); ++k) {
+        tid = tn.contractTensors(tid, grid.at({ j + k, i }));
+      }
+
+      grid2.insert({ { j / multi, i }, tid });
+    }
+  }
+
   auto nts = tn.tensorIDs().size() - 1;
   auto k = 0UL;
 
   for (auto i = 0UL; i + 1 < n; ++i) {
-    for (auto j = 0UL; j < n - i; ++j) {
-      tid_state = tn.contractTensors(tid_state, grid.at({ n - i - j - 1, i }));
+    auto nj = (n - i + multi - 1) / multi;
+    for (auto j = 0UL; j < nj; ++j) {
+      tid_state = tn.contractTensors(tid_state, grid2.at({ nj - j - 1, i }));
 
       ++k;
       if (utils::is_root()) std::cout << "Contracted " << k << "/" << nts << " tensors\n";
@@ -86,10 +101,14 @@ int main(int argc, char* argv[]) {
   
   auto DQ = 2UL;
   auto LQ = 2UL;
+  auto MULTI = 2UL;
 
   if (argc > 2) {
     DQ = static_cast<unsigned int>(strtol(argv[1], nullptr, 0));
     LQ = static_cast<unsigned int>(strtol(argv[2], nullptr, 0));
+  }
+  if (argc > 3) {
+    MULTI = static_cast<unsigned int>(strtol(argv[3], nullptr, 0));
   }
 
   QTNHEnv env;
@@ -105,7 +124,7 @@ int main(int argc, char* argv[]) {
   utils::barrier();
   auto start = high_resolution_clock::now();
 
-  tid_state = contract1(tn, grid, tid_state);
+  tid_state = contract_multi(tn, grid, tid_state, MULTI);
 
   utils::barrier();
   auto stop = high_resolution_clock::now();
