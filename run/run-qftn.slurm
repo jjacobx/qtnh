@@ -50,8 +50,9 @@ echo
 : ${PROG=qftn}
 : ${DQ=8}
 : ${LQ=16}
+: ${MULTI=1}
 DIR=../build/examples/ieee25
-EXE="$DIR/$PROG $DQ $LQ"
+EXE="$DIR/$PROG $DQ $LQ $MULTI"
 MPI_ARGS="--distribution=block:block --hint=nomultithread"
 
 # Launch the parallel job
