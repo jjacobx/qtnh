@@ -38,6 +38,63 @@ namespace qtnh {
   MPS::MPS(qtnh::tptr tp, chi_pair chis, SITE_CANON norm) {
     utils::throw_unimplemented();
   }
+  
+  MPS::MPS(std::vector<qtnh::tptr>&& sites)
+  : site_tensors_(std::move(sites))
+  , site_canons_(site_tensors_.size(), SITE_CANON::none)
+  , site_dims_(site_tensors_.size())
+  , bond_dims_(site_tensors_.size() - 1, 1)
+  , dis_chi_(site_tensors_.at(0)->disDims().at(0))
+  , loc_chi_(site_tensors_.at(0)->locDims().at(1))
+  {
+    for (auto i = 0UL; i < nSites(); ++i) {
+      site_dims_.at(i) = site_tensors_.at(i)->locDims().at(0);
+    }
+  }
+
+  MPS MPS::rand(const QTNHEnv& env, std::size_t n_sites, qtnh::tidx site_dim, chi_pair chis, std::size_t bond_dim) {
+    std::mt19937 gen(2025);
+    std::uniform_real_distribution<> dis(-1.0, 1.0);
+
+    std::vector<tptr> sites;
+    MPS mps(env, n_sites, site_dim, chis);
+
+    for (auto i = 0UL; i < n_sites; ++i) {
+      auto tp = Tensor::cast<DenseTensor>(std::move(mps.site_tensors_.at(i)));
+
+      for (auto j = 0UL; j < bond_dim; ++j) {
+        if (i == 0UL && j > 0UL) break;
+
+        for (auto k = 0UL; k < bond_dim; ++k) {
+          if (i + 1 == n_sites && k > 0UL) break;
+
+          if (utils::is_root()) {
+            for (auto l = 0UL; l < site_dim; ++l) {
+              auto rel = dis(gen), img = dis(gen);
+              tp->at({ 0, 0, l, j, k }) = tel(rel, img);
+            }
+          }
+        }
+      }
+
+      mps.site_tensors_.at(i) = std::move(tp);
+    }
+
+    mps.leftCanonicalise(n_sites - 1);
+    mps.rightCanonicalise(0);
+    mps.renormalise();
+
+    return mps.copy();
+  }
+
+  MPS MPS::copy() {
+    std::vector<tptr> sites;
+    for (auto i = 0UL; i < nSites(); ++i) {
+      sites.push_back(site_tensors_.at(i)->copy());
+    }
+
+    return MPS(std::move(sites));
+  }
 
   std::size_t count_bond_dim(const std::vector<tel>& els, double tol = ZERO_TOL) {
     auto counter = 0UL;
@@ -360,14 +417,14 @@ namespace qtnh {
   }
 
   qtnh::tel MPS::norm() {
-    return overlap(*this);
+    return std::sqrt(overlap(*this));
   }
 
   void MPS::renormalise() {
     auto div = std::pow(norm(), 1.0 / double(nSites()));
 
     for (auto i = 0UL; i < site_tensors_.size(); ++i) {
-      tptr tp = std::move(site_tensors_.at(i));
+      auto tp = Tensor::cast<DenseTensor>(std::move(site_tensors_.at(i)));
       for (auto i = 0UL; tp->bc().isActive() && i < tp->locSize(); ++i) {
         (*tp)[i] = (*tp)[i] / div;
       }
