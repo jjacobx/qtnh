@@ -1,6 +1,5 @@
 #include <chrono>
 #include <iostream>
-#include <random>
 #include "qtnh.hpp"
 
 using namespace qtnh;
@@ -65,7 +64,11 @@ int main(int argc, char* argv[]) {
   }
 
   QTNHEnv env;
-  auto mps_ref = MPS::rand(env, N_SITES, SITE_DIM, { CHI_DIS, chi_locs.at(0) }, BOND_DIM);
+
+  // Use |0> if BOND_DIM == 0. 
+  auto mps_ref = (BOND_DIM > 0)
+    ? MPS::rand(env, N_SITES, SITE_DIM, { CHI_DIS, chi_locs.at(0) }, BOND_DIM)
+    : MPS(env, N_SITES, SITE_DIM, { CHI_DIS, chi_locs.at(0) });
 
   utils::barrier();
   auto start = high_resolution_clock::now();
@@ -101,6 +104,7 @@ int main(int argc, char* argv[]) {
     utils::barrier();
     auto stop = high_resolution_clock::now();
 
+    // Get norm before renormalising, as it resets to 1. 
     auto norm = mps.norm();
     mps.renormalise();
 
@@ -119,7 +123,4 @@ int main(int argc, char* argv[]) {
       std::cout << "\n";
     }
   }
-
-  // mps.print();
-  // std::move(mps).toDense()->print_serial("Res");
 }
