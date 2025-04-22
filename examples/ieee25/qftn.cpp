@@ -134,7 +134,7 @@ int main(int argc, char* argv[]) {
   tp->reshape(tidx_tup(DQ, 2), tidx_tup(LQ, 2));
   if (utils::is_root()) {
     std::cout << "\n";
-    std::cout << "Result: " << (*tp)[0] << "\n";
+    std::cout << "T[0] = " << (*tp)[0] << "\n";
     std::cout << "Time taken: " << delta.count() << " ms\n";
   }
 }
