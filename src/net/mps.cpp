@@ -61,17 +61,32 @@ namespace qtnh {
 
     for (auto i = 0UL; i < n_sites; ++i) {
       auto tp = Tensor::cast<DenseTensor>(std::move(mps.site_tensors_.at(i)));
+      auto loc_size = std::min(bond_dim, chis.second);
+      auto dis_size = bond_dim / loc_size;
 
-      for (auto j = 0UL; j < bond_dim; ++j) {
+      // Global site-wise element calculation to ensure repeatability. 
+      std::vector<tel> els(site_dim * bond_dim * bond_dim);
+      for (auto j = 0UL; j < els.size(); ++j) {
+        auto rel = dis(gen), img = dis(gen);
+        els.at(j) = tel(rel, img);
+      }
+
+      for (auto j = 0UL; j < loc_size; ++j) {
         if (i == 0UL && j > 0UL) break;
 
-        for (auto k = 0UL; k < bond_dim; ++k) {
+        for (auto k = 0UL; k < loc_size; ++k) {
           if (i + 1 == n_sites && k > 0UL) break;
 
-          if (utils::is_root()) {
+          auto p = env.proc_id / chis.first;
+          auto q = env.proc_id % chis.first;
+
+          if (p < dis_size && q < dis_size) {
             for (auto l = 0UL; l < site_dim; ++l) {
-              auto rel = dis(gen), img = dis(gen);
-              tp->at({ 0, 0, l, j, k }) = tel(rel, img);
+              auto pos = l * bond_dim * bond_dim + 
+                (p * chis.second + j) * bond_dim + 
+                q * chis.second + k;
+
+              tp->at({ p, q, l, j, k }) = els.at(pos);
             }
           }
         }
