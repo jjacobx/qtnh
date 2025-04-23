@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <chrono>
 #include <iostream>
 #include "qtnh.hpp"
@@ -78,9 +79,13 @@ int main(int argc, char* argv[]) {
   utils::barrier();
   auto stop = high_resolution_clock::now();
 
+  // Update all sites. 
+  mps_ref.rightCanonicalise(0);
+
   MPS zero_amp(env, N_SITES, SITE_DIM, { 1, 1 });
   auto norm = mps_ref.norm();
   auto bonds = mps_ref.bondDims();
+  auto max = *std::max_element(bonds.begin(), bonds.end());
   auto amp0 = mps_ref.overlap(zero_amp);
   auto delta = duration_cast<milliseconds>(stop - start);
   
@@ -89,6 +94,7 @@ int main(int argc, char* argv[]) {
     std::cout << "|T| = " << norm << "\n";
     std::cout << "T[0] = " << amp0 << "\n";
     std::cout << "Max chis = " << bonds << "\n";
+    std::cout << "Max chi = " << max << "\n";
     std::cout << "Time taken: " << delta.count() << " ms\n";
     std::cout << "\n";
   }
@@ -104,11 +110,15 @@ int main(int argc, char* argv[]) {
     utils::barrier();
     auto stop = high_resolution_clock::now();
 
+    // Update all sites. 
+    mps.rightCanonicalise(0);
+
     // Get norm before renormalising, as it resets to 1. 
     auto norm = mps.norm();
     mps.renormalise();
 
     auto bonds = mps.bondDims();
+    auto max = *std::max_element(bonds.begin(), bonds.end());
     auto amp0 = mps.overlap(zero_amp);
     auto overlap = mps_ref.overlap(mps);
     auto delta = duration_cast<milliseconds>(stop - start);
@@ -119,6 +129,7 @@ int main(int argc, char* argv[]) {
       std::cout << "T[0] = " << amp0 << "\n";
       std::cout << "<REF|T> = " << overlap.real() << "\n";
       std::cout << "Max chis = " << bonds << "\n";
+      std::cout << "Max chi = " << max << "\n";
       std::cout << "Time taken: " << delta.count() << " ms\n";
       std::cout << "\n";
     }
