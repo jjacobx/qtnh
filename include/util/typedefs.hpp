@@ -31,7 +31,7 @@ namespace qtnh {
   using mpi_fun = void(*)(void*, void*, int*, MPI_Datatype*);
 
   constexpr std::size_t X = std::numeric_limits<qtnh::tidx_tup_st>::max();
-  constexpr double ZERO_TOL = 1E-12;
+  constexpr double ZERO_TOL = 1E-10;
 }
 
 #endif
