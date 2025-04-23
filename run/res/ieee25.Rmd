@@ -1,0 +1,109 @@
+---
+title: "IEEE25 Cluster"
+author: "Jakub Adamski"
+date: '`r Sys.Date()`'
+knit: (\(inputFile, encoding) {
+        out_dir <- "rmd";
+        inputFile |> rmarkdown::render(
+          encoding = encoding, 
+          output_dir= file.path(dirname(inputFile), out_dir)
+        )
+      })
+output:
+  html_document: 
+    theme:
+      base_font:
+        google: Prompt
+      heading_font:
+        google: Proza Libre
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+QTNH_DIR <- Sys.getenv("QTNH_DIR")
+if (QTNH_DIR == "") QTNH_DIR <- "~/Documents/phd/repos/qtnh"
+setwd(R.utils::filePath(QTNH_DIR, "run/res"))
+
+library(glue)
+library(latex2exp)
+library(patchwork)
+library(tidyverse)
+
+palettes <- list(
+  presentation = RColorBrewer::brewer.pal(4, "Set1"), 
+  poster = c("#B60061", "#B68D00", "#005435", "#008AB6"), 
+  paper = c("#B60061", "#B68D00", "#005435", "#008AB6", "#493482")
+)
+bkgs <- list(
+  presentation = "#A9D3CD", 
+  poster = "#C9DC87", 
+  paper = "#C9DC87"
+)
+
+MODE <- "paper"
+SAVE <- FALSE
+```
+
+```{r setup-plotting, include=FALSE}
+default_theme <- theme_gray() + 
+  theme(rect = element_rect(fill = "transparent", linewidth = 0), 
+        panel.background = element_rect(fill = bkgs[[MODE]], linewidth = 0), 
+        legend.key = element_rect(fill = bkgs[[MODE]]), 
+        legend.position = "top")
+```
+
+```{r str-helpers, include = FALSE}
+extract_time <- \(x)
+  str_extract(x, "Time taken: [0-9]+ ms") |> 
+  str_split_1(" ") |> 
+  _[[3]] |> 
+  as.numeric()
+```
+
+```{r read-data}
+raw_qftsv <- read_delim("raw/ieee25/qftsv.csv", delim = ',')
+raw_qftn <- read_delim("raw/ieee25/qftn.csv", delim = ',')
+```
+
+```{r plot-qftsv}
+ref_qftsv <- rename(raw_qftsv, DQ = "ARG1", LQ = "ARG2")
+ref_qftsv <- mutate(
+  ref_qftsv, 
+  NQ = DQ + LQ, 
+  LQ = factor(LQ), 
+  TIME = map_int(OUTPUT, extract_time) / 1000
+)
+ref_qftsv <- group_by(ref_qftsv, LQ)
+
+ggplot(ref_qftsv) + 
+  geom_line(aes(x = NQ, y = TIME, colour = LQ)) + 
+  geom_point(aes(x = NQ, y = TIME, colour = LQ), size = 1.6) + 
+  scale_colour_manual(values = palettes[[MODE]], name = "Local qubits") + 
+  xlab("Total qubits") + 
+  ylab("QFT runtime [s]") + 
+  default_theme
+```
+
+```{r plot-qftn}
+ref_qftn <- rename(raw_qftn, DQ = "ARG1", LQ = "ARG2", NG = "ARG3")
+ref_qftn <- mutate(
+  ref_qftn, 
+  NQ = factor(DQ + LQ), 
+  DQ = factor(DQ), 
+  LQ = factor(LQ), 
+  TIME = map_int(OUTPUT, extract_time) / 1000
+)
+
+ref_qftn <- group_by(ref_qftn, DQ, LQ)
+
+ggplot(ref_qftn) +
+  geom_line(aes(x = NG, y = TIME, colour = DQ)) +
+  geom_point(aes(x = NG, y = TIME, colour = DQ), size = 1.6) +
+  facet_wrap(~LQ, labeller = \(.) map(., \(.) glue("{.} qubits"))) +
+  scale_y_log10() +
+  scale_colour_manual(values = palettes[[MODE]], name = "Distributed qubits") + 
+  xlab("Grouped tensors") +
+  ylab("QFT runtime [s]") +
+  default_theme
+```
