@@ -1,5 +1,5 @@
 load_quietly <- function(...) {
-    suppressMessages(suppressWarnings(library(...)))
+  suppressMessages(suppressWarnings(library(...)))
 }
 
 load_quietly(dplyr)
@@ -11,23 +11,23 @@ load_quietly(stringr)
 
 cmd_args <- commandArgs(trailingOnly = TRUE)
 if (is_empty(cmd_args)) {
-    abort("Please provide path to the experiment. ")
+  abort("Please provide path to the experiment. ")
 }
 
 setwd(file.path(Sys.getenv("QTNH_DIR"), "run/res"))
 out_dir <- file.path(Sys.getenv("QTNH_DIR"), "run/out")
 exp_dir <- cmd_args[[1]]
 
-DATA_DIR <- file.path(out_dir, exp_dir)
-files_out <- list.files(DATA_DIR, "*.out")
+data_dir <- file.path(out_dir, exp_dir)
+files_out <- list.files(data_dir, "*.out")
 data_table <- tibble()
 
 rm_patterns <- cmd_args[2:length(cmd_args)]
 
 for (file in files_out) {
-  lines <- read_lines(file.path(DATA_DIR, file))
+  lines <- read_lines(file.path(data_dir, file))
 
-  # Which line seperates metadata and output
+  # Which line separates metadata and output
   line_exp <- str_which(lines, "^Experiment:")
   line_exe <- str_which(lines, "^Running.*:")
   line_start <- line_exe + 1
@@ -55,7 +55,7 @@ for (file in files_out) {
   exe_args <- str_split_1(lines[[line_exe]], ":? ")
   exe_args <- str_extract(exe_args, "^[0-9]+$")
   exe_args <- as.numeric(na.omit(exe_args))
-  exe_names <- paste0("ARG", 1:length(exe_args))
+  exe_names <- paste0("ARG", seq_along(exe_args))
 
   exe_data <- as.list(exe_args)
   names(exe_data) <- exe_names
@@ -67,7 +67,7 @@ for (file in files_out) {
     out <- out[str_which(out, p, negate = TRUE)]
   }
 
-  out <- str_c(out, collapse = '\n')
+  out <- str_c(out, collapse = "\n")
   data <- c(meta_data, OUTPUT = out)
 
   data_table <- rbind(data_table, as_tibble(data))
