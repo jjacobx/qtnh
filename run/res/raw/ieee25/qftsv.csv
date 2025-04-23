@@ -1,0 +1,81 @@
+SLURM_JOB_ID,SLURM_JOB_NAME,SLURM_JOB_NUM_NODES,SLURM_NTASKS,MPI_IMPL,EXPERIMENT,EXECUTABLE,ARG1,ARG2,OUTPUT
+9394707,qtnh,1,16,UCX,ieee25-qftsv-scaling,qftsv,4,16,"T[0] = (1,0)
+Time taken: 2080 ms"
+9394708,qtnh,1,32,UCX,ieee25-qftsv-scaling,qftsv,5,16,"T[0] = (1,0)
+Time taken: 2405 ms"
+9394709,qtnh,1,64,UCX,ieee25-qftsv-scaling,qftsv,6,16,"T[0] = (1,0)
+Time taken: 2763 ms"
+9394710,qtnh,1,128,UCX,ieee25-qftsv-scaling,qftsv,7,16,"T[0] = (1,0)
+Time taken: 3519 ms"
+9394711,qtnh,2,256,UCX,ieee25-qftsv-scaling,qftsv,8,16,"T[0] = (1,0)
+Time taken: 4474 ms"
+9394712,qtnh,4,512,UCX,ieee25-qftsv-scaling,qftsv,9,16,"T[0] = (1,0)
+Time taken: 5396 ms"
+9394713,qtnh,8,1024,UCX,ieee25-qftsv-scaling,qftsv,10,16,"T[0] = (1,0)
+Time taken: 6964 ms"
+9394714,qtnh,16,2048,UCX,ieee25-qftsv-scaling,qftsv,11,16,"T[0] = (1,0)
+Time taken: 10738 ms"
+9394715,qtnh,1,16,UCX,ieee25-qftsv-scaling,qftsv,4,17,"T[0] = (1,0)
+Time taken: 5262 ms"
+9394716,qtnh,1,32,UCX,ieee25-qftsv-scaling,qftsv,5,17,"T[0] = (1,0)
+Time taken: 6063 ms"
+9394717,qtnh,1,64,UCX,ieee25-qftsv-scaling,qftsv,6,17,"T[0] = (1,0)
+Time taken: 6900 ms"
+9394718,qtnh,1,128,UCX,ieee25-qftsv-scaling,qftsv,7,17,"T[0] = (1,0)
+Time taken: 8309 ms"
+9394719,qtnh,2,256,UCX,ieee25-qftsv-scaling,qftsv,8,17,"T[0] = (1,0)
+Time taken: 9861 ms"
+9394720,qtnh,4,512,UCX,ieee25-qftsv-scaling,qftsv,9,17,"T[0] = (1,0)
+Time taken: 11511 ms"
+9394721,qtnh,8,1024,UCX,ieee25-qftsv-scaling,qftsv,10,17,"T[0] = (1,0)
+Time taken: 13923 ms"
+9394722,qtnh,16,2048,UCX,ieee25-qftsv-scaling,qftsv,11,17,"T[0] = (1,0)
+Time taken: 18700 ms"
+9394753,qtnh,1,16,UCX,ieee25-qftsv-scaling,qftsv,4,18,"T[0] = (1,0)
+Time taken: 14360 ms"
+9394754,qtnh,1,32,UCX,ieee25-qftsv-scaling,qftsv,5,18,"T[0] = (1,0)
+Time taken: 15950 ms"
+9394755,qtnh,1,64,UCX,ieee25-qftsv-scaling,qftsv,6,18,"T[0] = (1,0)
+Time taken: 17780 ms"
+9394756,qtnh,1,128,UCX,ieee25-qftsv-scaling,qftsv,7,18,"T[0] = (1,0)
+Time taken: 20585 ms"
+9394757,qtnh,2,256,UCX,ieee25-qftsv-scaling,qftsv,8,18,"T[0] = (1,0)
+Time taken: 23474 ms"
+9394758,qtnh,4,512,UCX,ieee25-qftsv-scaling,qftsv,9,18,"T[0] = (1,0)
+Time taken: 26412 ms"
+9394759,qtnh,8,1024,UCX,ieee25-qftsv-scaling,qftsv,10,18,"T[0] = (1,0)
+Time taken: 31266 ms"
+9394760,qtnh,16,2048,UCX,ieee25-qftsv-scaling,qftsv,11,18,"T[0] = (1,0)
+Time taken: 37392 ms"
+9394761,qtnh,1,16,UCX,ieee25-qftsv-scaling,qftsv,4,19,"T[0] = (1,0)
+Time taken: 33918 ms"
+9394762,qtnh,1,32,UCX,ieee25-qftsv-scaling,qftsv,5,19,"T[0] = (1,0)
+Time taken: 37325 ms"
+9394763,qtnh,1,64,UCX,ieee25-qftsv-scaling,qftsv,6,19,"T[0] = (1,0)
+Time taken: 41209 ms"
+9394764,qtnh,1,128,UCX,ieee25-qftsv-scaling,qftsv,7,19,"T[0] = (1,0)
+Time taken: 46462 ms"
+9394765,qtnh,2,256,UCX,ieee25-qftsv-scaling,qftsv,8,19,"T[0] = (1,0)
+Time taken: 52995 ms"
+9394766,qtnh,4,512,UCX,ieee25-qftsv-scaling,qftsv,9,19,"T[0] = (1,0)
+Time taken: 59142 ms"
+9394767,qtnh,8,1024,UCX,ieee25-qftsv-scaling,qftsv,10,19,"T[0] = (1,0)
+Time taken: 74447 ms"
+9394768,qtnh,16,2048,UCX,ieee25-qftsv-scaling,qftsv,11,19,"T[0] = (1,0)
+Time taken: 86928 ms"
+9394769,qtnh,1,16,UCX,ieee25-qftsv-scaling,qftsv,4,20,"T[0] = (1,0)
+Time taken: 73430 ms"
+9394770,qtnh,1,32,UCX,ieee25-qftsv-scaling,qftsv,5,20,"T[0] = (1,0)
+Time taken: 80649 ms"
+9394771,qtnh,1,64,UCX,ieee25-qftsv-scaling,qftsv,6,20,"T[0] = (1,0)
+Time taken: 88538 ms"
+9394772,qtnh,1,128,UCX,ieee25-qftsv-scaling,qftsv,7,20,"T[0] = (1,0)
+Time taken: 98781 ms"
+9394773,qtnh,2,256,UCX,ieee25-qftsv-scaling,qftsv,8,20,"T[0] = (1,0)
+Time taken: 112166 ms"
+9394774,qtnh,4,512,UCX,ieee25-qftsv-scaling,qftsv,9,20,"T[0] = (1,0)
+Time taken: 125619 ms"
+9394775,qtnh,8,1024,UCX,ieee25-qftsv-scaling,qftsv,10,20,"T[0] = (1,0)
+Time taken: 175936 ms"
+9394776,qtnh,16,2048,UCX,ieee25-qftsv-scaling,qftsv,11,20,"T[0] = (1,0)
+Time taken: 198688 ms"

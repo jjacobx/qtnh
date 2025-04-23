@@ -1,0 +1,81 @@
+SLURM_JOB_ID,SLURM_JOB_NAME,SLURM_JOB_NUM_NODES,SLURM_NTASKS,MPI_IMPL,EXPERIMENT,EXECUTABLE,ARG1,ARG2,ARG3,OUTPUT
+9394987,qtnh,2,256,OFI,ieee25-qftn,qftn,8,20,3,"T[0] = (1,0)
+Time taken: 91866 ms"
+9395007,qtnh,2,256,UCX,ieee25-qftn,qftn,8,20,3,"T[0] = (1,0)
+Time taken: 89798 ms"
+9395023,qtnh,2,256,OFI,ieee25-qftn,qftn,8,20,4,"T[0] = (1,0)
+Time taken: 74030 ms"
+9395024,qtnh,2,256,UCX,ieee25-qftn,qftn,8,20,4,"T[0] = (1,0)
+Time taken: 73776 ms"
+9395224,qtnh,1,64,UCX,ieee25-qftn-groups,qftn,6,16,1,"T[0] = (1,0)
+Time taken: 6765 ms"
+9395225,qtnh,1,64,UCX,ieee25-qftn-groups,qftn,6,16,2,"T[0] = (1,0)
+Time taken: 3156 ms"
+9395226,qtnh,1,64,UCX,ieee25-qftn-groups,qftn,6,16,3,"T[0] = (1,0)
+Time taken: 2218 ms"
+9395227,qtnh,1,64,UCX,ieee25-qftn-groups,qftn,6,18,1,"T[0] = (1,0)
+Time taken: 41696 ms"
+9395228,qtnh,1,64,UCX,ieee25-qftn-groups,qftn,6,18,2,"T[0] = (1,0)
+Time taken: 21403 ms"
+9395229,qtnh,1,64,UCX,ieee25-qftn-groups,qftn,6,18,3,"T[0] = (1,0)
+Time taken: 13330 ms"
+9395230,qtnh,1,64,UCX,ieee25-qftn-groups,qftn,6,20,1,"T[0] = (1,0)
+Time taken: 195145 ms"
+9395231,qtnh,1,64,UCX,ieee25-qftn-groups,qftn,6,20,2,"T[0] = (1,0)
+Time taken: 100917 ms"
+9395232,qtnh,1,64,UCX,ieee25-qftn-groups,qftn,6,20,3,"T[0] = (1,0)
+Time taken: 65516 ms"
+9395246,qtnh,2,256,UCX,ieee25-qftn-groups,qftn,8,16,1,"T[0] = (1,0)
+Time taken: 9294 ms"
+9395247,qtnh,2,256,UCX,ieee25-qftn-groups,qftn,8,16,2,"T[0] = (1,0)
+Time taken: 4555 ms"
+9395248,qtnh,2,256,UCX,ieee25-qftn-groups,qftn,8,16,3,"T[0] = (1,0)
+Time taken: 3423 ms"
+9395249,qtnh,2,256,UCX,ieee25-qftn-groups,qftn,8,16,4,"T[0] = (1,0)
+Time taken: 2979 ms"
+9395250,qtnh,2,256,UCX,ieee25-qftn-groups,qftn,8,18,1,"T[0] = (1,0)
+Time taken: 53096 ms"
+9395251,qtnh,2,256,UCX,ieee25-qftn-groups,qftn,8,18,2,"T[0] = (1,0)
+Time taken: 27495 ms"
+9395252,qtnh,2,256,UCX,ieee25-qftn-groups,qftn,8,18,3,"T[0] = (1,0)
+Time taken: 17809 ms"
+9395253,qtnh,2,256,UCX,ieee25-qftn-groups,qftn,8,18,4,"T[0] = (1,0)
+Time taken: 15053 ms"
+9395254,qtnh,2,256,UCX,ieee25-qftn-groups,qftn,8,20,1,"T[0] = (1,0)
+Time taken: 248062 ms"
+9395255,qtnh,2,256,UCX,ieee25-qftn-groups,qftn,8,20,2,"T[0] = (1,0)
+Time taken: 132672 ms"
+9395256,qtnh,2,256,UCX,ieee25-qftn-groups,qftn,8,20,3,"T[0] = (1,0)
+Time taken: 90112 ms"
+9395257,qtnh,2,256,UCX,ieee25-qftn-groups,qftn,8,20,4,"T[0] = (1,0)
+Time taken: 73844 ms"
+9395258,qtnh,8,1024,UCX,ieee25-qftn-groups,qftn,10,16,1,"T[0] = (1,0)
+Time taken: 13673 ms"
+9395259,qtnh,8,1024,UCX,ieee25-qftn-groups,qftn,10,16,2,"T[0] = (1,0)
+Time taken: 6492 ms"
+9395260,qtnh,8,1024,UCX,ieee25-qftn-groups,qftn,10,16,3,"T[0] = (1,0)
+Time taken: 5182 ms"
+9395261,qtnh,8,1024,UCX,ieee25-qftn-groups,qftn,10,16,4,"T[0] = (1,0)
+Time taken: 5087 ms"
+9395262,qtnh,8,1024,UCX,ieee25-qftn-groups,qftn,10,18,1,"T[0] = (1,0)
+Time taken: 69355 ms"
+9395263,qtnh,8,1024,UCX,ieee25-qftn-groups,qftn,10,18,2,"T[0] = (1,0)
+Time taken: 34239 ms"
+9395264,qtnh,8,1024,UCX,ieee25-qftn-groups,qftn,10,18,3,"T[0] = (1,0)
+Time taken: 22486 ms"
+9395265,qtnh,8,1024,UCX,ieee25-qftn-groups,qftn,10,18,4,"T[0] = (1,0)
+Time taken: 19340 ms"
+9395266,qtnh,8,1024,UCX,ieee25-qftn-groups,qftn,10,20,1,"T[0] = (1,0)
+Time taken: 306911 ms"
+9395267,qtnh,8,1024,UCX,ieee25-qftn-groups,qftn,10,20,2,"T[0] = (1,0)
+Time taken: 163656 ms"
+9395268,qtnh,8,1024,UCX,ieee25-qftn-groups,qftn,10,20,3,"T[0] = (1,0)
+Time taken: 113974 ms"
+9395269,qtnh,8,1024,UCX,ieee25-qftn-groups,qftn,10,20,4,"T[0] = (1,0)
+Time taken: 99204 ms"
+9395386,qtnh,8,1024,UCX,ieee25-qftn-groups,qftn,10,16,5,"T[0] = (1,0)
+Time taken: 4603 ms"
+9395387,qtnh,8,1024,UCX,ieee25-qftn-groups,qftn,10,18,5,"T[0] = (1,0)
+Time taken: 19708 ms"
+9395388,qtnh,8,1024,UCX,ieee25-qftn-groups,qftn,10,20,5,"T[0] = (1,0)
+Time taken: 106560 ms"
