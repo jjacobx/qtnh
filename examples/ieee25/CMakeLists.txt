@@ -9,3 +9,7 @@ target_link_libraries(qftmps qtnh)
 add_executable(qftsv qftsv.cpp)
 add_dependencies(qftsv qtnh)
 target_link_libraries(qftsv qtnh)
+
+add_executable(rcsmps rcsmps.cpp)
+add_dependencies(rcsmps qtnh)
+target_link_libraries(rcsmps qtnh)
