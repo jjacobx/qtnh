@@ -87,6 +87,7 @@ raw_qftsv <- read_delim("raw/ieee25/qftsv.csv", delim = ',')
 raw_qftn <- read_delim("raw/ieee25/qftn.csv", delim = ',')
 raw_qftzmps <- read_delim("raw/ieee25/qftmps.csv", delim = ',')
 raw_qftrmps <- read_delim("raw/ieee25/qftrmps.csv", delim = ',')
+raw_rcsmps <- read_delim("raw/ieee25/rcsmps.csv", delim = ',')
 ```
 
 ```{r qftsv-scaling}
@@ -442,4 +443,49 @@ ggplot(cvals) +
   xlab("Real(Psi[0])") +
   ylab("Im(Psi[0])") +
   default_theme
+```
+
+```{r rcsmps-accscaling}
+ref_rcsmps <- filter(raw_rcsmps, EXPERIMENT == "ieee25-rcsmps-accscaling") 
+ref_rcsmps <- rename(
+  ref_rcsmps, 
+  NROW = "ARG1", 
+  NCOL = "ARG2", 
+  DEPTH = "ARG3", 
+  DCHI = "ARG4", 
+  LCHI_UP = "ARG5", 
+  LCHI_DN = "ARG6"
+)
+
+ref_rcsmps <- mutate(
+  ref_rcsmps,
+  TCHI = DCHI * LCHI_UP, 
+  GRID = paste(NROW, NCOL, sep = "x") |> factor(), 
+  TIME = map_int(OUTPUT, extract_time) / 1000, 
+  NORM = map_dbl(OUTPUT, extract_norm), 
+  MCHI = map_int(OUTPUT, extract_mchi)
+)
+
+ref_rcsmps <- group_by(ref_rcsmps, GRID)
+
+ggplot(ref_rcsmps) +
+  geom_point(aes(x = TCHI, y = NORM, colour = GRID, shape = GRID), 
+             size = 2, stroke = 1) +
+  geom_line(aes(x = TCHI, y = NORM, colour = GRID)) +
+  scale_x_log10(breaks = 2 ^ (4:10), minor_breaks = 2 ^ (4:10)) +
+  scale_y_log10() +
+  scale_colour_manual(values = palettes[[MODE]], 
+                      name = "Grid size") +
+  scale_shape_manual(values = c(1, 4, 5, 6, 0), 
+                     name = "Grid size") + 
+  xlab("Total bond dim.") +
+  ylab("Norm accuracy") +
+  default_theme
+
+if (SAVE) {
+  ggsave(glue("plt/ieee25/rcsmps-accscaling.pdf"), width = 5, height = 5,
+         units = "in", scale = 1.00)
+  ggsave(glue("plt/ieee25/rcsmps-accscaling.svg"), width = 5, height = 5,
+         units = "in", scale = 1.00)
+}
 ```
