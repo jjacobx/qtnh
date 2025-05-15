@@ -38,6 +38,78 @@ namespace qtnh {
   MPS::MPS(qtnh::tptr tp, chi_pair chis, SITE_CANON norm) {
     utils::throw_unimplemented();
   }
+  
+  MPS::MPS(std::vector<qtnh::tptr>&& sites)
+  : site_tensors_(std::move(sites))
+  , site_canons_(site_tensors_.size(), SITE_CANON::none)
+  , site_dims_(site_tensors_.size())
+  , bond_dims_(site_tensors_.size() - 1, 1)
+  , dis_chi_(site_tensors_.at(0)->disDims().at(0))
+  , loc_chi_(site_tensors_.at(0)->locDims().at(1))
+  {
+    for (auto i = 0UL; i < nSites(); ++i) {
+      site_dims_.at(i) = site_tensors_.at(i)->locDims().at(0);
+    }
+  }
+
+  MPS MPS::rand(const QTNHEnv& env, std::size_t n_sites, qtnh::tidx site_dim, chi_pair chis, std::size_t bond_dim) {
+    std::mt19937 gen(2025);
+    std::uniform_real_distribution<> dis(-1.0, 1.0);
+
+    std::vector<tptr> sites;
+    MPS mps(env, n_sites, site_dim, chis);
+
+    for (auto i = 0UL; i < n_sites; ++i) {
+      auto tp = Tensor::cast<DenseTensor>(std::move(mps.site_tensors_.at(i)));
+      auto loc_size = std::min(bond_dim, chis.second);
+      auto dis_size = bond_dim / loc_size;
+
+      // Global site-wise element calculation to ensure repeatability. 
+      std::vector<tel> els(site_dim * bond_dim * bond_dim);
+      for (auto j = 0UL; j < els.size(); ++j) {
+        auto rel = dis(gen), img = dis(gen);
+        els.at(j) = tel(rel, img);
+      }
+
+      for (auto j = 0UL; j < loc_size; ++j) {
+        if (i == 0UL && j > 0UL) break;
+
+        for (auto k = 0UL; k < loc_size; ++k) {
+          if (i + 1 == n_sites && k > 0UL) break;
+
+          auto p = env.proc_id / chis.first;
+          auto q = env.proc_id % chis.first;
+
+          if (p < dis_size && q < dis_size) {
+            for (auto l = 0UL; l < site_dim; ++l) {
+              auto pos = l * bond_dim * bond_dim + 
+                (p * chis.second + j) * bond_dim + 
+                q * chis.second + k;
+
+              tp->at({ p, q, l, j, k }) = els.at(pos);
+            }
+          }
+        }
+      }
+
+      mps.site_tensors_.at(i) = std::move(tp);
+    }
+
+    mps.leftCanonicalise(n_sites - 1);
+    mps.rightCanonicalise(0);
+    mps.renormalise();
+
+    return mps.copy();
+  }
+
+  MPS MPS::copy() {
+    std::vector<tptr> sites;
+    for (auto i = 0UL; i < nSites(); ++i) {
+      sites.push_back(site_tensors_.at(i)->copy());
+    }
+
+    return MPS(std::move(sites));
+  }
 
   std::size_t count_bond_dim(const std::vector<tel>& els, double tol = ZERO_TOL) {
     auto counter = 0UL;
@@ -360,14 +432,14 @@ namespace qtnh {
   }
 
   qtnh::tel MPS::norm() {
-    return overlap(*this);
+    return std::sqrt(overlap(*this));
   }
 
   void MPS::renormalise() {
     auto div = std::pow(norm(), 1.0 / double(nSites()));
 
     for (auto i = 0UL; i < site_tensors_.size(); ++i) {
-      tptr tp = std::move(site_tensors_.at(i));
+      auto tp = Tensor::cast<DenseTensor>(std::move(site_tensors_.at(i)));
       for (auto i = 0UL; tp->bc().isActive() && i < tp->locSize(); ++i) {
         (*tp)[i] = (*tp)[i] / div;
       }

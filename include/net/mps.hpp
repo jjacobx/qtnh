@@ -24,7 +24,11 @@ namespace qtnh {
       MPS(const QTNHEnv& env, std::size_t n_sites, qtnh::tidx site_dim, chi_pair chis);
       MPS(const QTNHEnv& env, std::size_t n_sites, qtnh::tidx_tup site_dims, chi_pair chis);
       MPS(qtnh::tptr tp, chi_pair chis, SITE_CANON norm = SITE_CANON::left);
+      MPS(std::vector<qtnh::tptr>&& sites);
       ~MPS() = default;
+
+      static MPS rand(const QTNHEnv& env, std::size_t n_sites, qtnh::tidx site_dim, chi_pair chis, std::size_t bond_dim);
+      MPS copy();
 
       const Tensor& site(std::size_t k) const { return *site_tensors_.at(k); }
       const std::vector<SITE_CANON>& siteCanons(std::size_t k) const { return site_canons_; }

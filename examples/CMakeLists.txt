@@ -1,4 +1,5 @@
 add_subdirectory(bench)
+add_subdirectory(ieee25)
 add_subdirectory(test)
 
 add_executable(simple-tensor simple-tensor.cpp)

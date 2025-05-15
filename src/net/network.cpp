@@ -63,6 +63,33 @@ namespace qtnh {
     return bond_counter;
   }
 
+  qtnh::uint TensorNetwork::contractTensors(qtnh::uint tid1, qtnh::uint tid2) {
+    std::vector<wire> ws;
+    std::vector<qtnh::uint> to_remove;
+
+    for (auto& [i, b] : bonds_) {
+      if (b.tensor_ids.first == tid1 && b.tensor_ids.second == tid2) {
+        for (auto w : b.wires) {
+          ws.push_back(w);
+        }
+        
+        to_remove.push_back(i);
+      } else if (b.tensor_ids.first == tid2 && b.tensor_ids.second == tid1) {
+        for (auto w : b.wires) {
+          ws.push_back({ w.second, w.first });
+        }
+
+        to_remove.push_back(i);
+      }
+    }
+
+    // Erase combined bonds. 
+    for (auto i : to_remove) bonds_.erase(i);
+
+    auto bid = addBond(tid1, tid2, ws);
+    return contractBond(bid);
+  }
+
   qtnh::uint TensorNetwork::contractBond(qtnh::uint bid) {
     auto& b = bonds_.at(bid);
     auto [tid1, tid2] = b.tensor_ids;

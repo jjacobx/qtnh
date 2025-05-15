@@ -65,12 +65,14 @@ int main(int argc, char* argv[]) {
 
   MPS zero_amp(env, N_SITES, SITE_DIM, { 1, 1 });
   auto norm = mps.norm();
+  auto bonds = mps.bondDims();
   auto amp0 = mps.overlap(zero_amp);
   auto delta = duration_cast<milliseconds>(stop - start);
   
   if (utils::is_root()) {
     std::cout << "|T| = " << norm << "\n";
     std::cout << "T[0] = " << amp0 << "\n";
+    std::cout << "Max chis = " << bonds << "\n";
     std::cout << "Time taken: " << delta.count() << " ms\n";
   }
 

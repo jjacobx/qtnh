@@ -76,11 +76,19 @@ namespace qtnh {
       /// @return ID of created bond. 
       qtnh::uint addBond(qtnh::uint tid1, qtnh::uint tid2, std::vector<qtnh::wire> ws);
 
+      /// @brief Contract all bonds for tensors with IDs. 
+      /// @param tid1 ID of the first tensor to be contracted. 
+      /// @param tid2 ID of the second tensor to be contracted. 
+      /// @return ID of tensor created by the contraction. 
+      ///
+      /// Tensors contracted get deleted from memory, so any 
+      /// pointers and references to them are no longer valid. 
+      qtnh::uint contractTensors(qtnh::uint tid1, qtnh::uint tid2);
       /// @brief Contract bond with ID. 
       /// @param bid ID of the bond to be contracted. 
       /// @return ID of tensor created by the contraction. 
       ///
-      /// Tensors contracted by the bond get deleted from memory, so
+      /// Tensors contracted by the bond get deleted from memory, so 
       /// any pointers and references to them are no longer valid. 
       qtnh::uint contractBond(qtnh::uint bid);
       /// @brief Contract all bonds according to arbitrary order. 

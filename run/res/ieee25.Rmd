@@ -1,0 +1,491 @@
+---
+title: "IEEE25 Cluster"
+author: "Jakub Adamski"
+date: '`r Sys.Date()`'
+knit: (\(inputFile, encoding) {
+        out_dir <- "rmd";
+        inputFile |> rmarkdown::render(
+          encoding = encoding, 
+          output_dir= file.path(dirname(inputFile), out_dir)
+        )
+      })
+output:
+  html_document: 
+    theme:
+      base_font:
+        google: Prompt
+      heading_font:
+        google: Proza Libre
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+QTNH_DIR <- Sys.getenv("QTNH_DIR")
+if (QTNH_DIR == "") QTNH_DIR <- "~/Documents/phd/repos/qtnh"
+setwd(R.utils::filePath(QTNH_DIR, "run/res"))
+
+library(glue)
+library(latex2exp)
+library(patchwork)
+library(tidyverse)
+
+palettes <- list(
+  presentation = RColorBrewer::brewer.pal(4, "Set1"), 
+  poster = c("#B60061", "#B68D00", "#005435", "#008AB6"), 
+  paper = c("#B60061", "#B68D00", "#005435", "#008AB6", "#A18877")
+)
+bkgs <- list(
+  presentation = "#A9D3CD", 
+  poster = "#C9DC87", 
+  paper = "#C9DC87"
+)
+
+MODE <- "paper"
+SAVE <- TRUE
+```
+
+```{r setup-plotting, include=FALSE}
+default_theme <- theme_gray() + 
+  theme(rect = element_rect(fill = "transparent", linewidth = 0), 
+        panel.background = element_rect(fill = bkgs[[MODE]], linewidth = 0), 
+        legend.key = element_rect(fill = bkgs[[MODE]]), 
+        legend.position = "top")
+```
+
+```{r str-helpers, include = FALSE}
+extract_time <- \(x)
+  str_extract(x, "Time taken: [0-9]+ ms") |> 
+  str_split_1(" ") |> 
+  _[[3]] |> 
+  as.numeric()
+  
+extract_norm <- \(x)
+  str_extract(x, "\\|T\\| = (.*)") |> 
+  str_split_1("\\(") |> 
+  _[[2]] |> 
+  str_split_1(",") |> 
+  _[[1]] |> 
+  as.double()
+
+extract_mchi <- \(x) 
+  str_extract(x, "Max chi = [0-9]+") |> 
+  str_split_1(" ") |> 
+  _[[4]] |> 
+  as.numeric()
+  
+extract_overlap <- \(x) str_extract(x, "<REF\\|T> = .*\\n") |>
+  str_split_1(" ") |> 
+  _[[3]] |> 
+  str_split_1("\n") |> 
+  _[[1]] |> 
+  as.double()
+```
+
+```{r read-data}
+raw_qftsv <- read_delim("raw/ieee25/qftsv.csv", delim = ',')
+raw_qftn <- read_delim("raw/ieee25/qftn.csv", delim = ',')
+raw_qftzmps <- read_delim("raw/ieee25/qftmps.csv", delim = ',')
+raw_qftrmps <- read_delim("raw/ieee25/qftrmps.csv", delim = ',')
+raw_rcsmps <- read_delim("raw/ieee25/rcsmps.csv", delim = ',')
+```
+
+```{r qftsv-scaling}
+ref_qftsv <- rename(raw_qftsv, DQ = "ARG1", LQ = "ARG2")
+ref_qftsv <- mutate(
+  ref_qftsv, 
+  NQ = DQ + LQ, 
+  LQ = factor(LQ), 
+  TIME = map_int(OUTPUT, extract_time) / 1000
+)
+ref_qftsv <- group_by(ref_qftsv, LQ)
+
+quadratic = \(a, b) predict(lm(y ~ I(x^2) + 0, data = list(x = a, y = b)), 
+                            tibble(x = a))
+
+ref_qftsv <- mutate(
+  ref_qftsv, 
+  FIT = quadratic(NQ, TIME), 
+  # FIT2 = FIT - FIT[[1]] + TIME[[1]]
+  FIT2 = (TIME[[1]] / NQ[[1]] ^ 2) * NQ ^ 2
+)
+
+summarise(
+  ref_qftsv, 
+  init_slope = log(TIME[2] / TIME[1]) / log(NQ[2] / NQ[1]), 
+  avg_slope = log(TIME[8] / TIME[1]) / log(NQ[8] / NQ[1]), 
+  end_slope = log(TIME[8] / TIME[7]) / log(NQ[8] / NQ[7])
+)
+
+ggplot(ref_qftsv) + 
+  geom_point(aes(x = NQ, y = TIME, colour = LQ), 
+             size = 2, stroke = 1, shape = 1) + 
+  geom_line(aes(x = NQ, y = FIT2, colour = LQ)) + 
+  # geom_smooth(aes(x = NQ, y = TIME, colour = LQ), fill = "gray97", level = 0,
+  #             linewidth = .5, method = 'glm', formula = y ~ 0 + x:x) + 
+  scale_x_log10(breaks = 20:31, minor_breaks = c()) +
+  scale_y_log10(breaks = c(2, 4, 8, 20, 40, 80, 200),
+                minor_breaks = c(2 * 1:10, 20 * 1:10)) +
+  scale_colour_manual(values = palettes[[MODE]], name = "Local qubits") + 
+  xlab("Total qubits") + 
+  ylab("QFT runtime [s]") + 
+  default_theme
+
+if (SAVE) {
+  ggsave(glue("plt/ieee25/qftsv-scaling.pdf"), width = 5, height = 5, 
+         units = "in", scale = 1.00)
+  ggsave(glue("plt/ieee25/qftsv-scaling.svg"), width = 5, height = 5, 
+         units = "in", scale = 1.00)
+}
+```
+
+```{r qftn-groups}
+ref_qftn <- rename(raw_qftn, DQ = "ARG1", LQ = "ARG2", NG = "ARG3")
+ref_qftn <- mutate(
+  ref_qftn, 
+  NQ = factor(DQ + LQ), 
+  DQ = factor(DQ, levels = c(10, 8, 6)), 
+  LQ = factor(LQ, levels = c(20, 18, 16)), 
+  TIME = map_int(OUTPUT, extract_time) / 1000
+)
+
+ref_qftn <- group_by(ref_qftn, DQ, LQ)
+
+ggplot(ref_qftn) +
+  geom_line(aes(x = NG, y = TIME, colour = DQ, linetype = LQ)) +
+  geom_point(aes(x = NG, y = TIME, colour = DQ, shape = LQ), 
+             size = 2.0, stroke = 1.0) + 
+  # facet_wrap(~LQ, labeller = \(.) map(., \(.) glue("{.} local qubits"))) +
+  scale_x_continuous(breaks = 1:5, minor_breaks = 1:5) +
+  scale_y_log10(breaks = c(2, 4, 8, 20, 40, 80, 200), 
+                minor_breaks = c(1:10 * 2, 1:10 * 20)) +
+  scale_colour_manual(values = palettes[[MODE]], name = "Dis. qubits") + 
+  scale_linetype_manual(values = c(1, 1, 1), name = "Loc. qubits") + 
+  scale_shape_manual(values = c(1, 4, 5), name = "Loc. qubits") + 
+  xlab("Group size") +
+  ylab("QFT runtime [s]") +
+  default_theme + 
+  theme(legend.position = "right") + 
+  guides(colour = guide_legend(order = 1))
+
+if (SAVE) {
+  ggsave(glue("plt/ieee25/qftn-groups.pdf"), width = 5, height = 5, 
+         units = "in", scale = 1.00)
+  ggsave(glue("plt/ieee25/qftn-groups.svg"), width = 5, height = 5, 
+         units = "in", scale = 1.00)
+}
+```
+
+```{r qftzmps-sites}
+ref_qftzmps <- filter(raw_qftzmps, EXPERIMENT == "ieee25-qftzmps-sites") 
+ref_qftzmps <- rename(
+  ref_qftzmps, 
+  NSITE = "ARG1", 
+  DCHI = "ARG2", 
+  LCHI_UP = "ARG3", 
+  LCHI_DN = "ARG4", 
+  BDIM = "ARG5"
+)
+
+ref_qftzmps <- mutate(
+  ref_qftzmps,
+  TIME = map_int(OUTPUT, extract_time) / 1000
+)
+
+ggplot(ref_qftzmps) +
+  geom_smooth(aes(x = NSITE, y = TIME), colour = palettes[[MODE]][[1]], 
+              fill = "gray97", level = 0, linewidth = 1, 
+              method='lm', formula = y ~ I(x^2)) +
+  geom_point(aes(x = NSITE, y = TIME), colour = palettes[[MODE]][[3]], 
+             size = 2, stroke = 1, shape = 1) +
+  scale_x_continuous(breaks = 0:5 * 200, minor_breaks = 0:20 * 50) +
+  scale_y_continuous(breaks = 0:5 * 200, minor_breaks = 0:20 * 50) +
+  xlab("Number of sites") +
+  ylab("MPS contraction time [s]") +
+  default_theme
+
+if (SAVE) {
+  ggsave(glue("plt/ieee25/qftzmps-sites.pdf"), width = 5, height = 3,
+         units = "in", scale = 1.25)
+  ggsave(glue("plt/ieee25/qftzmps-sites.svg"), width = 5, height = 3,
+         units = "in", scale = 1.25)
+}
+```
+
+```{r qftzmps-chis}
+ref_qftzmps <- filter(raw_qftzmps, EXPERIMENT == "ieee25-qftzmps-chis") 
+ref_qftzmps <- rename(
+  ref_qftzmps, 
+  NSITE = "ARG1", 
+  DCHI = "ARG2", 
+  LCHI_UP = "ARG3", 
+  LCHI_DN = "ARG4", 
+  BDIM = "ARG5"
+)
+
+ref_qftzmps <- filter(ref_qftzmps, LCHI_UP <= 20)
+
+ref_qftzmps <- mutate(
+  ref_qftzmps,
+  LCHI_UP = factor(LCHI_UP), 
+  TIME = map_int(OUTPUT, extract_time) / 1000
+)
+
+# ref_qftzmps <- group_by(ref_qftzmps, LCHI_UP)
+# 
+# quadratic = \(a, b) predict(lm(y ~ x, data = list(x = a, y = b)), 
+#                             tibble(x = a))
+# 
+# ref_qftzmps <- mutate(
+#   ref_qftzmps, 
+#   FIT = quadratic(DCHI, TIME), 
+#   FIT2 = FIT - FIT[[1]] + TIME[[1]]
+# )
+
+ggplot(ref_qftzmps) + 
+  geom_line(aes(x = DCHI, y = TIME, colour = LCHI_UP)) +
+  geom_point(aes(x = DCHI, y = TIME, colour = LCHI_UP, shape = LCHI_UP), 
+             size = 2, stroke = 1) +
+  scale_x_continuous(breaks = 1:16 * 2) +
+  scale_y_continuous(breaks = 1:10 * 60) +
+  scale_colour_manual(values = palettes[[MODE]], 
+                      name = "Local bond dim.") +
+  scale_shape_manual(values = c(1, 4, 5, 6, 0), 
+                     name = "Local bond dim.") + 
+  xlab("Distributed bond dim.") +
+  ylab("MPS contraction time [s]") +
+  default_theme
+
+if (SAVE) {
+  ggsave(glue("plt/ieee25/qftzmps-chis.pdf"), width = 5, height = 5,
+         units = "in", scale = 1.00)
+  ggsave(glue("plt/ieee25/qftzmps-chis.svg"), width = 5, height = 5,
+         units = "in", scale = 1.00)
+}
+```
+
+```{r qftzmps-strong}
+ref_qftzmps <- filter(raw_qftzmps, EXPERIMENT == "ieee25-qftzmps-strong") 
+ref_qftzmps <- rename(
+  ref_qftzmps, 
+  NSITE = "ARG1", 
+  DCHI = "ARG2", 
+  LCHI_UP = "ARG3", 
+  LCHI_DN = "ARG4", 
+  BDIM = "ARG5"
+)
+
+ref_qftzmps <- mutate(
+  ref_qftzmps,
+  TOTCHI = factor(DCHI * LCHI_UP), 
+  TIME = map_int(OUTPUT, extract_time) / 1000, 
+  CORE_TIME = TIME * SLURM_NTASKS
+)
+
+ref_qftzmps <- group_by(ref_qftzmps, TOTCHI) |> 
+  mutate(EFFICIENCY = CORE_TIME[[1]] / CORE_TIME)
+
+# ref_qftzmps
+
+plt_scaling <- ggplot(ref_qftzmps) +
+  geom_line(aes(x = DCHI, y = TIME, colour = TOTCHI)) +
+  geom_point(aes(x = DCHI, y = TIME, colour = TOTCHI, shape = TOTCHI), 
+             size = 2, stroke = 1) +
+  scale_x_log10(breaks = 2 ^ (0:6), minor_breaks = 2 ^ (0:6)) +
+  scale_y_log10(breaks = c(20, 40, 80, 200, 400, 800, 2000), 
+                minor_breaks = c(1:10 * 20, 1:10 * 200)) +
+  # scale_y_continuous(breaks = 0:8 * 300) +
+  scale_colour_manual(values = palettes[[MODE]], 
+                      name = "Total bond dim.") +
+  scale_shape_manual(values = c(1, 4, 5, 6, 0), 
+                     name = "Total bond dim.") + 
+  xlab("Distributed bond dim.") +
+  ylab("MPS contraction time [s]") +
+  default_theme
+
+plt_efficiency <- ggplot(ref_qftzmps) +
+  geom_line(aes(x = DCHI, y = EFFICIENCY, colour = TOTCHI)) +
+  geom_point(aes(x = DCHI, y = EFFICIENCY, colour = TOTCHI, shape = TOTCHI), 
+             size = 2, stroke = 1) +
+  scale_x_log10(breaks = 2 ^ (0:6), minor_breaks = 2 ^ (0:6)) +
+  scale_y_log10() +
+  scale_colour_manual(values = palettes[[MODE]], 
+                      name = "Total bond dim.") +
+  scale_shape_manual(values = c(1, 4, 5, 6, 0), 
+                     name = "Total bond dim.") + 
+  xlab("Distributed bond dim.") +
+  ylab("Parallel efficiency") +
+  default_theme
+
+plt_scaling + plt_efficiency + plot_layout(guides = "collect") & 
+  theme(legend.position = "top")
+
+if (SAVE) {
+  ggsave(glue("plt/ieee25/qftzmps-strong.pdf"), width = 5, height = 3,
+         units = "in", scale = 1.25)
+  ggsave(glue("plt/ieee25/qftzmps-strong.svg"), width = 5, height = 3,
+         units = "in", scale = 1.25)
+}
+```
+
+```{r qftrmps-inout}
+ref_qftrmps <- filter(raw_qftrmps, EXPERIMENT == "ieee25-qftrmps-inout") 
+ref_qftrmps <- rename(
+  ref_qftrmps, 
+  NSITE = "ARG1", 
+  DCHI = "ARG2", 
+  LCHI_UP = "ARG3", 
+  LCHI_DN = "ARG4", 
+  BDIM = "ARG5"
+)
+
+ref_qftrmps <- mutate(
+  ref_qftrmps,
+  NSITE = factor(NSITE), 
+  TIME = map_int(OUTPUT, extract_time) / 1000, 
+  NORM = map_dbl(OUTPUT, extract_norm), 
+  MCHI = map_int(OUTPUT, extract_mchi)
+)
+
+ref_qftrmps <- filter(ref_qftrmps, BDIM > 0)
+
+ggplot(ref_qftrmps) +
+  geom_point(aes(x = BDIM, y = MCHI, colour = NSITE, shape = NSITE), 
+             size = 2, stroke = 1) +
+  # facet_wrap(~NSITE, ) +
+  scale_colour_manual(values = palettes[[MODE]][c(1, 3)], 
+                      name = "Number of sites") +
+  scale_shape_manual(values = c(1, 4, 5, 6, 0), name = "Number of sites") + 
+  scale_x_continuous(breaks = 0:8 * 2, limits = c(0, 16)) +
+  scale_y_continuous(breaks = 0:8 * 16, limits = c(0, 135)) +
+  xlab("Input bond dim.") +
+  ylab("Output bond dim.") +
+  default_theme +
+  theme(strip.background = element_blank(), strip.text.x = element_blank())
+
+if (SAVE) {
+  ggsave(glue("plt/ieee25/qftrmps-inout.pdf"), width = 5, height = 5,
+         units = "in", scale = 1.00)
+  ggsave(glue("plt/ieee25/qftrmps-inout.svg"), width = 5, height = 5,
+         units = "in", scale = 1.00)
+}
+```
+
+```{r qftrmps-accuracy}
+# ref_qftrmps <- filter(raw_qftrmps, EXPERIMENT == "ieee25-qftrmps-accuracy")
+# ref_qftrmps <- slice(ref_qftrmps, 5:6)
+# 
+# ref_qftrmps <- rename(
+#   ref_qftrmps, 
+#   NSITE = "ARG1", 
+#   DCHI = "ARG2", 
+#   LCHI_UP = "ARG3", 
+#   LCHI_DN = "ARG4", 
+#   BDIM = "ARG5"
+# )
+# 
+# split_outs <- \(x)
+#   str_split_1(x, "Results [0-9]+:\n") |>
+#   (\(.) .[2:length(.)])()
+#   
+# ref_qftrmps <- mutate(
+#   ref_qftrmps, 
+#   OUTS = map(OUTPUT, split_outs)
+# )
+# 
+# ref_qftrmps <- unnest(ref_qftrmps, OUTS)
+# 
+# ref_qftrmps <- mutate(
+#   ref_qftrmps,
+#   NSITE = factor(NSITE),
+#   TIME = map_int(OUTS, extract_time) / 1000,
+#   NORM = map_dbl(OUTS, extract_norm),
+#   MCHI = map_int(OUTS, extract_mchi),
+#   OVER = map_dbl(OUTS, extract_overlap)
+# )
+# 
+# ref_qftrmps
+# 
+# ggplot(ref_qftrmps) +
+#   geom_point(aes(x = BDIM, y = MCHI, colour = NSITE), size = 1.6) +
+#   facet_wrap(~NSITE, ) +
+#   scale_colour_manual(values = palettes[[MODE]], name = "Number of sites") +
+#   scale_x_continuous(breaks = 0:8 * 2) +
+#   scale_y_continuous(breaks = 0:8 * 16) +
+#   xlab("Input bond dimension") +
+#   ylab("Output bond dimension") +
+#   default_theme + 
+#   theme(strip.background = element_blank(), strip.text.x = element_blank())
+# 
+# if (SAVE) {
+#   ggsave(glue("plt/ieee25/qftrmps-inout.pdf"), width = 8, height = 5,
+#          units = "in", scale = 1.00)
+#   ggsave(glue("plt/ieee25/qftrmps-inout.svg"), width = 8, height = 5,
+#          units = "in", scale = 1.00)
+# }
+```
+```{r rcs-accuracy}
+cvals <- tibble(
+  Bdim = c(512, 256, 128, 64, 32, 16, 8), 
+  Rel  = c(-0.00125459, 0.00111446, 0.00339506, 0.00101694, 
+           0.00181266, 0.000633834, 0.00776188), 
+  Im   = c(0.000112638, -0.000483268, 0.000810801, 0.00100666, 
+           -0.00504851, -0.00155607, 0.0017712)
+)
+
+ggplot(cvals) +
+  geom_point(aes(x = Rel, y = Im), size = 2, stroke = 1) +
+  geom_path(aes(x = Rel, y = Im)) +
+  geom_text(aes(x = Rel, y = Im, label = Bdim), 
+            nudge_x = 4E-4, nudge_y = 4E-4, colour = palettes[[MODE]][[3]]) +
+  scale_x_continuous(breaks = -5:5 / 500, limits = c(-1E-2, 1E-2)) +
+  scale_y_continuous(breaks = -5:5 / 500, limits = c(-1E-2, 1E-2)) +
+  xlab("Real(Psi[0])") +
+  ylab("Im(Psi[0])") +
+  default_theme
+```
+
+```{r rcsmps-accscaling}
+ref_rcsmps <- filter(raw_rcsmps, EXPERIMENT == "ieee25-rcsmps-accscaling") 
+ref_rcsmps <- rename(
+  ref_rcsmps, 
+  NROW = "ARG1", 
+  NCOL = "ARG2", 
+  DEPTH = "ARG3", 
+  DCHI = "ARG4", 
+  LCHI_UP = "ARG5", 
+  LCHI_DN = "ARG6"
+)
+
+ref_rcsmps <- mutate(
+  ref_rcsmps,
+  TCHI = DCHI * LCHI_UP, 
+  GRID = paste(NROW, NCOL, sep = "x") |> factor(), 
+  TIME = map_int(OUTPUT, extract_time) / 1000, 
+  NORM = map_dbl(OUTPUT, extract_norm), 
+  MCHI = map_int(OUTPUT, extract_mchi)
+)
+
+ref_rcsmps <- group_by(ref_rcsmps, GRID)
+
+ggplot(ref_rcsmps) +
+  geom_point(aes(x = TCHI, y = NORM, colour = GRID, shape = GRID), 
+             size = 2, stroke = 1) +
+  geom_line(aes(x = TCHI, y = NORM, colour = GRID)) +
+  scale_x_log10(breaks = 2 ^ (4:10), minor_breaks = 2 ^ (4:10)) +
+  scale_y_log10() +
+  scale_colour_manual(values = palettes[[MODE]], 
+                      name = "Grid size") +
+  scale_shape_manual(values = c(1, 4, 5, 6, 0), 
+                     name = "Grid size") + 
+  xlab("Total bond dim.") +
+  ylab("Norm accuracy") +
+  default_theme
+
+if (SAVE) {
+  ggsave(glue("plt/ieee25/rcsmps-accscaling.pdf"), width = 5, height = 5,
+         units = "in", scale = 1.00)
+  ggsave(glue("plt/ieee25/rcsmps-accscaling.svg"), width = 5, height = 5,
+         units = "in", scale = 1.00)
+}
+```
