@@ -1,8 +1,11 @@
+#include <algorithm>
 #include <chrono>
 #include <iostream>
+#include <random>
 #include "qtnh.hpp"
 
 using namespace qtnh;
+using namespace qtnh::qops;
 using namespace std::chrono;
 using namespace std::complex_literals;
 
@@ -38,8 +41,27 @@ int main(int argc, char* argv[]) {
   }
 
   std::vector<tidx_tup_st> ptup(NQUBITS);
-  std::iota(ptup.begin(), ptup.end(), 1);
-  ptup.at(NQUBITS - 1) = 0;
+  std::iota(ptup.begin(), ptup.end(), 0);
+  // ptup.at(NQUBITS - 1) = 0;
+
+  std::mt19937 gen(2570);
+  std::uniform_int_distribution<> dis(0, NQUBITS);
+  for (auto i = 0U; i <= 5; ++i) {
+    auto ks = std::array<int, 3>{ dis(gen), dis(gen), dis(gen) };
+    std::sort(ks.begin(), ks.end());
+    std::rotate(ptup.begin() + ks.at(0), ptup.begin() + ks.at(1), ptup.begin() + ks.at(2));
+
+    // if (utils::is_root()) {
+    //   std::cout << "ks = " << ks << "\n";
+    //   std::cout << "ptup = " << ptup << "\n";
+    // }
+  }
+
+  if (utils::is_root()) {
+    std::cout << "ptup = " << ptup << "\n";
+  }
+
+  // std::shuffle(ptup.begin(), ptup.end(), gen);
 
   utils::barrier();
   auto start = high_resolution_clock::now();
