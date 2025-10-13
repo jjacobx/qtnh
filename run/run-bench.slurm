@@ -48,11 +48,11 @@ echo
 
 # Set launch parameters
 : ${PROG=contract}
-: ${NQUBITS=22}
-: ${DQUBITS=8}
-: ${NITER=100}
+: ${NQ=22}
+: ${DQ=8}
+: ${IT=100}
 DIR=../build/examples/bench
-EXE="$DIR/$PROG $NQUBITS $DQUBITS $NITER"
+EXE="$DIR/$PROG $NQ $DQ $IT"
 MPI_ARGS="--distribution=block:block --hint=nomultithread"
 
 # Launch the parallel job
