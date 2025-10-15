@@ -85,3 +85,7 @@ results/plt/**
 
 # Backups
 *.bkp
+
+# Clangd on ARCHER2
+.clangd
+.cache/**
