@@ -194,7 +194,7 @@ namespace qtnh {
         utils::barrier();
         auto& t = *tensors_.at(tid);
         if (t.bc().isActive()) {
-          std::cout << t.bc().env.proc_id << " | T (result) = " << t << "\n";
+          std::cout << t.bc().env().proc_id << " | T (result) = " << t << "\n";
         }
         utils::barrier();
       #endif

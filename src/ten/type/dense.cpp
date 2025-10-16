@@ -682,9 +682,9 @@ namespace qtnh {
 
     if (target->bc().isActive() || new_bc.isActive()) {
       #ifdef DEBUG
-        std::cout << new_bc.env.proc_id << " | Sc: (" << send_counts << "); ";
+        std::cout << new_bc.env().proc_id << " | Sc: (" << send_counts << "); ";
         std::cout << "Sd: (" << send_displs << ")" << std::endl;
-        std::cout << new_bc.env.proc_id << " | Rc: (" << recv_counts << "); ";
+        std::cout << new_bc.env().proc_id << " | Rc: (" << recv_counts << "); ";
         std::cout << "Rd: (" << recv_displs << ")" << std::endl;
       #endif
 

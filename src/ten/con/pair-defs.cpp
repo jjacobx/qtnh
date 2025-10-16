@@ -19,7 +19,7 @@ namespace qtnh {
         qtnh::tel el3 = 0.0;
 
         #ifdef DEBUG
-          std::cout << t3.bc().env.proc_id << " | t3[" << *it3 << "] = ";
+          std::cout << tp3->bc().env().proc_id << " | t3[" << *it3 << "] = ";
         #endif
 
         auto it1 = ti1.num("closed", idxs1);

@@ -76,7 +76,7 @@ namespace qtnh {
       constexpr bool isActive() const { return is_active_; }
       constexpr int gid() const { return gid_; }
 
-      const QTNHEnv& env() const {return env_; }
+      const QTNHEnv& env() const { return env_; }
       const MPI_Comm& gcomm();
 
       /// @brief Helper to return all params at once. 
