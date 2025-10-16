@@ -1,7 +1,11 @@
 #!/bin/bash
 
-BUILD_DIR=build
+# Create build directory. 
+: ${BUILD_DIR=build}
 mkdir -p $BUILD_DIR
+
+# Copy configuration to build directory. 
+cp $0 $BUILD_DIR
 cd $BUILD_DIR
 
 CMAKE_EXPORT_COMPILE_COMMANDS=ON
@@ -20,6 +24,9 @@ CXX=CC
 module load PrgEnv-$PRG_ENV
 [ $PROFILING == 1 ] && module load forge
 
+# ofi/ucx
+ARM_MAP_LIB=$PRG_ENV/ofi
+
 cmake .. \
   -DCMAKE_CXX_COMPILER=${CXX} \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=$CMAKE_EXPORT_COMPILE_COMMANDS \
@@ -28,5 +35,6 @@ cmake .. \
   -DAUTO_COMM_INIT=$AUTO_COMM_INIT \
   -DCON_METHOD=$CON_METHOD \
   -DBUILD_TESTS=$BUILD_TESTS \
-  -DMAP=$PROFILING \
+  -DARM_MAP=$PROFILING \
+  -DARM_MAP_LIB=$ARM_MAP_LIB \
   -DFSANITIZE=$USE_SANITIZER \
