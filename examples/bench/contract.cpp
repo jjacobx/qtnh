@@ -39,7 +39,7 @@ int main(int argc, char* argv[]) {
   if (env.proc_id < utils::dims_to_size(dis_dims1)) {
     els1 = std::vector<tel>(utils::dims_to_size(loc_dims1));
     for (auto& el : els1) {
-      el = tel(dis(gen), dis(gen));
+      el = tel { dis(gen), dis(gen) };
     }
   }
 
@@ -47,7 +47,7 @@ int main(int argc, char* argv[]) {
   if (env.proc_id < utils::dims_to_size(dis_dims2)) {
     els2 = std::vector<tel>(utils::dims_to_size(loc_dims2));
     for (auto& el : els2) {
-      el = tel(dis(gen), dis(gen));
+      el = tel { dis(gen), dis(gen) };
     }
   }
   

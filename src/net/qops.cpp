@@ -25,8 +25,8 @@ namespace qtnh {
 
     tptr_symm sqrt_x(const QTNHEnv& env) {
       std::vector<tel> els = {
-        tel(1, 0) / std::sqrt(2), -tel(0, 1) / std::sqrt(2), 
-       -tel(0, 1) / std::sqrt(2),  tel(1, 0) / std::sqrt(2)
+        tel { 1, 0 } / std::sqrt(2), -tel { 0, 1 } / std::sqrt(2), 
+       -tel { 0, 1 } / std::sqrt(2),  tel { 1, 0 } / std::sqrt(2)
      };
     
       return SymmTensor::make(env, {}, { 2, 2 }, std::move(els));
@@ -43,8 +43,8 @@ namespace qtnh {
 
     tptr_symm sqrt_w(const QTNHEnv& env) {
       std::vector<tel> els = {
-        tel(1, 0) / std::sqrt(2), -tel(1, 1) / 2.0, 
-       tel(1, -1) / 2.0,           tel(1, 0) / std::sqrt(2)
+        tel { 1, 0 } / std::sqrt(2), -tel { 1, 1 } / 2.0, 
+        tel { 1, -1 } / 2.0,          tel { 1, 0 } / std::sqrt(2)
       };
     
       return SymmTensor::make(env, {}, { 2, 2 }, std::move(els));
@@ -109,10 +109,10 @@ namespace qtnh {
 
     MPO fsim(const QTNHEnv& env, std::size_t n, double phi) {
       std::vector<tel> t1_op {
-        1, 0,          0,          0, 
-        0, tel(0, -1), 0,          0, 
-        0, 0,          tel(0, -1), 0, 
-        0, 0,          0,          std::exp(tel(0, -phi))
+        1, 0,             0,             0, 
+        0, tel { 0, -1 }, 0,             0, 
+        0, 0,             tel { 0, -1 }, 0, 
+        0, 0,             0,             std::exp(tel { 0, -phi })
       };
       std::vector<tel> id_op {
         1, 0, 0, 1,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 
@@ -244,7 +244,7 @@ namespace qtnh {
     }
 
     tel urot(std::size_t k, double mul) {
-      return std::exp(mul * tel(0, 2) * M_PI / std::pow(2, k));
+      return std::exp(mul * tel { 0, 2 } * M_PI / std::pow(2, k));
     }
 
     MPO cmp(const QTNHEnv& env, std::size_t n, double mul) {

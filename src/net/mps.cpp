@@ -68,7 +68,7 @@ namespace qtnh {
       std::vector<tel> els(site_dim * bond_dim * bond_dim);
       for (auto j = 0UL; j < els.size(); ++j) {
         auto rel = dis(gen), img = dis(gen);
-        els.at(j) = tel(rel, img);
+        els.at(j) = tel { rel, img };
       }
 
       for (auto j = 0UL; j < loc_size; ++j) {
