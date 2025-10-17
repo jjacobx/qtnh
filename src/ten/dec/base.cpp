@@ -6,7 +6,7 @@
 #include <iostream>
 #endif
 
-#include "util/ops.hpp"
+#include "ten/type/dense.hpp"
 
 namespace qtnh {
   std::vector<qtnh::tup_t> _split_tensor(Tensor* t, std::vector<qtnh::tidx_tup_st> rel_splits) {

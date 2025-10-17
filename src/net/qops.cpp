@@ -4,8 +4,6 @@
 #include <iostream>
 #endif
 
-#include "util/ops.hpp"
-
 namespace qtnh {
   namespace qops {
     tptr_symm x(const QTNHEnv& env) {

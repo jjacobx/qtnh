@@ -1,9 +1,9 @@
 #include <catch2/catch_test_macros.hpp>
-#include <iostream>
 
 #include "net/network.hpp"
 #include "util/indexing.hpp"
 #include "util/utils.hpp"
+#include "ten/type/dense.hpp"
 
 #include "gen/random-tn.hpp"
 #include "gen/qft.hpp"

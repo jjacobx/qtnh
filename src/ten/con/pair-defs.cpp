@@ -8,10 +8,13 @@
 #include "blas/wrappers.hpp"
 #include "ten/con/pair-defs.hpp"
 #include "util/indexing.hpp"
-#include "util/ops.hpp"
 #include "util/ptuple.hpp"
 #include "util/utils.hpp"
 #include "util/vector.hpp"
+
+#ifdef DEBUG
+#include "util/ops.hpp"
+#endif
 
 namespace qtnh {
   void _local_contraction(Tensor* tp1, Tensor* tp2, DenseTensor* tp3, 

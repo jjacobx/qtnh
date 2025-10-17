@@ -1,3 +1,5 @@
+#include <numeric>
+
 #include "util/ptuple.hpp"
 
 namespace qtnh {
