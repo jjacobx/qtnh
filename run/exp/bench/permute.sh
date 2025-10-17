@@ -20,34 +20,34 @@ run_permute() {
     $QTNH_DIR/run/run.slurm
 }
 
-DQS=$(seq 0 2)
+DQS=$(seq 0 10)
 
 for dq in ${DQS}; do
   wait_running_jobs 40
   run_permute $(($dq + 20)) $dq OFI
 done
 
-# for dq in ${DQS}; do
-#   wait_running_jobs 40
-#   run_permute $(($dq + 22)) $dq OFI
-# done
+for dq in ${DQS}; do
+  wait_running_jobs 40
+  run_permute $(($dq + 22)) $dq OFI
+done
 
-# for dq in ${DQS}; do
-#   wait_running_jobs 40
-#   run_permute $(($dq + 24)) $dq OFI
-# done
+for dq in ${DQS}; do
+  wait_running_jobs 40
+  run_permute $(($dq + 24)) $dq OFI
+done
 
-# for dq in ${DQS}; do
-#   wait_running_jobs 40
-#   run_permute $(($dq + 20)) $dq UCX
-# done
+for dq in ${DQS}; do
+  wait_running_jobs 40
+  run_permute $(($dq + 20)) $dq UCX
+done
 
-# for dq in ${DQS}; do
-#   wait_running_jobs 40
-#   run_permute $(($dq + 22)) $dq UCX
-# done
+for dq in ${DQS}; do
+  wait_running_jobs 40
+  run_permute $(($dq + 22)) $dq UCX
+done
 
-# for dq in ${DQS}; do
-#   wait_running_jobs 40
-#   run_permute $(($dq + 24)) $dq UCX
-# done
+for dq in ${DQS}; do
+  wait_running_jobs 40
+  run_permute $(($dq + 24)) $dq UCX
+done
