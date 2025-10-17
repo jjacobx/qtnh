@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# * Run this from the $QTNH_DIR/run directory. 
+# * Run this with `-D $QTNH_DIR/run` argument. 
 
 #SBATCH --job-name=qtnh
 #SBATCH --time=0:20:0
@@ -45,11 +45,11 @@ echo "Branch: $(git branch --show-current)"
 echo
 
 # Set launch parameters
+: ${BUILD_DIR=build}
 : ${EXP=experiment}
 : ${PROG=examples/simple-tensor}
 : ${ARGS=""}
-DIR=../build
-EXE="$DIR/$PROG $ARGS"
+EXE="../$BUILD_DIR/$PROG $ARGS"
 MPI_ARGS="--distribution=block:block --hint=nomultithread"
 
 # Launch the parallel job
