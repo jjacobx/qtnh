@@ -1,6 +1,9 @@
 #include <algorithm>
-#include <iostream>
 #include <numeric>
+
+#ifdef DEBUG
+#include <iostream>
+#endif
 
 #include "blas/wrappers.hpp"
 #include "ten/con/pair-defs.hpp"

@@ -3,8 +3,7 @@
 
 #include "net/network.hpp"
 #include "ten/con/pair-defs.hpp"
-#include "ten/con/self-defs.hpp"
-#include "util/indexing.hpp"
+// #include "ten/con/self-defs.hpp"
 #include "util/ops.hpp"
 
 namespace qtnh {

@@ -2,7 +2,10 @@
 #include "ten/dec/base.hpp"
 #include "util/vector.hpp"
 
+#ifdef DEBUG
 #include <iostream>
+#endif
+
 #include "util/ops.hpp"
 
 namespace qtnh {

@@ -1,5 +1,8 @@
-#include <iostream>
 #include <cassert>
+
+#ifdef DEBUG
+#include <iostream>
+#endif
 
 #include "ten/type/dense.hpp"
 #include "util/indexing.hpp"

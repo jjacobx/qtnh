@@ -1,8 +1,9 @@
+#ifdef DEBUG
 #include <iostream>
+#endif
 
 #include "blas/routines.hpp"
 #include "blas/wrappers.hpp"
-#include "util/utils.hpp"
 
 namespace qtnh {
   namespace lalg {

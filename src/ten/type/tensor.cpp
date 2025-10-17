@@ -1,11 +1,9 @@
-#include <iomanip>
 #include <iostream>
 #include <mpi.h>
 #include <numeric>
 
 #include "ten/type/dense.hpp"
 #include "ten/type/tensor.hpp"
-#include "util/indexing.hpp"
 #include "util/ops.hpp"
 
 #ifndef AUTO_COMM_INIT

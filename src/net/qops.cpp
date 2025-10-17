@@ -1,6 +1,9 @@
 #include "net/qops.hpp"
 
+#ifdef DEBUG
 #include <iostream>
+#endif
+
 #include "util/ops.hpp"
 
 namespace qtnh {

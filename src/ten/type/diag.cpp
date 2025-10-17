@@ -1,4 +1,6 @@
+#ifdef DEBUG
 #include <iostream>
+#endif
 
 #include "ten/type/diag.hpp"
 #include "util/indexing.hpp"
