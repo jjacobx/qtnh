@@ -1,5 +1,5 @@
-#ifndef __UTIL_INDEXING__
-#define __UTIL_INDEXING__
+#ifndef QTNH_UTIL_INDEXING_HPP_INCLUDE
+#define QTNH_UTIL_INDEXING_HPP_INCLUDE
 
 #include <string>
 

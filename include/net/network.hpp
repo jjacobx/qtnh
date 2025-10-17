@@ -1,15 +1,15 @@
-#ifndef __NET_NETWORK__
-#define __NET_NETWORK__
+#ifndef QTNH_NET_NETWORK_HPP_INCLUDE
+#define QTNH_NET_NETWORK_HPP_INCLUDE
 
 #include <memory>
 #include <unordered_map>
 
-#include "ten/type/dense.hpp"
-#include "ten/type/diag.hpp"
-#include "ten/type/symm.hpp"
+// Pragmas needed for templating. 
+#include "ten/type/dense.hpp"  // IWYU pragma: keep
+#include "ten/type/diag.hpp"   // IWYU pragma: keep
+#include "ten/type/symm.hpp"   // IWYU pragma: keep
 #include "ten/type/tensor.hpp"
 #include "util/typedefs.hpp"
-
 
 namespace qtnh {
   /// Storage for tensors and bonds connecting them. 

@@ -1,5 +1,5 @@
-#ifndef __UTIL_ENV__
-#define __UTIL_ENV__
+#ifndef QTNH_UTIL_ENV_HPP_INCLUDE
+#define QTNH_UTIL_ENV_HPP_INCLUDE
 
 #include <mpi.h>
 

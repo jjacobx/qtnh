@@ -1,11 +1,9 @@
-#ifndef __UTIL_TYPEDEFS__
-#define __UTIL_TYPEDEFS__
+#ifndef QTNH_UTIL_TYPEDEFS_HPP_INCLUDE
+#define QTNH_UTIL_TYPEDEFS_HPP_INCLUDE
 
 #include <complex>
 #include <limits>
-#include <functional>
 #include <mpi.h>
-#include <numeric>
 #include <vector>
 
 // Helper macro to print from root

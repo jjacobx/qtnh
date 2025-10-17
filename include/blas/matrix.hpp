@@ -1,7 +1,7 @@
-#ifndef __BLAS_MATRIX__
-#define __BLAS_MATRIX__
+#ifndef QTNH_BLAS_MATRIX_HPP_INCLUDE
+#define QTNH_BLAS_MATRIX_HPP_INCLUDE
 
-#include <memory>
+#include <array>
 
 #include "util/typedefs.hpp"
 

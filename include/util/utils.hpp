@@ -1,12 +1,11 @@
-#ifndef __UTIL_UTILS__
-#define __UTIL_UTILS__
+#ifndef QTNH_UTIL_UTILS_HPP_INCLUDE
+#define QTNH_UTIL_UTILS_HPP_INCLUDE
 
 #include <algorithm>
 #include <map>
 #include <memory>
 #include <string>
 
-#include "util/indexing.hpp"
 #include "util/typedefs.hpp"
 
 namespace qtnh {

@@ -1,5 +1,5 @@
-#ifndef __TEN_TYPE_SYMM__
-#define __TEN_TYPE_SYMM__
+#ifndef QTNH_TEN_TYPE_SYMM_HPP_INCLUDE
+#define QTNH_TEN_TYPE_SYMM_HPP_INCLUDE
 
 #include "ten/type/dense.hpp"
 
