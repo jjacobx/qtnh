@@ -311,4 +311,25 @@ namespace qtnh {
 
     return TIndexing(dims, ifls);
   }
+
+  FastIndexer::FastIndexer(tidx_tup dims, std::vector<std::size_t> offsets)
+  : dims_(dims)
+  , offsets_(offsets) 
+  , idx_(0UL)
+  , idxs_(dims_.size(), 0UL)
+  {}
+
+  void FastIndexer::incr() {
+    for (auto i = dims_.size(); i > 0; --i) {
+      ++idxs_.at(i - 1);
+      idx_ += offsets_.at(i - 1);
+
+      if (idxs_.at(i - 1) < dims_.at(i - 1)) {
+        break;
+      }
+
+      idx_ -= idxs_.at(i - 1) * offsets_.at(i - 1);
+      idxs_.at(i - 1) = 0;
+    }
+  }
 }

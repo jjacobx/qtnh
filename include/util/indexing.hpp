@@ -158,6 +158,21 @@ namespace qtnh {
 
       static TIndexing _app(const TIndexing& ti1, const TIndexing& ti2);
   };
+
+  struct FastIndexer {
+    public:
+      FastIndexer(tidx_tup dims, std::vector<std::size_t> offsets);
+
+      constexpr std::size_t idx() { return idx_; }
+      void incr();
+
+    private:
+      tidx_tup dims_;
+      std::vector<std::size_t> offsets_;
+
+      std::size_t idx_;
+      tidx_tup idxs_;
+  };
 }
 
 #endif
