@@ -491,6 +491,32 @@ namespace qtnh {
     return Broadcaster(std::move(bc));
   }
 
+  void _permute_local(
+    Tensor* target, 
+    std::vector<qtnh::tidx_tup_st> ptup, 
+    std::vector<tel>& els
+  ) {
+    auto dims = target->locDims();
+    auto offsets = std::vector<std::size_t>(dims.size());
+    offsets.at(dims.size() - 1) = 1UL;
+
+    for (auto i = dims.size(); i > 1; --i) {
+      offsets.at(i - 2) = dims.at(i - 1) * offsets.at(i - 1);
+    }
+
+    auto new_dims = PTupleTar(ptup).apply(dims);
+    auto new_offsets = PTupleTar(ptup).apply(offsets);
+    FastIndexer fi(new_dims, new_offsets);
+
+    std::vector<tel> new_els(els.size());
+    for (auto i = 0UL; i < els.size(); ++i) {
+      new_els.at(i) = els.at(fi.idx());
+      fi.incr();
+    }
+
+    els = std::move(new_els);
+  }
+
   std::pair<MPI_Datatype, MPI_Datatype> _get_permute_datatypes(
     std::vector<std::size_t> old_dims, 
     std::vector<std::size_t> new_dims, 
@@ -608,7 +634,37 @@ namespace qtnh {
       }
       utils::barrier();
     #endif
+
     auto ndis = target->disDims().size();
+    auto& old_bc = target->bc();
+    
+    auto is_local = true;
+    for (auto i = 0UL; i < ndis; ++i) {
+      if (ptup.at(i) != i) {
+        is_local = false;
+        break;
+      }
+    }
+
+    if (is_local) {
+      #ifdef DEBUG
+        utils::barrier();
+        if (utils::is_root()) {
+          std::cout << "Local permutation.\n";
+        }
+        utils::barrier();
+      #endif
+
+      std::vector<qtnh::tidx_tup_st> ptup_loc(ptup.begin() + ndis, ptup.end());
+      std::for_each(ptup_loc.begin(), ptup_loc.end(), 
+                    [ndis](std::size_t &n) { n -= ndis; });
+
+      if (old_bc.isActive()) {
+        _permute_local(target, ptup_loc, loc_els_);
+      }
+
+      return Broadcaster(old_bc.env(), old_bc.base(), old_bc.params(), false);
+    }
 
     auto old_dims = target->totDims();
     qtnh::tidx_tup new_dims(old_dims.size());
@@ -633,7 +689,6 @@ namespace qtnh {
 
     // ! The broadcaster will fail if cyc > 1 and new base is of different size. 
     // ! Might need to re-bcast to cyc = 1 in such case. 
-    auto& old_bc = target->bc();
     Broadcaster temp_bc(old_bc.env(), qtnh::uint(utils::dims_to_size(new_dis_dims)), old_bc.params(), false);
     auto& new_bc = utils::compatible(old_dis_dims, new_dis_dims) ? old_bc : temp_bc;
 
