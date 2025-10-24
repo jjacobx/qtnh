@@ -20,12 +20,17 @@ namespace qtnh {
 
   class MPS {
     public:
-      using chi_pair = std::pair<std::size_t, std::size_t>;
+      using chi_pair = std::array<std::size_t, 2>;
+      using chi_triple = std::array<std::size_t, 3>;
       using sample_t = std::vector<std::size_t>;
 
       MPS() = delete;
       MPS(const QTNHEnv& env, std::size_t n_sites, qtnh::tidx site_dim, chi_pair chis);
+      MPS(const QTNHEnv& env, std::size_t n_sites, qtnh::tidx site_dim, chi_triple chis);
+
       MPS(const QTNHEnv& env, std::size_t n_sites, qtnh::tidx_tup site_dims, chi_pair chis);
+      MPS(const QTNHEnv& env, std::size_t n_sites, qtnh::tidx_tup site_dims, chi_triple chis);
+
       MPS(qtnh::tptr tp, chi_pair chis, SITE_CANON norm = SITE_CANON::left);
       MPS(std::vector<qtnh::tptr>&& sites);
       ~MPS() = default;
@@ -39,9 +44,11 @@ namespace qtnh {
       const qtnh::tidx_tup& bondDims() const { return bond_dims_; }
       std::size_t nSites() const { return site_tensors_.size(); }
 
+      constexpr std::size_t cycChi() const { return cyc_chi_; }
       constexpr std::size_t disChi() const { return dis_chi_; }
-      constexpr std::size_t locChi() const { return loc_chi_; }
-      constexpr std::size_t totChi() const { return dis_chi_ * loc_chi_; }
+      constexpr std::size_t blkChi() const { return blk_chi_; }
+      constexpr std::size_t locChi() const { return cyc_chi_ * blk_chi_; }
+      constexpr std::size_t totChi() const { return cyc_chi_ * dis_chi_ * blk_chi_; }
 
       void apply(tptr_symm tp, std::vector<std::size_t> sites);
       void apply(const MPO& mpo, std::size_t from);
@@ -67,8 +74,9 @@ namespace qtnh {
       qtnh::tidx_tup site_dims_;
       qtnh::tidx_tup bond_dims_;
 
+      std::size_t cyc_chi_;
       std::size_t dis_chi_;
-      std::size_t loc_chi_;
+      std::size_t blk_chi_;
   };
 
   class MPO {

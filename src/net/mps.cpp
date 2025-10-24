@@ -11,7 +11,7 @@
 
 namespace qtnh {
   MPS::MPS(const QTNHEnv& env, std::size_t n_sites, qtnh::tidx site_dim, chi_pair chis) 
-  : MPS(env, n_sites, qtnh::tidx_tup(n_sites, site_dim), chis)
+  : MPS(env, n_sites, qtnh::tidx_tup(n_sites, site_dim), { 1UL, chis.at(0), chis.at(1) })
   {}
 
   MPS::MPS(const QTNHEnv& env, std::size_t n_sites, qtnh::tidx_tup site_dims, chi_pair chis) 
@@ -19,21 +19,51 @@ namespace qtnh {
   , site_canons_(n_sites, SITE_CANON::none)
   , site_dims_(site_dims)
   , bond_dims_(n_sites - 1, 1)
-  , dis_chi_(chis.first)
-  , loc_chi_(chis.second)
+  , cyc_chi_(1UL)
+  , dis_chi_(chis.at(0))
+  , blk_chi_(chis.at(1))
   {
     for (auto i = 0UL; i < n_sites; ++i) {
-      std::vector<qtnh::tel> els(site_dims.at(i) * loc_chi_ * loc_chi_);
+      auto size = site_dims.at(i) * cyc_chi_ * cyc_chi_ * blk_chi_ * blk_chi_;
+      std::vector<qtnh::tel> els(size);
       if (env.proc_id == 0) els.at(0) = 1.0;
 
       site_tensors_.at(i) = DenseTensor::make(
         env, 
         { dis_chi_, dis_chi_ }, 
-        { site_dims.at(i), loc_chi_, loc_chi_ }, 
+        { site_dims.at(i), 1UL, 1UL, blk_chi_, blk_chi_ }, 
         std::move(els)
       );
     }
   }
+
+  MPS::MPS(const QTNHEnv& env, std::size_t n_sites, qtnh::tidx site_dim, chi_triple chis) 
+  : MPS(env, n_sites, qtnh::tidx_tup(n_sites, site_dim), chis)
+  {}
+
+  MPS::MPS(const QTNHEnv& env, std::size_t n_sites, qtnh::tidx_tup site_dims, chi_triple chis) 
+  : site_tensors_(n_sites)
+  , site_canons_(n_sites, SITE_CANON::none)
+  , site_dims_(site_dims)
+  , bond_dims_(n_sites - 1, 1)
+  , cyc_chi_(chis.at(0))
+  , dis_chi_(chis.at(1))
+  , blk_chi_(chis.at(2))
+  {
+    for (auto i = 0UL; i < n_sites; ++i) {
+      auto size = site_dims.at(i) * cyc_chi_ * cyc_chi_ * blk_chi_ * blk_chi_;
+      std::vector<qtnh::tel> els(size);
+      if (env.proc_id == 0) els.at(0) = 1.0;
+
+      site_tensors_.at(i) = DenseTensor::make(
+        env, 
+        { dis_chi_, dis_chi_ }, 
+        { site_dims.at(i), 1UL, 1UL, blk_chi_, blk_chi_ }, 
+        std::move(els)
+      );
+    }
+  }
+
 
   MPS::MPS(qtnh::tptr tp, chi_pair chis, SITE_CANON norm) {
     utils::throw_unimplemented();
@@ -45,7 +75,7 @@ namespace qtnh {
   , site_dims_(site_tensors_.size())
   , bond_dims_(site_tensors_.size() - 1, 1)
   , dis_chi_(site_tensors_.at(0)->disDims().at(0))
-  , loc_chi_(site_tensors_.at(0)->locDims().at(1))
+  , blk_chi_(site_tensors_.at(0)->locDims().at(1))
   {
     for (auto i = 0UL; i < nSites(); ++i) {
       site_dims_.at(i) = site_tensors_.at(i)->locDims().at(0);
@@ -61,7 +91,7 @@ namespace qtnh {
 
     for (auto i = 0UL; i < n_sites; ++i) {
       auto tp = Tensor::cast<DenseTensor>(std::move(mps.site_tensors_.at(i)));
-      auto loc_size = std::min(bond_dim, chis.second);
+      auto loc_size = std::min(bond_dim, chis.at(1));
       auto dis_size = bond_dim / loc_size;
 
       // Global site-wise element calculation to ensure repeatability. 
@@ -77,14 +107,14 @@ namespace qtnh {
         for (auto k = 0UL; k < loc_size; ++k) {
           if (i + 1 == n_sites && k > 0UL) break;
 
-          auto p = env.proc_id / chis.first;
-          auto q = env.proc_id % chis.first;
+          auto p = env.proc_id / chis.at(0);
+          auto q = env.proc_id % chis.at(0);
 
           if (p < dis_size && q < dis_size) {
             for (auto l = 0UL; l < site_dim; ++l) {
               auto pos = l * bond_dim * bond_dim + 
-                (p * chis.second + j) * bond_dim + 
-                q * chis.second + k;
+                (p * chis.at(1) + j) * bond_dim + 
+                q * chis.at(1) + k;
 
               tp->at({ p, q, l, j, k }) = els.at(pos);
             }
@@ -135,7 +165,7 @@ namespace qtnh {
       tptr tp_tmp = std::move(site_tensors_.at(i));
       auto tot_size = tp_res->totDims().size();
 
-      ConParams params({{ 1, 0 }, { tot_size - 1, 3 }});
+      ConParams params({{ 1, 0 }, { tot_size - 2, 3 }, { tot_size - 1, 4 }});
       pcon con(std::move(tp_res), std::move(tp_tmp), params);
       tp_res = con.contract();
     }
@@ -144,7 +174,7 @@ namespace qtnh {
     std::vector<wire> wires(sites.size());
     for (auto i = 0UL; i < sites.size(); ++i) {
       auto rel_site = sites.at(i) - min_site;
-      auto incr = rel_site == 0UL ? 0UL : 1UL;
+      auto incr = rel_site == 0UL ? 0UL : 2UL;
       wires.at(i) = { 2 + rel_site + incr, i };
     }
 
@@ -159,7 +189,7 @@ namespace qtnh {
       DecParams dp {
         { 1, 1 }, 
         { 2, loc_size - 2 }, 
-        { 1, loc_size - 3 }, 
+        { 2, loc_size - 4 }, 
         { 1, 1 }, 
         { 1, 1 }
       };
@@ -171,17 +201,17 @@ namespace qtnh {
 
       // Truncate. 
       auto fmul = std::multiplies<tidx>();
-      auto loc_dims_u = utils::combine_part(tp_u->locDims(), 2, 3, tidx(1.0), fmul);
-      auto loc_dims_s = utils::combine_part(tp_s->locDims(), 1, 2, tidx(1.0), fmul);
-      auto loc_dims_v = utils::combine_part(tp_v->locDims(), 0, 1, tidx(1.0), fmul);
+      auto loc_dims_u = utils::combine_part(tp_u->locDims(), 3, 5, tidx(1.0), fmul);
+      auto loc_dims_s = utils::combine_part(tp_s->locDims(), 1, 3, tidx(1.0), fmul);
+      auto loc_dims_v = utils::combine_part(tp_v->locDims(), 0, 2, tidx(1.0), fmul);
 
       tp_u->reshape(tp_u->disDims(), loc_dims_u);
       tp_s->reshape(tp_s->disDims(), loc_dims_s);
       tp_v->reshape(tp_v->disDims(), loc_dims_v);
 
-      tp_u = Tensor::truncate(std::move(tp_u), 4, loc_chi_);
-      tp_s = Tensor::truncate(std::move(tp_s), 1, loc_chi_);
-      tp_v = Tensor::truncate(std::move(tp_v), 2, loc_chi_);
+      tp_u = Tensor::truncate(std::move(tp_u), 5, locChi());
+      tp_s = Tensor::truncate(std::move(tp_s), 1, locChi());
+      tp_v = Tensor::truncate(std::move(tp_v), 2, locChi());
 
       // Calculate SV. 
       auto&& els = tp_s->cast<DenseTensor>()->extractEls();
@@ -190,7 +220,7 @@ namespace qtnh {
       tp_s = DiagTensor::make(
         tp_s->bc().env(), 
         {}, 
-        { dis_chi_, loc_chi_, dis_chi_, loc_chi_ }, 
+        { dis_chi_, cyc_chi_, blk_chi_, dis_chi_, cyc_chi_, blk_chi_ }, 
         false, 
         std::move(els)
       );
@@ -198,13 +228,13 @@ namespace qtnh {
       tp_s = SymmTensorBase::rescatterIO(std::move(tp_s), 1);
 
       auto dim_repls_2 = utils::concat_vecs(
-        repl_vec { X, 1, X, 2 }, 
-        utils::vec_incr(4UL, loc_size)
+        repl_vec { X, 1, X, X, 2 }, 
+        utils::vec_incr(5UL, loc_size)
       );
 
       ConParams params(
         {{ 1, 0 }, { 3, 2 }}, 
-        { 0, X, 3, X }, 
+        { 0, X, 3, 4, X, X }, 
         dim_repls_2
       );
       
@@ -266,7 +296,7 @@ namespace qtnh {
       tp_s = DiagTensor::make(
         tp_s->bc().env(), 
         {}, 
-        { dis_chi_, loc_chi_, dis_chi_, loc_chi_ }, 
+        { dis_chi_, blk_chi_, dis_chi_, blk_chi_ }, 
         false, 
         std::move(els)
       );
@@ -352,9 +382,9 @@ namespace qtnh {
       tp_s->reshape(tp_s->disDims(), loc_dims_s);
       tp_v->reshape(tp_v->disDims(), loc_dims_v);
 
-      tp_u = Tensor::truncate(std::move(tp_u), 4, loc_chi_);
-      tp_s = Tensor::truncate(std::move(tp_s), 1, loc_chi_);
-      tp_v = Tensor::truncate(std::move(tp_v), 2, loc_chi_);
+      tp_u = Tensor::truncate(std::move(tp_u), 4, blk_chi_);
+      tp_s = Tensor::truncate(std::move(tp_s), 1, blk_chi_);
+      tp_v = Tensor::truncate(std::move(tp_v), 2, blk_chi_);
 
       // Calculate SV. 
       auto&& els = tp_s->cast<DenseTensor>()->extractEls();
@@ -363,7 +393,7 @@ namespace qtnh {
       tp_s = DiagTensor::make(
         tp_s->bc().env(), 
         {}, 
-        { dis_chi_, loc_chi_, dis_chi_, loc_chi_ }, 
+        { dis_chi_, blk_chi_, dis_chi_, blk_chi_ }, 
         false, 
         std::move(els)
       );
@@ -397,10 +427,10 @@ namespace qtnh {
 
     // TODO: Start at lowest rank in MPS. 
     const auto& env = site_tensors_.at(0)->bc().env();
-    std::vector<tel> els(loc_chi_ * loc_chi_ , 0);
+    std::vector<tel> els(blk_chi_ * blk_chi_ , 0);
     if (utils::is_root()) els.at(0) = 1.0;
     tptr tp_res = DenseTensor::make(env, { mps.disChi(), disChi() }, 
-                                    { mps.locChi(), locChi() }, std::move(els));
+                                    { mps.blkChi(), blkChi() }, std::move(els));
 
     for (auto i = 0UL; i < site_tensors_.size(); ++i) {
       tptr tp_up = mps.site(i).copy();
@@ -483,9 +513,9 @@ namespace qtnh {
 
       // // TODO: Check for non-zero truncation. 
       // Unnecessary if decomposing a tensor at a time. 
-      tp_u = Tensor::truncate(std::move(tp_u), 4, loc_chi_);
-      tp_s = Tensor::truncate(std::move(tp_s), 1, loc_chi_);
-      tp_v = Tensor::truncate(std::move(tp_v), 2, loc_chi_);
+      tp_u = Tensor::truncate(std::move(tp_u), 4, blk_chi_);
+      tp_s = Tensor::truncate(std::move(tp_s), 1, blk_chi_);
+      tp_v = Tensor::truncate(std::move(tp_v), 2, blk_chi_);
 
       // Calculate SV. 
       auto&& els = tp_s->cast<DenseTensor>()->extractEls();
@@ -494,7 +524,7 @@ namespace qtnh {
       tp_s = DiagTensor::make(
         tp_s->bc().env(), 
         {}, 
-        { dis_chi_, loc_chi_, dis_chi_, loc_chi_ }, 
+        { dis_chi_, blk_chi_, dis_chi_, blk_chi_ }, 
         false, 
         std::move(els)
       );
@@ -547,9 +577,9 @@ namespace qtnh {
 
       // // TODO: Check for non-zero truncation. 
       // Unnecessary if decomposing a tensor at a time. 
-      tp_u = Tensor::truncate(std::move(tp_u), 4, loc_chi_);
-      tp_s = Tensor::truncate(std::move(tp_s), 1, loc_chi_);
-      tp_v = Tensor::truncate(std::move(tp_v), 2, loc_chi_);
+      tp_u = Tensor::truncate(std::move(tp_u), 4, blk_chi_);
+      tp_s = Tensor::truncate(std::move(tp_s), 1, blk_chi_);
+      tp_v = Tensor::truncate(std::move(tp_v), 2, blk_chi_);
 
       // Calculate US. 
       auto&& els = tp_s->cast<DenseTensor>()->extractEls();
@@ -558,7 +588,7 @@ namespace qtnh {
       tp_s = DiagTensor::make(
         tp_s->bc().env(), 
         {}, 
-        { dis_chi_, loc_chi_, dis_chi_, loc_chi_ }, 
+        { dis_chi_, blk_chi_, dis_chi_, blk_chi_ }, 
         false, 
         std::move(els)
       );
@@ -666,10 +696,10 @@ namespace qtnh {
 
   std::unique_ptr<DenseTensor> MPS::toDense() && {
     const auto& bc = site_tensors_.at(0)->bc();
-    std::vector<tel> els(locChi(), 0);
+    std::vector<tel> els(blkChi(), 0);
     if (utils::is_root()) els.at(0) = 1.0;
 
-    tptr tp_res = DenseTensor::make(bc.env(), { disChi() }, { locChi() }, std::move(els));
+    tptr tp_res = DenseTensor::make(bc.env(), { disChi() }, { blkChi() }, std::move(els));
     tptr tp_last = tp_res->copy();
 
     // tptr tp_res = std::move(site_tensors_.at(0));
@@ -703,7 +733,7 @@ namespace qtnh {
     if (utils::is_root()) {
       std::cout << "================================================================\n";
       std::cout << "MPS with N=" << site_tensors_.size() << 
-        " chi=(" << dis_chi_ << "," << loc_chi_ << ")\n";
+        " chi=(" << dis_chi_ << "," << blk_chi_ << ")\n";
       std::cout << "Phys:  " << site_dims_ << "\n";
       std::cout << "Canons: " << site_canons_ << "\n";
 
