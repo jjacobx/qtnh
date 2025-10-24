@@ -25,8 +25,18 @@ run_contract() {
   local args="$dqs $lqs 10"
 
   sbatch -D $QTNH_DIR/run -N $n_node -n $n_proc -o $out \
-    --export=EXP=$exp,PROG=$prog,ARGS="$args",MPI_IMPL=$mpi \
+    --export=BUILD_DIR=build-debug,EXP=$exp,PROG=$prog,ARGS="$args",MPI_IMPL=$mpi \
     $QTNH_DIR/run/run.slurm
 }
 
-run_contract "4 4 4" "10 10 10" OFI
+# # Square contraction. 
+run_contract "4 4 4" "10 10 10" UCX
+
+# # Tensor product. 
+run_contract "4 0 4" "10 0 10" UCX
+
+# Distributed operator application. 
+run_contract "7 1 1" "19 1 1" UCX
+
+# Local operator application. 
+run_contract "8 0 0" "19 1 1" UCX
