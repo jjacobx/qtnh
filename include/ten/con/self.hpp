@@ -1,5 +1,5 @@
-#ifndef __TEN_CON_SELF__
-#define __TEN_CON_SELF__
+#ifndef QTNH_TEN_CON_SELF_HPP_INCLUDE
+#define QTNH_TEN_CON_SELF_HPP_INCLUDE
 
 #include "ten/con/base.hpp"
 

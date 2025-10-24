@@ -1,58 +1,77 @@
+#include <algorithm>
 #include <chrono>
+#include <iomanip>
 #include <iostream>
+#include <random>
 #include "qtnh.hpp"
 
 using namespace qtnh;
+using namespace qtnh::qops;
 using namespace std::chrono;
 using namespace std::complex_literals;
 
 int main(int argc, char* argv[]) {
   using namespace qtnh;
 
-  auto NQUBITS = 5U;
-  auto DQUBITS = 2U;
-  auto NITER = 10U;
+  auto NQ = 5U;
+  auto DQ = 2U;
+  auto IT = 10U;
 
   if (argc > 1) {
-    NQUBITS = static_cast<unsigned int>(strtol(argv[1], nullptr, 0));
+    NQ = static_cast<unsigned int>(strtol(argv[1], nullptr, 0));
   } 
   if (argc > 2) {
-    DQUBITS = static_cast<unsigned int>(strtol(argv[2], nullptr, 0));
+    DQ = static_cast<unsigned int>(strtol(argv[2], nullptr, 0));
   }
   if (argc > 3) {
-    NITER = static_cast<unsigned int>(strtol(argv[3], nullptr, 0));
+    IT = static_cast<unsigned int>(strtol(argv[3], nullptr, 0));
   }
 
   QTNHEnv env;
   TensorNetwork tn;
+  std::mt19937 gen(2025);
 
-  tidx_tup t1_loc_dims(NQUBITS, 2);
-  std::vector<tel> t1_els(1 << NQUBITS);
-  if (utils::is_root()){
-    std::iota(t1_els.begin(), t1_els.end(), 0);
+  // Create distributed tensor filled in with contiguous numbers. 
+  tidx_tup dis_dims(DQ, 2);
+  tidx_tup loc_dims(NQ - DQ, 2);
+  auto loc_size = utils::dims_to_size(loc_dims);
+  auto dis_size = utils::dims_to_size(dis_dims);
+
+  std::vector<tel> els(loc_size);
+  if (env.proc_id < dis_size){
+    std::iota(els.begin(), els.end(), env.proc_id * loc_size);
   }
 
-  tptr tp1 = DenseTensor::make(env, {}, t1_loc_dims, std::move(t1_els));
-  for (auto i = 0U; i < DQUBITS; ++i) {
-    tp1 = Tensor::rescatter(std::move(tp1), 1);
-  }
-
-  std::vector<tidx_tup_st> ptup(NQUBITS);
-  std::iota(ptup.begin(), ptup.end(), 1);
-  ptup.at(NQUBITS - 1) = 0;
+  tptr tp = DenseTensor::make(env, dis_dims, loc_dims, std::move(els));
 
   utils::barrier();
   auto start = high_resolution_clock::now();
 
-  for (int i = 0U; i < NITER; ++i) {
-    tp1 = Tensor::permute(std::move(tp1), ptup);
+  for (int i = 0U; i < IT; ++i) {
+    // Create semi-random permutation tuple: 
+    // - select random range
+    // - rotate it by random amount
+    // - repeat 5 times
+    std::vector<tidx_tup_st> ptup(NQ);
+    std::iota(ptup.begin(), ptup.end(), 0);
+    
+    std::uniform_int_distribution<> dis(0, NQ);
+
+    for (auto i = 0U; i < 4; ++i) {
+      auto ks = std::array<int, 3>{ dis(gen), dis(gen), dis(gen) };
+      std::sort(ks.begin(), ks.end());
+      std::rotate(ptup.begin() + ks.at(0), ptup.begin() + ks.at(1), ptup.begin() + ks.at(2));
+    }
+
+    tp = Tensor::permute(std::move(tp), ptup);
   }
 
   utils::barrier();
   auto stop = high_resolution_clock::now();
 
-  auto delta = duration_cast<milliseconds>(stop - start);
+  duration<double, std::milli> delta = stop - start;
   if (utils::is_root()) {
-    std::cout << "Time taken: " << delta.count() << " ms\n";
+    std::cout << std::fixed << std::setprecision(2);
+    std::cout << "Time per iteration: " << delta.count() / IT << " ms\n";
   }
 }

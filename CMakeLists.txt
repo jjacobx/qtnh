@@ -12,11 +12,8 @@ if (NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "${default_build_type}")
 endif()
 
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
 option(BUILD_SHARED_LIBS "Build shared library" ON)
 option(SKIP_ARCHER2_LIBS "Skips libraries that don't require linking on ARCHER2" OFF)
-
 
 ## Dependencies
 

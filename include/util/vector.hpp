@@ -1,6 +1,9 @@
-#ifndef __UTIL_VECTOR__
-#define __UTIL_VECTOR__
+#ifndef QTNH_UTIL_VECTOR_HPP_INCLUDE
+#define QTNH_UTIL_VECTOR_HPP_INCLUDE
 
+
+#include <array>
+#include <numeric>
 #include <vector>
 
 namespace qtnh {

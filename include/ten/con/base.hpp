@@ -1,9 +1,9 @@
-#ifndef __TEN_CON_BASE__
-#define __TEN_CON_BASE__
+#ifndef QTNH_TEN_CON_BASE_HPP_INCLUDE
+#define QTNH_TEN_CON_BASE_HPP_INCLUDE
 
-#include "ten/type/dense.hpp"
-#include "ten/type/diag.hpp"
-#include "ten/type/symm.hpp"
+#include "ten/type/dense.hpp"  // IWYU pragma: export
+#include "ten/type/diag.hpp"   // IWYU pragma: export
+#include "ten/type/symm.hpp"   // IWYU pragma: export
 #include "ten/type/tensor.hpp"
 
 namespace qtnh {

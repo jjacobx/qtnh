@@ -1,5 +1,8 @@
 #include <algorithm>
+
+#ifdef DEBUG
 #include <iostream>
+#endif
 
 #include "ten/type/symm.hpp"
 #include "util/indexing.hpp"

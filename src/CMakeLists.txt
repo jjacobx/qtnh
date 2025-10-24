@@ -40,17 +40,18 @@ if (CMAKE_BUILD_TYPE MATCHES Release)
   )
 endif()
 
-option(MAP "Turn on ARM MAP profiling" OFF)
-if (MAP)
-  message(STATUS "ARM MAP profiling enabled.")
+option(ARM_MAP "Turn on ARM MAP profiling" OFF)
+set(ARM_MAP_LIB "cray/ofi" CACHE STRING "Version of ARM MAP library to link")
+if (ARM_MAP)
+  message(STATUS "ARM MAP profiling (${ARM_MAP_LIB}) enabled.")
   set(FORGE_DIR "$ENV{FORGE_DIR}")
   target_link_options(qtnh
     PUBLIC
-    -L${FORGE_DIR}/map/libs/default/gnu/ofi
+    -L${FORGE_DIR}/map/libs/default/${ARM_MAP_LIB}
     -lmap-sampler-pmpi
     -lmap-sampler
     -Wl,--eh-frame-hdr
-    -Wl,-rpath=${FORGE_DIR}/map/libs/default/gnu/ofi
+    -Wl,-rpath=${FORGE_DIR}/map/libs/default/${ARM_MAP_LIB}
   )
   target_compile_options(qtnh
     PRIVATE

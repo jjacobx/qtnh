@@ -1,9 +1,7 @@
-#ifndef __TEN_DEC_BASE__
-#define __TEN_DEC_BASE__
+#ifndef QTNH_TEN_DEC_BASE_HPP_INCLUDE
+#define QTNH_TEN_DEC_BASE_HPP_INCLUDE
 
-#include "blas/matrix.hpp"
 #include "ten/type/tensor.hpp"
-#include "ten/type/dense.hpp"
 #include "util/ptuple.hpp"
 
 namespace qtnh {

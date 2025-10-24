@@ -1,5 +1,9 @@
+#ifndef QTNH_UTIL_OPS_HPP_INCLUDE
+#define QTNH_UTIL_OPS_HPP_INCLUDE
+
 #include <iostream>
 
+#include "util/indexing.hpp"
 #include "net/network.hpp"
 #include "ten/type/tensor.hpp"
 #include "util/typedefs.hpp"
@@ -15,7 +19,9 @@ namespace qtnh {
   std::ostream& operator<<(std::ostream& out, const std::vector<T>& v) {
     for (std::size_t i = 0; i < v.size(); ++i) {
       out << v.at(i);
-      if (i + 1 < v.size()) out << ", ";
+      if (i + 1 < v.size()) { 
+        out << ", ";
+      }
     }
 
     return out;
@@ -47,3 +53,5 @@ namespace qtnh {
 
   bool operator==(const BcParams& p1,const BcParams& p2);
 }
+
+#endif

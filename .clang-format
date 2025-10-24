@@ -1,0 +1,7 @@
+BasedOnStyle: LLVM
+IndentWidth: 2
+UseTab: Never
+ColumnLimit: 80
+MaxEmptyLinesToKeep: 2
+IndentAccessModifiers: true
+NamespaceIndentation: All

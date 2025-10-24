@@ -1,17 +1,18 @@
 #!/bin/bash
 
-# Slurm job options (job-name, compute nodes, job time)
+# * Run this with `-D $QTNH_DIR/run` argument. 
+
 #SBATCH --job-name=qtnh
 #SBATCH --time=0:20:0
-#SBATCH --nodes=2
-#SBATCH --ntasks-per-node=128
 #SBATCH --cpus-per-task=1
 
-# Replace [budget code] below with your budget code (e.g. t01)
 #SBATCH --account=d35-ja
 #SBATCH --partition=standard
 #SBATCH --qos=standard
-#SBATCH --output=out/bench/%j.out
+#SBATCH --output=map/%j.out
+
+# Load ARM MAP
+module load forge
 
 # Set MPI implementation
 : ${MPI_IMPL=OFI}
@@ -47,17 +48,18 @@ echo "Branch: $(git branch --show-current)"
 echo
 
 # Set launch parameters
-: ${PROG=contract}
-: ${NQUBITS=22}
-: ${DQUBITS=8}
-: ${NITER=100}
-DIR=../build/examples/bench
-EXE="$DIR/$PROG $NQUBITS $DQUBITS $NITER"
+: ${BUILD_DIR=build}
+: ${EXP=experiment}
+: ${PROG=examples/simple-tensor}
+: ${ARGS=""}
+EXE="../$BUILD_DIR/$PROG $ARGS"
 MPI_ARGS="--distribution=block:block --hint=nomultithread"
+MAP_OUT="map/${SLURM_JOB_ID}.map"
 
 # Launch the parallel job
-echo "Running ${EXE}: "
-srun $MPI_ARGS $EXE
+echo "Experiment: ${EXP}"
+echo "Running and profiling ${EXE}: "
+map -n $SLURM_NTASKS --mpi=slurm --mpiargs="$MPI_ARGS" -o $MAP_OUT --profile $EXE
 echo "Finished running"
 echo
 

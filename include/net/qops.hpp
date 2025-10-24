@@ -1,5 +1,5 @@
-#ifndef __NET_OPS__
-#define __NET_OPS__
+#ifndef QTNH_NET_QOPS_HPP_INCLUDE
+#define QTNH_NET_QOPS_HPP_INCLUDE
 
 #include "net/mps.hpp"
 

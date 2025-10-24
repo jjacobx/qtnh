@@ -1,8 +1,9 @@
+#ifdef DEBUG
 #include <iostream>
+#endif
 
 #include "blas/routines.hpp"
 #include "blas/wrappers.hpp"
-#include "util/utils.hpp"
 
 namespace qtnh {
   namespace lalg {
@@ -57,7 +58,7 @@ namespace qtnh {
 
       cvec sc(static_cast<std::size_t>(chi));
       for (auto i = 0UL; i < sc.size(); ++i) {
-        sc.at(i) = qtnh::tel(sd.at(i));
+        sc.at(i) = qtnh::tel { sd.at(i), 0.0 };
       }
 
       // Moves to prevent copying large object. 

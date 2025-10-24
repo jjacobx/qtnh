@@ -1,14 +1,20 @@
 #include <algorithm>
-#include <iostream>
 #include <numeric>
+
+#ifdef DEBUG
+#include <iostream>
+#endif
 
 #include "blas/wrappers.hpp"
 #include "ten/con/pair-defs.hpp"
 #include "util/indexing.hpp"
-#include "util/ops.hpp"
 #include "util/ptuple.hpp"
 #include "util/utils.hpp"
 #include "util/vector.hpp"
+
+#ifdef DEBUG
+#include "util/ops.hpp"
+#endif
 
 namespace qtnh {
   void _local_contraction(Tensor* tp1, Tensor* tp2, DenseTensor* tp3, 
@@ -19,7 +25,7 @@ namespace qtnh {
         qtnh::tel el3 = 0.0;
 
         #ifdef DEBUG
-          std::cout << t3.bc().env.proc_id << " | t3[" << *it3 << "] = ";
+          std::cout << tp3->bc().env().proc_id << " | t3[" << *it3 << "] = ";
         #endif
 
         auto it1 = ti1.num("closed", idxs1);

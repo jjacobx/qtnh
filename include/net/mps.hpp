@@ -1,8 +1,11 @@
-#ifndef __NET_MPS__
-#define __NET_MPS__
+#ifndef QTNH_NET_MPS_HPP_INCLUDE
+#define QTNH_NET_MPS_HPP_INCLUDE
 
 #include <map>
-#include "net/network.hpp"
+
+#include "ten/type/symm.hpp"
+#include "ten/type/tensor.hpp"
+#include "util/typedefs.hpp"
 
 namespace qtnh {
   using tptr_symm = std::unique_ptr<SymmTensorBase>;
@@ -31,7 +34,7 @@ namespace qtnh {
       MPS copy();
 
       const Tensor& site(std::size_t k) const { return *site_tensors_.at(k); }
-      const std::vector<SITE_CANON>& siteCanons(std::size_t k) const { return site_canons_; }
+      const std::vector<SITE_CANON>& siteCanons() const { return site_canons_; }
       const qtnh::tidx_tup& siteDims() const { return site_dims_; }
       const qtnh::tidx_tup& bondDims() const { return bond_dims_; }
       std::size_t nSites() const { return site_tensors_.size(); }

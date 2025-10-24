@@ -1,9 +1,11 @@
 #include <algorithm>
-#include <iostream>
 #include <numeric>
 
+#ifdef DEBUG
+#include <iostream>
+#endif
+
 #include "util/indexing.hpp"
-#include "util/utils.hpp"
 
 namespace qtnh {
   std::vector<std::size_t> _generate_maps(std::vector<TIFlag> ifls) {
@@ -308,5 +310,26 @@ namespace qtnh {
     ifls.insert(ifls.end(), ti2.ifls_.begin(), ti2.ifls_.end());
 
     return TIndexing(dims, ifls);
+  }
+
+  FastIndexer::FastIndexer(tidx_tup dims, std::vector<std::size_t> offsets)
+  : dims_(dims)
+  , offsets_(offsets) 
+  , idx_(0UL)
+  , idxs_(dims_.size(), 0UL)
+  {}
+
+  void FastIndexer::incr() {
+    for (auto i = dims_.size(); i > 0; --i) {
+      ++idxs_.at(i - 1);
+      idx_ += offsets_.at(i - 1);
+
+      if (idxs_.at(i - 1) < dims_.at(i - 1)) {
+        break;
+      }
+
+      idx_ -= idxs_.at(i - 1) * offsets_.at(i - 1);
+      idxs_.at(i - 1) = 0;
+    }
   }
 }

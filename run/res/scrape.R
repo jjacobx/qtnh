@@ -22,7 +22,10 @@ data_dir <- file.path(out_dir, exp_dir)
 files_out <- list.files(data_dir, "*.out")
 data_table <- tibble()
 
-rm_patterns <- cmd_args[2:length(cmd_args)]
+rm_patterns = character(0)
+if (length(length(cmd_args)) > 1) {
+  rm_patterns <- cmd_args[2:length(cmd_args)]
+}
 
 for (file in files_out) {
   lines <- read_lines(file.path(data_dir, file))
@@ -43,8 +46,10 @@ for (file in files_out) {
   names(meta_data) <- meta_names
 
   # Extract other metadata
-  exp <- str_split_1(lines[[line_exp]], ": ")[[2]]
-  meta_data[["EXPERIMENT"]] <- exp
+  if (length(line_exp) > 0) {
+    exp <- str_split_1(lines[[line_exp]], ": ")[[2]]
+    meta_data[["EXPERIMENT"]] <- exp
+  }
 
   exe <- str_split_1(lines[[line_exe]], ":? ")[[2]]
   exe <- str_split_1(exe, "/")

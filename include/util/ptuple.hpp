@@ -1,5 +1,5 @@
-#ifndef __UTIL_PTUPLE__
-#define __UTIL_PTUPLE__
+#ifndef QTNH_UTIL_PTUPLE_HPP_INCLUDE
+#define QTNH_UTIL_PTUPLE_HPP_INCLUDE
 
 #include <map>
 

@@ -3,8 +3,7 @@
 
 #include "net/network.hpp"
 #include "ten/con/pair-defs.hpp"
-#include "ten/con/self-defs.hpp"
-#include "util/indexing.hpp"
+// #include "ten/con/self-defs.hpp"
 #include "util/ops.hpp"
 
 namespace qtnh {
@@ -194,7 +193,7 @@ namespace qtnh {
         utils::barrier();
         auto& t = *tensors_.at(tid);
         if (t.bc().isActive()) {
-          std::cout << t.bc().env.proc_id << " | T (result) = " << t << "\n";
+          std::cout << t.bc().env().proc_id << " | T (result) = " << t << "\n";
         }
         utils::barrier();
       #endif

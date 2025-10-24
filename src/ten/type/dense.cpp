@@ -1,5 +1,8 @@
-#include <iostream>
 #include <cassert>
+
+#ifdef DEBUG
+#include <iostream>
+#endif
 
 #include "ten/type/dense.hpp"
 #include "util/indexing.hpp"
@@ -488,6 +491,32 @@ namespace qtnh {
     return Broadcaster(std::move(bc));
   }
 
+  void _permute_local(
+    Tensor* target, 
+    std::vector<qtnh::tidx_tup_st> ptup, 
+    std::vector<tel>& els
+  ) {
+    auto dims = target->locDims();
+    auto offsets = std::vector<std::size_t>(dims.size());
+    offsets.at(dims.size() - 1) = 1UL;
+
+    for (auto i = dims.size(); i > 1; --i) {
+      offsets.at(i - 2) = dims.at(i - 1) * offsets.at(i - 1);
+    }
+
+    auto new_dims = PTupleTar(ptup).apply(dims);
+    auto new_offsets = PTupleTar(ptup).apply(offsets);
+    FastIndexer fi(new_dims, new_offsets);
+
+    std::vector<tel> new_els(els.size());
+    for (auto i = 0UL; i < els.size(); ++i) {
+      new_els.at(i) = els.at(fi.idx());
+      fi.incr();
+    }
+
+    els = std::move(new_els);
+  }
+
   std::pair<MPI_Datatype, MPI_Datatype> _get_permute_datatypes(
     std::vector<std::size_t> old_dims, 
     std::vector<std::size_t> new_dims, 
@@ -516,17 +545,19 @@ namespace qtnh {
       if (j >= ndis) {
         new_ext1 = old_cumdims.at(i) * sizeof(qtnh::tel);
         new_ext2 = new_cumdims.at(j) * sizeof(qtnh::tel);
-        #ifdef DEBUG
+        #ifdef DEBUG_PERMUTE
           std::cout << "Send extent: " << count1 * ext1 << ", expected: " << new_ext1 << "\n";
           std::cout << "Recv extent: " << count2 * ext2 << ", expected: " << new_ext2 << "\n";
         #endif
 
         // ! Using Type_vector(*, 1, 1, ...) instead of Type_contiguous(*, ...)
-        // ! due to a bug in Cray-MPICH on ARCHER2. 
-        if (count1 * ext1 != new_ext1){
+        // ! due to a bug in Cray-MPICH on ARCHER2. This should be fixed in cray-mpich/8.1.33. 
+        if (count1 * ext1 != new_ext1) {
+          // MPI_Type_contiguous(int(count1), send_types.at(i1), &send_types.at(i1 + 1));
           MPI_Type_vector(int(count1), 1, 1, send_types.at(i1), &send_types.at(i1 + 1));
+          
           MPI_Type_create_resized(send_types.at(i1 + 1), 0, new_ext1, &send_types.at(i1 + 2));
-          #ifdef DEBUG
+          #ifdef DEBUG_PERMUTE
             std::cout << "Send: t_contiguous (count = " << count1 << ", ext = " << ext1 << ")\n";
             std::cout << "Send: t_resized (ext = " << new_ext1 << ")\n";
           #endif
@@ -536,10 +567,11 @@ namespace qtnh {
           i1 += 2;
         }
 
-        if (count2 * ext2 != new_ext2){
+        if (count2 * ext2 != new_ext2) {
+          // MPI_Type_contiguous(int(count2), recv_types.at(i2), &recv_types.at(i2 + 1));
           MPI_Type_vector(int(count2), 1, 1, recv_types.at(i2), &recv_types.at(i2 + 1));
           MPI_Type_create_resized(recv_types.at(i2 + 1), 0, new_ext2, &recv_types.at(i2 + 2));
-          #ifdef DEBUG
+          #ifdef DEBUG_PERMUTE
             std::cout << "Recv: t_contiguous (count = " << count2 << ", ext = " << ext2 << ")\n";
             std::cout << "Recv: t_resized (ext = " << new_ext2 << ")\n";
           #endif
@@ -555,8 +587,9 @@ namespace qtnh {
     }
 
     if (count1 > 1) {
+      // MPI_Type_contiguous(int(count1), send_types.at(i1), &send_types.at(i1 + 1));
       MPI_Type_vector(int(count1), 1, 1, send_types.at(i1), &send_types.at(i1 + 1));
-      #ifdef DEBUG
+      #ifdef DEBUG_PERMUTE
         std::cout << "Send: t_contiguous (count = " << count1 << ", ext = " << ext1 << ")\n";
       #endif
 
@@ -564,8 +597,9 @@ namespace qtnh {
     }
 
     if (count2 > 1) {
+      // MPI_Type_contiguous(int(count2), recv_types.at(i2), &recv_types.at(i2 + 1));
       MPI_Type_vector(int(count2), 1, 1, recv_types.at(i2), &recv_types.at(i2 + 1));
-      #ifdef DEBUG
+      #ifdef DEBUG_PERMUTE
         std::cout << "Recv: t_contiguous (count = " << count2 << ", ext = " << ext2 << ")\n";
       #endif
 
@@ -575,7 +609,7 @@ namespace qtnh {
     MPI_Datatype send_type, recv_type;
     MPI_Type_create_resized(send_types.at(i1), 0, sizeof(qtnh::tel), &send_type);
     MPI_Type_create_resized(recv_types.at(i2), 0, sizeof(qtnh::tel), &recv_type);
-    #ifdef DEBUG
+    #ifdef DEBUG_PERMUTE
       std::cout << "Send: t_resized (ext = " << sizeof(qtnh::tel) << ")\n";
       std::cout << "Recv: t_resized (ext = " << sizeof(qtnh::tel) << ")\n";
     #endif
@@ -600,7 +634,37 @@ namespace qtnh {
       }
       utils::barrier();
     #endif
+
     auto ndis = target->disDims().size();
+    auto& old_bc = target->bc();
+    
+    auto is_local = true;
+    for (auto i = 0UL; i < ndis; ++i) {
+      if (ptup.at(i) != i) {
+        is_local = false;
+        break;
+      }
+    }
+
+    if (is_local) {
+      #ifdef DEBUG
+        utils::barrier();
+        if (utils::is_root()) {
+          std::cout << "Local permutation.\n";
+        }
+        utils::barrier();
+      #endif
+
+      std::vector<qtnh::tidx_tup_st> ptup_loc(ptup.begin() + ndis, ptup.end());
+      std::for_each(ptup_loc.begin(), ptup_loc.end(), 
+                    [ndis](std::size_t &n) { n -= ndis; });
+
+      if (old_bc.isActive()) {
+        _permute_local(target, ptup_loc, loc_els_);
+      }
+
+      return Broadcaster(old_bc.env(), old_bc.base(), old_bc.params(), false);
+    }
 
     auto old_dims = target->totDims();
     qtnh::tidx_tup new_dims(old_dims.size());
@@ -625,7 +689,6 @@ namespace qtnh {
 
     // ! The broadcaster will fail if cyc > 1 and new base is of different size. 
     // ! Might need to re-bcast to cyc = 1 in such case. 
-    auto& old_bc = target->bc();
     Broadcaster temp_bc(old_bc.env(), qtnh::uint(utils::dims_to_size(new_dis_dims)), old_bc.params(), false);
     auto& new_bc = utils::compatible(old_dis_dims, new_dis_dims) ? old_bc : temp_bc;
 
@@ -676,10 +739,10 @@ namespace qtnh {
     }
 
     if (target->bc().isActive() || new_bc.isActive()) {
-      #ifdef DEBUG
-        std::cout << new_bc.env.proc_id << " | Sc: (" << send_counts << "); ";
+      #ifdef DEBUG_PERMUTE
+        std::cout << new_bc.env().proc_id << " | Sc: (" << send_counts << "); ";
         std::cout << "Sd: (" << send_displs << ")" << std::endl;
-        std::cout << new_bc.env.proc_id << " | Rc: (" << recv_counts << "); ";
+        std::cout << new_bc.env().proc_id << " | Rc: (" << recv_counts << "); ";
         std::cout << "Rd: (" << recv_displs << ")" << std::endl;
       #endif
 

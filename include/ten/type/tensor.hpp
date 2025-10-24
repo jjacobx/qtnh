@@ -1,5 +1,5 @@
-#ifndef __TEN_TYPE_TENSOR__
-#define __TEN_TYPE_TENSOR__
+#ifndef QTNH_TEN_TYPE_TENSOR_HPP_INCLUDE
+#define QTNH_TEN_TYPE_TENSOR_HPP_INCLUDE
 
 #include <memory>
 
@@ -76,7 +76,7 @@ namespace qtnh {
       constexpr bool isActive() const { return is_active_; }
       constexpr int gid() const { return gid_; }
 
-      const QTNHEnv& env() const {return env_; }
+      const QTNHEnv& env() const { return env_; }
       const MPI_Comm& gcomm();
 
       /// @brief Helper to return all params at once. 
@@ -142,7 +142,7 @@ namespace qtnh {
       /// @param tp Ownership of tptr to tensor to convert. 
       /// @return Ownership of tptr with converted tensor, nullptr if conversion is not possible. 
       template<class T> 
-      static std::unique_ptr<T> convert(qtnh::tptr tp) { 
+      static std::unique_ptr<T> convert(qtnh::tptr) { 
         return std::unique_ptr<T>(nullptr); 
       }
 

@@ -1,5 +1,5 @@
-#ifndef __BLAS_ROUTINES__
-#define __BLAS_ROUTINES__
+#ifndef QTNH_BLAS_ROUTINES_HPP_INCLUDE
+#define QTNH_BLAS_ROUTINES_HPP_INCLUDE
 
 #include <complex>
 

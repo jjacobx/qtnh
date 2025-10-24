@@ -7,7 +7,6 @@
 #include "ten/type/dense.hpp"
 #include "ten/type/diag.hpp"
 #include "ten/type/symm.hpp"
-#include "ten/type/tensor.hpp"
 #include "util/ops.hpp"
 #include "util/utils.hpp"
 

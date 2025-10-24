@@ -1,15 +1,17 @@
 #!/bin/bash
 
-# * Run this with `-D $QTNH_DIR/run` argument. 
-
+# Slurm job options (job-name, compute nodes, job time)
 #SBATCH --job-name=qtnh
 #SBATCH --time=0:20:0
+#SBATCH --nodes=2
+#SBATCH --ntasks-per-node=128
 #SBATCH --cpus-per-task=1
 
+# Replace [budget code] below with your budget code (e.g. t01)
 #SBATCH --account=d35-ja
 #SBATCH --partition=standard
 #SBATCH --qos=standard
-#SBATCH --output=out/%j.out
+#SBATCH --output=out/bench/%j.out
 
 # Set MPI implementation
 : ${MPI_IMPL=OFI}
@@ -45,15 +47,15 @@ echo "Branch: $(git branch --show-current)"
 echo
 
 # Set launch parameters
-: ${BUILD_DIR=build}
-: ${EXP=experiment}
-: ${PROG=examples/simple-tensor}
-: ${ARGS=""}
-EXE="../$BUILD_DIR/$PROG $ARGS"
+: ${PROG=contract}
+: ${ARG1=22}
+: ${ARG2=8}
+: ${IT=100}
+DIR=../build/examples/bench
+EXE="$DIR/$PROG $ARG1 $ARG2 $IT"
 MPI_ARGS="--distribution=block:block --hint=nomultithread"
 
 # Launch the parallel job
-echo "Experiment: ${EXP}"
 echo "Running ${EXE}: "
 srun $MPI_ARGS $EXE
 echo "Finished running"
