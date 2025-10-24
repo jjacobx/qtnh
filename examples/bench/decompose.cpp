@@ -56,7 +56,7 @@ int main(int argc, char* argv[]) {
   utils::barrier();
   auto start = high_resolution_clock::now();
 
-  for (int i = 0U; i < IT; ++i) {
+  for (auto i = 0U; i < IT; ++i) {
     // TODO: what is the cost of copying tensors? 
     Decomposer dec(tp->copy(), dp, true);
     dec.decompose();
