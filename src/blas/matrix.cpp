@@ -99,9 +99,6 @@ namespace qtnh {
     {}
 
     BlockCyclicMatrix BlockCyclicMatrix::toGrid(const ProcGrid &pg) && {
-      int pid;
-      MPI_Comm_rank(MPI_COMM_WORLD, &pid);
-  
       auto psrc = pg_->getPNum(pg.procIdxs());
       auto ptar = pg.getPNum(pg_->procIdxs());
       auto loc_size = mb_ * nb_ * mc_ * nc_;
