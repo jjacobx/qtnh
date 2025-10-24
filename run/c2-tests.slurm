@@ -12,7 +12,7 @@
 # Replace [budget code] below with your budget code (e.g. t01)
 #SBATCH --account=d35-ja
 #SBATCH --partition=standard
-#SBATCH --qos=standard
+#SBATCH --qos=short
 #SBATCH --output=out/c2/%j.out
 
 # Set MPI implementation
@@ -49,7 +49,8 @@ echo "Branch: $(git branch --show-current)"
 echo
 
 # Set launch parameters
-EXE=../build/tests/c2-mpi
+: ${BUILD_DIR=build}
+EXE=../${BUILD_DIR}/tests/c2-mpi
 MPI_ARGS="--distribution=block:block --hint=nomultithread"
 
 # Launch parallel tests

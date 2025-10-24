@@ -1,5 +1,7 @@
 #!/bin/bash
 
+BUILD_DIR=build-debug
+
 run_contract() {
   local dqs=$1  # distributed indices list
   local lqs=$2  # local indices list
@@ -25,7 +27,7 @@ run_contract() {
   local args="$dqs $lqs 10"
 
   sbatch -D $QTNH_DIR/run -N $n_node -n $n_proc -o $out \
-    --export=BUILD_DIR=build-debug,EXP=$exp,PROG=$prog,ARGS="$args",MPI_IMPL=$mpi \
+    --export=BUILD_DIR=$BUILD_DIR,EXP=$exp,PROG=$prog,ARGS="$args",MPI_IMPL=$mpi \
     $QTNH_DIR/run/run.slurm
 }
 

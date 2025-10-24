@@ -1,5 +1,7 @@
 #!/bin/bash
 
+BUILD_DIR=build-debug
+
 run_permute() {
   local nq=$1   # total qubits
   local dq=$2   # distributed qubits
@@ -16,7 +18,7 @@ run_permute() {
   local args="$nq $dq 100"
 
   sbatch -D $QTNH_DIR/run -N $n_node -n $n_proc -o $out \
-    --export=EXP=$exp,PROG=$prog,ARGS="$args",MPI_IMPL=$mpi \
+    --export=BUILD_DIR=$BUILD_DIR,EXP=$exp,PROG=$prog,ARGS="$args",MPI_IMPL=$mpi \
     $QTNH_DIR/run/run.slurm
 }
 
