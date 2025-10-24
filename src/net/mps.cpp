@@ -65,7 +65,7 @@ namespace qtnh {
   }
 
 
-  MPS::MPS(qtnh::tptr tp, chi_pair chis, SITE_CANON norm) {
+  MPS::MPS(qtnh::tptr, chi_pair, SITE_CANON) {
     utils::throw_unimplemented();
   }
   
