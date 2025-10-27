@@ -13,6 +13,7 @@ namespace qtnh {
 // Export all usable header files.
 #include "blas/matrix.hpp"       // IWYU pragma: export
 #include "blas/wrappers.hpp"     // IWYU pragma: export
+#include "net/bcmps.hpp"         // IWYU pragma: export
 #include "net/mps.hpp"           // IWYU pragma: export
 #include "net/network.hpp"       // IWYU pragma: export
 #include "net/qops.hpp"          // IWYU pragma: export
