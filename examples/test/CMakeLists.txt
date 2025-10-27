@@ -21,6 +21,15 @@ target_compile_options(mpi-test
   PRIVATE
   -Wall
 )
+
+add_executable(bcmps-test bcmps.cpp)
+add_dependencies(bcmps-test qtnh)
+target_link_libraries(bcmps-test qtnh)
+target_compile_options(bcmps-test
+  PRIVATE
+  -Wall
+)
+
 add_executable(mps-test mps.cpp)
 add_dependencies(mps-test qtnh)
 target_link_libraries(mps-test qtnh)
