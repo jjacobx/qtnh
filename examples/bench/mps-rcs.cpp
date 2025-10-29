@@ -55,7 +55,7 @@ auto rand_gate(std::size_t i) {
   }
 }
 
-void rcs(const QTNHEnv& env, MPS& mps, std::size_t m, std::size_t n, std::size_t d, 
+void rcs(const QTNHEnv& env, BCMPS& mps, std::size_t m, std::size_t n, std::size_t d, 
          const std::vector<FSimPattern>& patterns) {
   auto mn = mps.nSites();
 
@@ -102,6 +102,9 @@ int main(int argc, char* argv[]) {
   auto CHI_DIS = 2UL;
   auto CHI_LOC = 8UL;
 
+  auto CHI_CYC = 4UL;
+  auto CHI_BLK = 2UL;
+
   if (argc > 2) {
     NROW = static_cast<unsigned int>(strtol(argv[1], nullptr, 0));
     NCOL = static_cast<unsigned int>(strtol(argv[2], nullptr, 0));
@@ -113,9 +116,23 @@ int main(int argc, char* argv[]) {
     CHI_DIS = static_cast<unsigned int>(strtol(argv[4], nullptr, 0));
     CHI_LOC = static_cast<unsigned int>(strtol(argv[5], nullptr, 0));
   }
+  if (argc > 6) {
+    CHI_CYC = static_cast<unsigned int>(strtol(argv[4], nullptr, 0));
+    CHI_DIS = static_cast<unsigned int>(strtol(argv[5], nullptr, 0));
+    CHI_BLK = static_cast<unsigned int>(strtol(argv[6], nullptr, 0));
+    
+    CHI_LOC = CHI_CYC * CHI_BLK;
+  }
 
   QTNHEnv env;
-  MPS mps(env, NROW * NCOL, SITE_DIM, { CHI_DIS, CHI_LOC });
+
+  if (utils::is_root()) {
+    std::cout << "RCS (" << NROW << ", " << NCOL << ") with d = " << DEPTH << "\n";
+    std::cout << "CHI = " << CHI_DIS * CHI_LOC << "\n";
+  }
+  
+  // MPS mps(env, NROW * NCOL, SITE_DIM, { CHI_DIS, CHI_LOC });
+  BCMPS mps(env, NROW * NCOL, SITE_DIM, { CHI_CYC, CHI_DIS, CHI_BLK });
   std::vector<FSimPattern> patterns {
     FSimPattern::A, FSimPattern::B, FSimPattern::C, FSimPattern::D, 
     FSimPattern::C, FSimPattern::D, FSimPattern::A, FSimPattern::B
@@ -128,8 +145,8 @@ int main(int argc, char* argv[]) {
 
   utils::barrier();
   auto stop = high_resolution_clock::now();
-
-  MPS zero_amp(env, NROW * NCOL, SITE_DIM, { 1, 1 });
+  // MPS zero_amp(env, NROW * NCOL, SITE_DIM, { 1, 1 });
+  BCMPS zero_amp(env, NROW * NCOL, SITE_DIM, { 1, 1, 1 });
   auto norm = mps.norm();
   auto bonds = mps.bondDims();
   auto amp0 = mps.overlap(zero_amp);

@@ -16,6 +16,9 @@ namespace qtnh {
     none
   };
 
+  std::ostream& operator<<(std::ostream& out, const SITE_CANON& o);
+  std::size_t count_bond_dim(const std::vector<tel>& els, double tol = ZERO_TOL);
+
   class MPO;
 
   class MPS {
