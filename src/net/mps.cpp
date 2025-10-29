@@ -114,8 +114,9 @@ namespace qtnh {
   std::size_t count_bond_dim(const std::vector<tel>& els, double tol) {
     auto counter = 0UL;
     for (auto& e : els) {
-      if (std::abs(e) < tol) break;
-      counter++;
+      if (std::abs(e) > tol) { 
+        counter++;
+      }
     }
 
     // Debug print. 
