@@ -13,6 +13,11 @@ namespace qtnh {
 
     proc_id = static_cast<unsigned int>(_proc_id);
     num_processes = static_cast<unsigned int>(_num_processes);
+
+    // Make all prints flush in debug mode. 
+    #ifdef DEBUG
+      std::cout.setf(std::ios::unitbuf);
+    #endif
   }
 
   QTNHEnv::~QTNHEnv() {
