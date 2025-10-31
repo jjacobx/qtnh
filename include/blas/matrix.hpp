@@ -61,6 +61,8 @@ namespace qtnh {
         constexpr mtup cycDims() const { return { mc_, nc_ }; }
         constexpr mtup totDims() const { return { m_, n_ }; }
 
+        std::size_t locSize() { return loc_els_.size(); }
+
         constexpr std::array<int, 9> const desc9() {
           return { 
             1,               // DTYPE
