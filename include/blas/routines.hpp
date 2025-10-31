@@ -22,6 +22,10 @@ namespace qtnh {
     extern "C" void Cblacs_pcoord(int context, int pnum, int* prow, int* pcol);
 
     // ScaLAPACK. 
+    extern "C" void pzlacpy_(char* uplo, int* m, int* n, 
+                             complex* a, int* ia, int* ja, int* desc_a, 
+                             complex* b, int* ib, int* jb, int* desc_b);
+
     extern "C" void pzgesvd_(char* jobu, char* jobvt, int* m, int* n, 
                              complex* a, int* ia, int* ja, int* desc_a, double* s, 
                              complex* u, int* iu, int* ju, int* desc_u, 
@@ -32,6 +36,21 @@ namespace qtnh {
                             complex* a, int* ia, int* ja, int* desc_a, 
                             complex* b, int* ib, int* jb, int* desc_b, complex* beta, 
                             complex* c, int* ic, int* jc, int* desc_c);
+    
+    extern "C" void pzgeqrf_(int* m, int* n, 
+                             complex* a, int* ia, int* ja, int* desc_a, 
+                             complex* tau, complex* work, int* lwork, int* info);
+    extern "C" void pzungqr_(int* m, int* n, int* k, 
+                             complex* a, int* ia, int* ja, int* desc_a, 
+                             complex* tau, complex* work, int* lwork, int* info);
+    
+    extern "C" void pzgelqf_(int* m, int* n, 
+                             complex* a, int* ia, int* ja, int* desc_a, 
+                             complex* tau, complex* work, int* lwork, int* info);
+    extern "C" void pzunglq_(int* m, int* n, int* k, 
+                             complex* a, int* ia, int* ja, int* desc_a, 
+                             complex* tau, complex* work, int* lwork, int* info);
+    
   }
 }
 
