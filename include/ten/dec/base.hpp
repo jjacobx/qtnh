@@ -5,6 +5,8 @@
 #include "util/ptuple.hpp"
 
 namespace qtnh {
+  enum class DecType { SVD, QRD, LQD };
+
   struct DecParams {
     using split_pair = std::pair<qtnh::tidx_tup_st, qtnh::tidx_tup_st>;
 
@@ -29,7 +31,7 @@ namespace qtnh {
       Decomposer(qtnh::tptr tp, DecParams params, PTupleSrc init_ptup);
       ~Decomposer() = default;
 
-      void decompose();
+      void decompose(DecType type = DecType::SVD);
 
       std::tuple<qtnh::tptr, qtnh::tptr, qtnh::tptr> extract_results() {
         return { std::move(tp_u_), std::move(tp_s_), std::move(tp_v_) };

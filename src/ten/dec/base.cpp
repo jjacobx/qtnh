@@ -57,7 +57,7 @@ namespace qtnh {
 
   // Decomposition only works when distributed and block dimensions are the same
   // for rows and columns. Cycle dimensions can vary. 
-  void Decomposer::decompose() {
+  void Decomposer::decompose(DecType type) {
     auto& env = tp_m_->bc().env();
     auto offset = tp_m_->bc().params().off;
 
@@ -97,10 +97,6 @@ namespace qtnh {
     auto [dims_cc, dims_cb] = utils::split_dims(dims_cl, params_.cyc_splits.second);
     auto block = utils::dims_to_size(dims_rb);
 
-    BlockCyclicMatrix m(pg, { int(nrows), int(ncols) }, { int(block), int(block) }, dtp->extractEls());
-
-    auto [u, s, v] = PZGESVD(std::move(m));
-
     auto dims_xc = (ncols > nrows) ? dims_rc : dims_cc;
     auto dims_xd = (ncols > nrows) ? dims_rd : dims_cd;
 
@@ -108,9 +104,29 @@ namespace qtnh {
     auto loc_dims_v = utils::concat_vecs(dims_cl, dims_xc, dims_cb);
     auto loc_dims_s = utils::concat_vecs(dims_xc, dims_xd, dims_cb);
 
-    tp_u_ = DenseTensor::make(env, dis_dims, loc_dims_u, u.extractEls(), { 1, 1, offset });
-    tp_s_ = DenseTensor::make(env, {}, loc_dims_s, std::move(s), { 1, 1, offset });
-    tp_v_ = DenseTensor::make(env, dis_dims, loc_dims_v, v.extractEls(), { 1, 1, offset });
+    BlockCyclicMatrix m(pg, { int(nrows), int(ncols) }, { int(block), int(block) }, dtp->extractEls());
+
+    cvec u_els, s_els, v_els;
+    if (type == DecType::SVD) {
+      auto [u, s, v] = PZGESVD(std::move(m));
+      u_els = u.extractEls();
+      s_els = std::move(s);
+      v_els = v.extractEls();
+    } else if (type == DecType::QRD) {
+      auto [q, r] = PZGEQRD(std::move(m));
+      u_els = q.extractEls();
+      s_els = cvec(utils::dims_to_size(loc_dims_s), 1.0);
+      v_els = r.extractEls();
+    } else if (type == DecType::LQD) {
+      auto [l, q] = PZGELQD(std::move(m));
+      u_els = l.extractEls();
+      s_els = cvec(utils::dims_to_size(loc_dims_s), 1.0);
+      v_els = q.extractEls();
+    }
+
+    tp_u_ = DenseTensor::make(env, dis_dims, loc_dims_u, std::move(u_els), { 1, 1, offset });
+    tp_s_ = DenseTensor::make(env, {}, loc_dims_s, std::move(s_els), { 1, 1, offset });
+    tp_v_ = DenseTensor::make(env, dis_dims, loc_dims_v, std::move(v_els), { 1, 1, offset });
 
     // Permute S to correspond to U and V. 
     std::vector<tidx_tup_st> rel_splits_s = { dims_xc.size(), dims_xd.size(), dims_cb.size() };
