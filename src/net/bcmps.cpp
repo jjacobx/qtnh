@@ -414,13 +414,13 @@ namespace qtnh {
       
       DecParams dp {{ 1, 1 }, { 3, 2 }, { 2, 1 }, { 1, 1 }, { 1, 1 }};
       Decomposer dec(std::move(tp), dp, true);
-      dec.decompose();  // TODO: Use QR decomposition. 
+      dec.decompose(DecType::QRD);  // TODO: Use QR decomposition. 
 
       auto [tp_u, tp_s, tp_v] = dec.extract_results();
 
       // Calculate SV. 
       auto&& els = tp_s->cast<DenseTensor>()->extractEls();
-      bond_dims_.at(i) = count_bond_dim(els);
+      // bond_dims_.at(i) = count_bond_dim(els);
 
       tp_s = DiagTensor::make(
         tp_s->bc().env(), 
@@ -484,13 +484,13 @@ namespace qtnh {
 
       DecParams dp {{ 1, 1 }, { 2, 3 }, { 1, 2 }, { 1, 1 }, { 1, 1 }};
       Decomposer dec(std::move(tp), dp, true);
-      dec.decompose();  // TODO: Use LQ decomposition. 
+      dec.decompose(DecType::LQD);  // TODO: Use LQ decomposition. 
 
       auto [tp_u, tp_s, tp_v] = dec.extract_results();
 
       // Calculate US. 
       auto&& els = tp_s->cast<DenseTensor>()->extractEls();
-      bond_dims_.at(n - i - 1) = count_bond_dim(els);
+      // bond_dims_.at(n - i - 1) = count_bond_dim(els);
 
       tp_s = DiagTensor::make(
         tp_s->bc().env(), 
