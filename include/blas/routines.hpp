@@ -25,6 +25,8 @@ namespace qtnh {
     extern "C" void pzlacpy_(char* uplo, int* m, int* n, 
                              complex* a, int* ia, int* ja, int* desc_a, 
                              complex* b, int* ib, int* jb, int* desc_b);
+    extern "C" void pzlaset_(char* uplo, int* m, int* n, complex* alpha, complex* beta, 
+                             complex* a, int* ia, int* ja, int* desc_a);
 
     extern "C" void pzgesvd_(char* jobu, char* jobvt, int* m, int* n, 
                              complex* a, int* ia, int* ja, int* desc_a, double* s, 
