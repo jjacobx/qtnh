@@ -1,5 +1,6 @@
 #ifdef DEBUG
 #include <iostream>
+#include "util/ops.hpp"
 #endif
 
 #include "blas/routines.hpp"
@@ -69,6 +70,7 @@ namespace qtnh {
     std::tuple<BlockCyclicMatrix, BlockCyclicMatrix> PZGEQRD(BlockCyclicMatrix&& m) {
       auto dims_m = m.totDims();
       auto chi = std::min(dims_m.first, dims_m.second);
+      auto div = (dims_m.first > dims_m.second) ? (dims_m.first / chi) : 1UL;
 
       cvec tau(static_cast<std::size_t>(chi));
       
@@ -76,10 +78,21 @@ namespace qtnh {
       int lwork = -1;
       cvec work(1);
       auto info = -1;
+      // std::complex<double> zero { 0.0, 0.0 };
 
       // ! Might have to initialise with zeros. 
-      cvec r_els(m.locSize(), 0.0);
-      BlockCyclicMatrix r(m.grid(), m.blkDims(), m.disDims(), m.cycDims(), std::move(r_els));
+      mtup r_cyc_dims { m.cycDims().first / div, m.cycDims().second };
+      cvec r_els(m.locSize() / div, 0.0);
+      BlockCyclicMatrix r(m.grid(), m.blkDims(), m.disDims(), r_cyc_dims, std::move(r_els));
+
+      #ifdef DEBUG
+        std::cout << "P " << m.grid().procIdxs() << ": M = " << m.copyEls() << "\n";
+        utils::barrier();
+
+        if (utils::is_root()) {
+          std::cout << m.cycDims() << ", " << m.disDims() << ", " << m.blkDims() << "\n";
+        }
+      #endif
 
       if (m.grid().active()) {
         auto desc_m = m.desc9(); auto desc_mp = const_cast<int*>(desc_m.data());
@@ -105,7 +118,15 @@ namespace qtnh {
         pzlacpy_(&up, &dims_m.first, &dims_m.second, 
                  m.data(), &one, &one, desc_mp, 
                  r.data(), &one, &one, desc_rp);
+
+        #ifdef DEBUG
+          std::cout << "P " << m.grid().procIdxs() << ": M' = " << m.copyEls() << "\n";
+        #endif
+
+        // pzlaset_(&up, &dims_m.first, &dims_m.second, &zero, &zero, 
+        //          m.data(), &one, &one, desc_mp);
         
+        lwork = -1;
         pzungqr_(&dims_m.first, &dims_m.second, &chi, 
                  m.data(), &one, &one, desc_mp, 
                  tau.data(), work.data(), &lwork, &info);
@@ -127,12 +148,20 @@ namespace qtnh {
       cvec q_els = m.extractEls();
       BlockCyclicMatrix q(m.grid(), m.blkDims(), m.disDims(), m.cycDims(), std::move(q_els));
 
+      #ifdef DEBUG
+        utils::barrier();
+        std::cout << "P " << m.grid().procIdxs() << ": Q = " << q.copyEls() << "\n";
+        utils::barrier();
+        std::cout << "P " << m.grid().procIdxs() << ": R = " << r.copyEls() << "\n";
+      #endif
+
       return { std::move(q), std::move(r) };
     }
 
     std::tuple<BlockCyclicMatrix, BlockCyclicMatrix> PZGELQD(BlockCyclicMatrix&& m) {
       auto dims_m = m.totDims();
       auto chi = std::min(dims_m.first, dims_m.second);
+      auto div = (dims_m.first < dims_m.second) ? (dims_m.second / chi) : 1UL;
 
       cvec tau(static_cast<std::size_t>(chi));
       
@@ -140,10 +169,21 @@ namespace qtnh {
       int lwork = -1;
       cvec work(1);
       auto info = -1;
+      // std::complex<double> zero { 0.0, 0.0 };
 
       // ! Might have to initialise with zeros. 
-      cvec l_els(m.locSize(), 0.0);
-      BlockCyclicMatrix l(m.grid(), m.blkDims(), m.disDims(), m.cycDims(), std::move(l_els));
+      mtup l_cyc_dims { m.cycDims().first, m.cycDims().second / div };
+      cvec l_els(m.locSize() / div, 0.0);
+      BlockCyclicMatrix l(m.grid(), m.blkDims(), m.disDims(), l_cyc_dims, std::move(l_els));
+
+      #ifdef DEBUG
+        std::cout << "P " << m.grid().procIdxs() << ": M = " << m.copyEls() << "\n";
+        utils::barrier();
+
+        if (utils::is_root()) {
+          std::cout << m.cycDims() << ", " << m.disDims() << ", " << m.blkDims() << "\n";
+        }
+      #endif
 
       if (m.grid().active()) {
         auto desc_m = m.desc9(); auto desc_mp = const_cast<int*>(desc_m.data());
@@ -169,7 +209,15 @@ namespace qtnh {
         pzlacpy_(&lo, &dims_m.first, &dims_m.second, 
                  m.data(), &one, &one, desc_mp, 
                  l.data(), &one, &one, desc_lp);
+
+        #ifdef DEBUG
+          std::cout << "P " << m.grid().procIdxs() << ": M' = " << m.copyEls() << "\n";
+        #endif
+
+        // pzlaset_(&lo, &dims_m.first, &dims_m.second, &zero, &zero, 
+        //          m.data(), &one, &one, desc_mp);
         
+        lwork = -1;
         pzunglq_(&dims_m.first, &dims_m.second, &chi, 
                  m.data(), &one, &one, desc_mp, 
                  tau.data(), work.data(), &lwork, &info);
@@ -190,6 +238,13 @@ namespace qtnh {
 
       cvec q_els = m.extractEls();
       BlockCyclicMatrix q(m.grid(), m.blkDims(), m.disDims(), m.cycDims(), std::move(q_els));
+
+      #ifdef DEBUG
+        utils::barrier();
+        std::cout << "P " << m.grid().procIdxs() << ": L = " << l.copyEls() << "\n";
+        utils::barrier();
+        std::cout << "P " << m.grid().procIdxs() << ": Q = " << q.copyEls() << "\n";
+      #endif
 
       return { std::move(l), std::move(q) };
     }
