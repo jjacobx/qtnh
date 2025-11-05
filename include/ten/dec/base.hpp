@@ -5,7 +5,7 @@
 #include "util/ptuple.hpp"
 
 namespace qtnh {
-  enum class DecType { SVD, QRD, LQD };
+  enum class DecType { SVD, QRD, LQD, QPD };
 
   struct DecParams {
     using split_pair = std::pair<qtnh::tidx_tup_st, qtnh::tidx_tup_st>;
