@@ -52,6 +52,15 @@ namespace qtnh {
     extern "C" void pzunglq_(int* m, int* n, int* k, 
                              complex* a, int* ia, int* ja, int* desc_a, 
                              complex* tau, complex* work, int* lwork, int* info);
+
+    extern "C" void pzgeqpf_(int* m, int* n, 
+                             complex* a, int* ia, int* ja, int* desc_a, 
+                             int* ipiv, complex* tau, complex* work, int* lwork, 
+                             double* rwork, int* lrwork, int* info);
+    
+    extern "C" void pzlapiv_(char* direc, char* rowcol, char* pivroc, int* m, int* n, 
+                             complex* a, int* ia, int* ja, int* desc_a, 
+                             int* ipiv, int* ip, int* jp, int* desc_ip, int* iwork);
     
   }
 }
