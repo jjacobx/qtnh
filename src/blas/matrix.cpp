@@ -98,6 +98,24 @@ namespace qtnh {
     , loc_els_(std::move(loc_els))
     {}
 
+    BlockCyclicMatrix BlockCyclicMatrix::id(const ProcGrid &grid, mtup blk_dims, mtup dis_dims, mtup cyc_dims) {
+      BlockCyclicMatrix m(grid, blk_dims, dis_dims, cyc_dims);
+      auto dims = m.totDims();
+
+      char uplo = 'N';
+      int one = 1;
+      tel z0 { 0.0, 0.0 };
+      tel z1 { 1.0, 0.0 };
+
+      auto desc_m = m.desc9(); 
+      auto desc_mp = const_cast<int*>(desc_m.data());
+
+      pzlaset_(&uplo, &dims.first, &dims.second, &z0, &z1, 
+               m.data(), &one, &one, desc_mp);
+      
+      return m;
+    }
+
     BlockCyclicMatrix BlockCyclicMatrix::toGrid(const ProcGrid &pg) && {
       auto psrc = pg_->getPNum(pg.procIdxs());
       auto ptar = pg.getPNum(pg_->procIdxs());
