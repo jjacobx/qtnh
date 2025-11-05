@@ -230,11 +230,11 @@ namespace qtnh {
     #endif
   }
 
-  void BCMPS::apply(const MPO& mpo, std::size_t from) {
+  void BCMPS::apply(const MPO& mpo, std::size_t from, bool update_dims) {
     #ifdef DEBUG
       utils::barrier();
       if (utils::is_root()) {
-        std::cout << "\nStarting: Apply MPS-MPS\n";
+        std::cout << "\nStarting: Apply MPS-MPO\n";
       }
     #endif
 
@@ -256,43 +256,69 @@ namespace qtnh {
       };
 
       Decomposer dec(std::move(tp_site), dp, true);
-      dec.decompose();
+
+      auto type = update_dims ? DecType::SVD : DecType::QPD;
+      dec.decompose(type);
 
       auto [tp_u, tp_s, tp_v] = dec.extract_results();
+      tptr tp_sv;
 
-      // Truncate. 
-      tp_u = Tensor::truncate(std::move(tp_u), 5, 1);
-      tp_s = Tensor::truncate(std::move(tp_s), 1, 1);
-      tp_v = Tensor::truncate(std::move(tp_v), 2, 1);
+      if (update_dims) {
+        // Truncate. 
+        tp_u = Tensor::truncate(std::move(tp_u), 5, 1);
+        tp_s = Tensor::truncate(std::move(tp_s), 1, 1);
+        tp_v = Tensor::truncate(std::move(tp_v), 2, 1);
 
-      auto loc_dims_u = tp_u->locDims();
-      auto loc_dims_v = tp_v->locDims();
-      loc_dims_u.erase(loc_dims_u.begin() + 3);
-      loc_dims_v.erase(loc_dims_v.begin());
-      tp_u->reshape(tp_u->disDims(), loc_dims_u);
-      tp_v->reshape(tp_v->disDims(), loc_dims_v);
+        auto loc_dims_u = tp_u->locDims();
+        auto loc_dims_v = tp_v->locDims();
+        loc_dims_u.erase(loc_dims_u.begin() + 3);
+        loc_dims_v.erase(loc_dims_v.begin());
+        tp_u->reshape(tp_u->disDims(), loc_dims_u);
+        tp_v->reshape(tp_v->disDims(), loc_dims_v);
 
-      // tp_u->print_serial("U");
-      // tp_s->print_serial("S");
-      // tp_v->print_serial("V");
+        // tp_u->print_serial("U");
+        // tp_s->print_serial("S");
+        // tp_v->print_serial("V");
 
-      // Calculate SV. 
-      auto&& els = tp_s->cast<DenseTensor>()->extractEls();
-      bond_dims_.at(from + i) = count_bond_dim(els);
+        // Calculate SV. 
+        auto&& els = tp_s->cast<DenseTensor>()->extractEls();
+        bond_dims_.at(from + i) = count_bond_dim(els);
 
-      tp_s = DiagTensor::make(
-        tp_s->bc().env(), 
-        {}, 
-        { dis_chi_, cyc_chi_, blk_chi_, dis_chi_, cyc_chi_, blk_chi_ }, 
-        false, 
-        std::move(els)
-      );
+        tp_s = DiagTensor::make(
+          tp_s->bc().env(), 
+          {}, 
+          { dis_chi_, cyc_chi_, blk_chi_, dis_chi_, cyc_chi_, blk_chi_ }, 
+          false, 
+          std::move(els)
+        );
 
-      tp_s = SymmTensorBase::rescatterIO(std::move(tp_s), 1);
+        tp_s = SymmTensorBase::rescatterIO(std::move(tp_s), 1);
 
-      params = ConParams({{ 1, 0 }, { 4, 2 }, { 5, 3 }});
-      con = pcon(std::move(tp_s), std::move(tp_v), params);
-      tptr tp_sv = con.contract();
+        params = ConParams({{ 1, 0 }, { 4, 2 }, { 5, 3 }});
+        con = pcon(std::move(tp_s), std::move(tp_v), params);
+        tp_sv = con.contract();
+      } else {
+        // Truncate. 
+        tp_u = Tensor::truncate(std::move(tp_u), 5, 1);
+        tp_v = Tensor::truncate(std::move(tp_v), 2, 1);
+
+        auto loc_dims_u = tp_u->locDims();
+        auto loc_dims_v = tp_v->locDims();
+        loc_dims_u.erase(loc_dims_u.begin() + 3);
+        loc_dims_v.erase(loc_dims_v.begin());
+        tp_u->reshape(tp_u->disDims(), loc_dims_u);
+        tp_v->reshape(tp_v->disDims(), loc_dims_v);
+
+        // tp_u->print_serial("Q");
+        // tp_v->print_serial("R");
+        // tp_s->print_serial("Pt");
+
+        params = ConParams({{ 1, 0 }, { 4, 2 }, { 5, 3 }, { 6, 4 }});
+        con = pcon(std::move(tp_v), std::move(tp_s), params);
+        tp_sv = con.contract();
+
+        // tp_sv->print_serial("SV");
+      }
 
       // Apply op to next site. 
       tp_site = std::move(site_tensors_.at(from + i + 1));
@@ -323,7 +349,7 @@ namespace qtnh {
     #ifdef DEBUG
       utils::barrier();
       if (utils::is_root()) {
-        std::cout << "\nFinished: Apply MPS-MPS\n";
+        std::cout << "Finished: Apply MPS-MPO\n\n";
       }
     #endif
   }
