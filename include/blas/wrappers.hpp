@@ -10,9 +10,12 @@ namespace qtnh {
     std::tuple<BlockCyclicMatrix, cvec, BlockCyclicMatrix> PZGESVD(BlockCyclicMatrix&& matrix);
     std::tuple<BlockCyclicMatrix, BlockCyclicMatrix> PZGEQRD(BlockCyclicMatrix&& matrix);
     std::tuple<BlockCyclicMatrix, BlockCyclicMatrix> PZGELQD(BlockCyclicMatrix&& matrix);
+    std::tuple<BlockCyclicMatrix, BlockCyclicMatrix, BlockCyclicMatrix> PZGEQPD(BlockCyclicMatrix&& matrix);
 
     BlockCyclicMatrix PZGEMM(BlockCyclicMatrix&& a, BlockCyclicMatrix&& b, 
                              bool use_at = false, bool use_bt = false);
+    
+    BlockCyclicMatrix PZLAPIV(BlockCyclicMatrix&& matrix, const BlockCyclicMatrix& pv, const pvec& ipiv);
   }
 }
 
