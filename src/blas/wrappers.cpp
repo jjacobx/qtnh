@@ -1,3 +1,4 @@
+#include <string>
 #ifdef DEBUG
 #include <iostream>
 #include "util/ops.hpp"
@@ -272,6 +273,10 @@ namespace qtnh {
       cvec r_els(m.locSize() / div1, 0.0);
       BlockCyclicMatrix r(m.grid(), m.blkDims(), m.disDims(), r_cyc_dims, std::move(r_els));
 
+      mtup q_cyc_dims { m.cycDims().first, m.cycDims().second / div2 };
+      cvec q_els(m.locSize() / div2, 0.0);
+      BlockCyclicMatrix q(m.grid(), m.blkDims(), m.disDims(), q_cyc_dims, std::move(q_els));
+
       #ifdef DEBUG
         std::cout << "P " << m.grid().procIdxs() << ": M = " << m.copyEls() << "\n";
         utils::barrier();
@@ -287,7 +292,7 @@ namespace qtnh {
                  m.data(), &one, &one, desc_mp, 
                  ipiv.data(), tau.data(), work.data(), &lwork,
                  rwork.data(), &lrwork, &info);
-                
+
         lwork = static_cast<int>(work.at(0).real());
         lrwork = static_cast<int>(rwork.at(0));
         work.resize(lwork);
@@ -310,14 +315,22 @@ namespace qtnh {
         pzlacpy_(&up, &dims_m.first, &dims_m.second, 
                  m.data(), &one, &one, desc_mp, 
                  r.data(), &one, &one, desc_rp);
+        
+        char lo = 'L';
+        auto desc_q = r.desc9(); auto desc_qp = const_cast<int*>(desc_q.data());
+        pzlacpy_(&lo, &dims_m.first, &dims_m.second, 
+                 m.data(), &one, &one, desc_mp, 
+                 q.data(), &one, &one, desc_qp);
 
         #ifdef DEBUG
-          std::cout << "P " << m.grid().procIdxs() << ": M' = " << m.copyEls() << "\n";
+          std::cout << "P " << m.grid().procIdxs() << ": Q' = " << q.copyEls() << "\n";
         #endif
         
+        auto dims_q = q.totDims();
+
         lwork = -1;
-        pzungqr_(&dims_m.first, &chi, &chi, 
-                 m.data(), &one, &one, desc_mp, 
+        pzungqr_(&dims_q.first, &dims_q.second, &chi, 
+                 q.data(), &one, &one, desc_qp, 
                  tau.data(), work.data(), &lwork, &info);
         
         lwork = static_cast<int>(work.at(0).real());
@@ -329,15 +342,10 @@ namespace qtnh {
           }
         #endif
 
-        pzungqr_(&dims_m.first, &chi, &chi, 
-                 m.data(), &one, &one, desc_mp, 
+        pzungqr_(&dims_q.first, &dims_q.second, &chi, 
+                 q.data(), &one, &one, desc_qp, 
                  tau.data(), work.data(), &lwork, &info);
       }
-
-      mtup q_cyc_dims { m.cycDims().first, m.cycDims().second / div2 };
-      cvec q_els = m.extractEls();
-      q_els.resize(q_els.size() / div2);
-      BlockCyclicMatrix q(m.grid(), m.blkDims(), m.disDims(), q_cyc_dims, std::move(q_els));
 
       mtup pt_blk_dims { r.blkDims().second, r.blkDims().second };
       mtup pt_cyc_dims { r.cycDims().second, r.cycDims().second };
@@ -348,28 +356,12 @@ namespace qtnh {
         std::cout << "P " << m.grid().procIdxs() << ": ID = " << id.copyEls() << "\n";
       #endif
 
-      mtup pv_blk_dims { r.blkDims().second, 1 };
-      mtup pv_cyc_dims { r.cycDims().second, 1 };
+      mtup pv_blk_dims { 1, r.blkDims().second };
+      mtup pv_cyc_dims { 1, r.cycDims().second };
       BlockCyclicMatrix pv(m.grid(), pv_blk_dims, m.disDims(), pv_cyc_dims);
 
-      auto pt = PZLAPIV(std::move(id), pv, ipiv);
-
-      // utils::barrier();
-      // std::cout << "P " << m.grid().procIdxs() << ": Ipiv = " << ipiv << "\n";
-      // utils::barrier();
-
-      // auto pt_loc_size = pt_blk_dims.first * pt_blk_dims.second * 
-      //   pt_cyc_dims.first * pt_cyc_dims.second;
-      
-      // cvec pt_els(static_cast<std::size_t>(pt_loc_size), { 0.0, 0.0 });
-      // BlockCyclicMatrix pt(m.grid(), pt_blk_dims, m.disDims(), pt_cyc_dims, std::move(pt_els));
-
-      // for (auto i = 0UL; i < ipiv.size(); ++i) {
-      //   auto j = static_cast<std::size_t>(ipiv.at(i));
-      //   if (pt.has(j, i)) {
-      //     pt.at(j, i) = { 1.0, 0.0 };
-      //   }
-      // }
+      // ! This is most likely the wrong routine to use. 
+      auto pt = PZLAPV2(std::move(id), pv, ipiv, 'F', 'C');
 
       #ifdef DEBUG
         utils::barrier();
@@ -380,6 +372,12 @@ namespace qtnh {
         std::cout << "P " << m.grid().procIdxs() << ": Pt = " << pt.copyEls() << "\n";
         utils::barrier();
         std::cout << "P " << m.grid().procIdxs() << ": Pivs = " << ipiv << "\n";
+        utils::barrier();
+        if (utils::is_root()) {
+          std::cout << "Q: " << q.cycDims() << ", " << q.disDims() << ", " << q.blkDims() << "\n";
+          std::cout << "R: " << r.cycDims() << ", " << r.disDims() << ", " << r.blkDims() << "\n";
+          std::cout << "Pt: " << pt.cycDims() << ", " << pt.disDims() << ", " << pt.blkDims() << "\n";
+        }
       #endif
 
       return { std::move(q), std::move(r), std::move(pt) };
@@ -465,6 +463,45 @@ namespace qtnh {
       }
       
       return m;
+    }
+
+    BlockCyclicMatrix PZLAPV2(BlockCyclicMatrix&& m, 
+                              const BlockCyclicMatrix& pv, const pvec& ipiv, 
+                              char direc, char rowcol) {
+      auto dims_m = m.totDims();
+      int one = 1;
+
+      auto desc_m = m.desc9(); auto desc_mp = const_cast<int*>(desc_m.data());
+      auto desc_pv = pv.desc9(); auto desc_pvp = const_cast<int*>(desc_pv.data());
+      auto ipiv_p = const_cast<int*>(ipiv.data());
+      
+      if (m.grid().active()) {
+        pzlapv2_(&direc, &rowcol, &dims_m.first, &dims_m.second, 
+                  m.data(), &one, &one, desc_mp, 
+                  ipiv_p, &one, &one, desc_pvp);
+      }
+      
+      return m;
+    }
+
+    void PZLAPRNT(const BlockCyclicMatrix& m, std::string id) {
+      auto dims_m = m.totDims();
+
+      int zero = 0;
+      int one = 1;
+      int nout = 6; // 0 - stderr, 6 - stdout. 
+
+      auto desc_m = m.desc9(); 
+      auto desc_mp = const_cast<int*>(desc_m.data());
+      auto data = const_cast<qtnh::tel*>(m.data());
+
+      // ccp cmatnm { id.data(), static_cast<int>(id.size()), 0 };
+      cvec work(desc_m.at(4));
+
+      pzlaprnt_(&dims_m.first, &dims_m.second,
+                data, &one, &one, desc_mp, 
+                &zero, &zero, id.data(), &nout, work.data(), 
+                static_cast<int>(id.size()));
     }
   }
 }
