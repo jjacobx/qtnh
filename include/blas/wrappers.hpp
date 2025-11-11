@@ -16,6 +16,11 @@ namespace qtnh {
                              bool use_at = false, bool use_bt = false);
     
     BlockCyclicMatrix PZLAPIV(BlockCyclicMatrix&& matrix, const BlockCyclicMatrix& pv, const pvec& ipiv);
+    BlockCyclicMatrix PZLAPV2(BlockCyclicMatrix&& matrix, 
+                              const BlockCyclicMatrix& pv, const pvec& ipiv, 
+                              char direc, char rowcol);
+  
+    void PZLAPRNT(const BlockCyclicMatrix& m, std::string id);
   }
 }
 
