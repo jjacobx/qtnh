@@ -61,14 +61,19 @@ void rcs(const QTNHEnv& env, BCMPS& mps, std::size_t m, std::size_t n, std::size
 
   std::mt19937 gen(2025);
   std::uniform_int_distribution<std::size_t> dist02(0, 2);
+  
+  BCMPS zero_amp(env, mps.nSites(), mps.siteDims().at(0), { 1, 1, 1 });
+  auto mps2 = mps.copy();
 
   for (auto i = 0UL; i < d; ++i) {
     if (utils::is_root()) {
-      std::cout << "Iteration " << i + 1 << "/" << d << "\n";
+      std::cout << "Iteration " << i + 1 << "/" << d << std::endl;
     }
 
     for (auto j = 0UL; j < mn; ++j) {
-      mps.apply(rand_gate(dist02(gen))(env), { j });
+      auto num = dist02(gen);
+      mps.apply(rand_gate(num)(env), { j });
+      mps2.apply(rand_gate(num)(env), { j });
     }
 
     auto targets = fsim_targets(patterns.at(i % patterns.size()), m, n);
@@ -82,7 +87,25 @@ void rcs(const QTNHEnv& env, BCMPS& mps, std::size_t m, std::size_t n, std::size
       
       mps.leftCanonicalise(mps.nSites() - 1);
       mps.rightCanonicalise(ts.first);
-      mps.apply(mpo, ts.first);
+      mps.apply(mpo, ts.first, false);
+
+      mps2.leftCanonicalise(mps.nSites() - 1);
+      mps2.rightCanonicalise(ts.first);
+      mps2.apply(mpo, ts.first, true);
+
+      auto norm1 = mps.norm();
+      auto norm2 = mps2.norm();
+      auto amp01 = mps.overlap(zero_amp);
+      auto amp02 = mps2.overlap(zero_amp);
+
+      if (utils::is_root()) {
+        std::cout << "norm1 = " << norm1 << std::endl;
+        std::cout << "norm2 = " << norm2 << std::endl;
+        std::cout << "amp01 = " << amp01 << std::endl;
+        std::cout << "amp02 = " << amp02 << std::endl;
+      }
+
+      return;
     }
 
     auto norm = mps.norm();
@@ -133,6 +156,8 @@ int main(int argc, char* argv[]) {
   
   // MPS mps(env, NROW * NCOL, SITE_DIM, { CHI_DIS, CHI_LOC });
   BCMPS mps(env, NROW * NCOL, SITE_DIM, { CHI_CYC, CHI_DIS, CHI_BLK });
+  // auto mps = BCMPS::rand(env, NROW * NCOL, SITE_DIM, { CHI_CYC, CHI_DIS, CHI_BLK }, CHI_CYC * CHI_DIS * CHI_BLK);
+
   std::vector<FSimPattern> patterns {
     FSimPattern::A, FSimPattern::B, FSimPattern::C, FSimPattern::D, 
     FSimPattern::C, FSimPattern::D, FSimPattern::A, FSimPattern::B
