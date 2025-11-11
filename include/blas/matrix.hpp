@@ -58,6 +58,7 @@ namespace qtnh {
 
         const ProcGrid& grid() const { return *pg_; }
         qtnh::tel* data() { return loc_els_.data(); }
+        const qtnh::tel* data() const { return loc_els_.data(); }
 
         constexpr mtup blkDims() const { return { mb_, nb_ }; }
         constexpr mtup disDims() const { return { md_, nd_ }; }
