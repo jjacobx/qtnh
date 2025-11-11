@@ -255,11 +255,13 @@ namespace qtnh {
         { 1, 1 }
       };
 
+      // tp_site->print_serial("Original");
+
       Decomposer dec(std::move(tp_site), dp, true);
 
       auto type = update_dims ? DecType::SVD : DecType::QPD;
       dec.decompose(type);
-
+      
       auto [tp_u, tp_s, tp_v] = dec.extract_results();
       tptr tp_sv;
 
@@ -298,6 +300,14 @@ namespace qtnh {
         con = pcon(std::move(tp_s), std::move(tp_v), params);
         tp_sv = con.contract();
       } else {
+        // params = ConParams({{ 1, 0 }, { 5, 2 }, { 6, 3 }, { 7, 4 }});
+        // con = pcon(tp_u->copy(), tp_v->copy(), params);
+        // tptr tp_check = con.contract();
+        // con = pcon(std::move(tp_check), tp_s->copy(), params);
+        // tp_check = con.contract();
+
+        // tp_check->print_serial("Check");
+
         // Truncate. 
         tp_u = Tensor::truncate(std::move(tp_u), 5, 1);
         tp_v = Tensor::truncate(std::move(tp_v), 2, 1);
