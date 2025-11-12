@@ -33,6 +33,10 @@ namespace qtnh {
                    complex* a, int* ia, int* ja, int* desc_a, 
                    complex* b, int* ib, int* jb, int* desc_b, complex* beta, 
                    complex* c, int* ic, int* jc, int* desc_c);
+
+      void pzgeadd_(char* trans, int* m, int* n, 
+                    complex* alpha, complex* a, int* ia, int*ja, int* desc_a, 
+                    complex* beta, complex* c, int* ic, int* jc, int* desc_c);
     
       void pzgeqrf_(int* m, int* n, 
                     complex* a, int* ia, int* ja, int* desc_a, 
