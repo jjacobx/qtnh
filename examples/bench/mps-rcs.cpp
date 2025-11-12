@@ -56,14 +56,11 @@ auto rand_gate(std::size_t i) {
 }
 
 void rcs(const QTNHEnv& env, BCMPS& mps, std::size_t m, std::size_t n, std::size_t d, 
-         const std::vector<FSimPattern>& patterns) {
+         const std::vector<FSimPattern>& patterns, bool update_bonds = true) {
   auto mn = mps.nSites();
 
   std::mt19937 gen(2025);
   std::uniform_int_distribution<std::size_t> dist02(0, 2);
-  
-  BCMPS zero_amp(env, mps.nSites(), mps.siteDims().at(0), { 1, 1, 1 });
-  auto mps2 = mps.copy();
 
   for (auto i = 0UL; i < d; ++i) {
     if (utils::is_root()) {
@@ -73,7 +70,6 @@ void rcs(const QTNHEnv& env, BCMPS& mps, std::size_t m, std::size_t n, std::size
     for (auto j = 0UL; j < mn; ++j) {
       auto num = dist02(gen);
       mps.apply(rand_gate(num)(env), { j });
-      mps2.apply(rand_gate(num)(env), { j });
     }
 
     auto targets = fsim_targets(patterns.at(i % patterns.size()), m, n);
@@ -87,25 +83,7 @@ void rcs(const QTNHEnv& env, BCMPS& mps, std::size_t m, std::size_t n, std::size
       
       mps.leftCanonicalise(mps.nSites() - 1);
       mps.rightCanonicalise(ts.first);
-      mps.apply(mpo, ts.first, false);
-
-      mps2.leftCanonicalise(mps.nSites() - 1);
-      mps2.rightCanonicalise(ts.first);
-      mps2.apply(mpo, ts.first, true);
-
-      auto norm1 = mps.norm();
-      auto norm2 = mps2.norm();
-      auto amp01 = mps.overlap(zero_amp);
-      auto amp02 = mps2.overlap(zero_amp);
-
-      if (utils::is_root()) {
-        std::cout << "norm1 = " << norm1 << std::endl;
-        std::cout << "norm2 = " << norm2 << std::endl;
-        std::cout << "amp01 = " << amp01 << std::endl;
-        std::cout << "amp02 = " << amp02 << std::endl;
-      }
-
-      return;
+      mps.apply(mpo, ts.first, update_bonds);
     }
 
     auto norm = mps.norm();
@@ -117,6 +95,8 @@ void rcs(const QTNHEnv& env, BCMPS& mps, std::size_t m, std::size_t n, std::size
 }
 
 int main(int argc, char* argv[]) {
+  QTNHEnv env;
+
   constexpr auto SITE_DIM = 2UL;
   
   auto NROW = 4UL;
@@ -127,6 +107,9 @@ int main(int argc, char* argv[]) {
 
   auto CHI_CYC = 4UL;
   auto CHI_BLK = 2UL;
+
+  enum class DecMethod { SVD, QPD };
+  auto DEC_METHOD = DecMethod::SVD;
 
   if (argc > 2) {
     NROW = static_cast<unsigned int>(strtol(argv[1], nullptr, 0));
@@ -146,8 +129,18 @@ int main(int argc, char* argv[]) {
     
     CHI_LOC = CHI_CYC * CHI_BLK;
   }
-
-  QTNHEnv env;
+  if (argc > 7) {
+    std::string method(argv[7]);
+    if (method == "SVD") {
+      DEC_METHOD = DecMethod::SVD;
+      if (utils::is_root()) std::cout << "Using SVD decomposition method.\n";
+    } else if (method == "QPD") {
+      DEC_METHOD = DecMethod::QPD;
+      if (utils::is_root()) std::cout << "Using QPD decomposition method.\n";
+    } else if (utils::is_root()) {
+      std::cout << "Unknown decomposition method, defaulting to SVD.\n";
+    }
+  }
 
   if (utils::is_root()) {
     std::cout << "RCS (" << NROW << ", " << NCOL << ") with d = " << DEPTH << "\n";
@@ -155,18 +148,33 @@ int main(int argc, char* argv[]) {
   }
   
   // MPS mps(env, NROW * NCOL, SITE_DIM, { CHI_DIS, CHI_LOC });
-  BCMPS mps(env, NROW * NCOL, SITE_DIM, { CHI_CYC, CHI_DIS, CHI_BLK });
-  // auto mps = BCMPS::rand(env, NROW * NCOL, SITE_DIM, { CHI_CYC, CHI_DIS, CHI_BLK }, CHI_CYC * CHI_DIS * CHI_BLK);
+  // BCMPS mps(env, NROW * NCOL, SITE_DIM, { CHI_CYC, CHI_DIS, CHI_BLK });
+  auto mps = BCMPS::rand(env, NROW * NCOL, SITE_DIM, { CHI_CYC, CHI_DIS, CHI_BLK }, CHI_CYC * CHI_DIS * CHI_BLK);
+  mps.leftCanonicalise(mps.nSites() - 1);
+  mps.rightCanonicalise(0);
 
+  // std::vector<FSimPattern> patterns {
+  //   FSimPattern::A, FSimPattern::B, FSimPattern::C, FSimPattern::D, 
+  //   FSimPattern::C, FSimPattern::D, FSimPattern::A, FSimPattern::B
+  // };
   std::vector<FSimPattern> patterns {
-    FSimPattern::A, FSimPattern::B, FSimPattern::C, FSimPattern::D, 
-    FSimPattern::C, FSimPattern::D, FSimPattern::A, FSimPattern::B
+    FSimPattern::C, FSimPattern::D
   };
 
   utils::barrier();
   auto start = high_resolution_clock::now();
 
-  rcs(env, mps, NROW, NCOL, DEPTH, patterns);
+  switch (DEC_METHOD) {
+    case DecMethod::SVD:
+      rcs(env, mps, NROW, NCOL, DEPTH, patterns, true);
+      break;
+    case DecMethod::QPD:
+      rcs(env, mps, NROW, NCOL, DEPTH, patterns, false);
+      break;
+    default:
+      utils::throw_unimplemented();
+      break;
+  }
 
   utils::barrier();
   auto stop = high_resolution_clock::now();
