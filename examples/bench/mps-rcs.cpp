@@ -38,7 +38,19 @@ std::vector<qtnh::wire> fsim_targets(FSimPattern pattern, std::size_t m, std::si
         }
       } break;
   }
+
+  // std::vector<qtnh::wire> sorted_targets;
+  // auto a = targets.size() % (n / 2);
+  // for (auto i = 0UL; i < targets.size(); ++i) {
+  //   auto b = i * (n / 2);
+  //   auto c = b / targets.size();
+  //   auto j = (b - a * c) % targets.size() + c;
+    
+  //   sorted_targets.push_back(targets.at(j));
+  // }
   
+  // return sorted_targets;
+
   return targets;
 }
 
@@ -64,26 +76,54 @@ void rcs(const QTNHEnv& env, BCMPS& mps, std::size_t m, std::size_t n, std::size
 
   for (auto i = 0UL; i < d; ++i) {
     if (utils::is_root()) {
-      std::cout << "Iteration " << i + 1 << "/" << d << std::endl;
+      std::cout << "\nIteration " << i + 1 << "/" << d << std::endl;
+      std::cout << "Applying random gates..." << std::endl;
     }
 
+    auto start = high_resolution_clock::now();
+    
     for (auto j = 0UL; j < mn; ++j) {
       auto num = dist02(gen);
       mps.apply(rand_gate(num)(env), { j });
     }
 
+    auto stop = high_resolution_clock::now();
+    auto delta = duration_cast<milliseconds>(stop - start);
+
     auto targets = fsim_targets(patterns.at(i % patterns.size()), m, n);
+
     if (utils::is_root()) {
-      std::cout << targets << "\n";
+      std::cout << "Done (" << delta.count() << " ms)" << std::endl;
+      std::cout << "Applying entangling gates..." << std::endl;
+      std::cout << "Targets: " << targets << std::endl;
     }
 
+    auto counter = 1UL;
     for (auto ts : targets) {
+      auto start = high_resolution_clock::now();
+
       MPO mpo = qops::fsim(env, ts.second - ts.first + 1);
       mpo.rightCanonicalise();
       
-      mps.leftCanonicalise(mps.nSites() - 1);
+      // * Full recanonicalisation might slightly improve accuracy. 
+      // mps.leftCanonicalise(mps.nSites() - 1);
+      mps.leftCanonicalise(ts.second);
       mps.rightCanonicalise(ts.first);
+
+      auto checkpoint = high_resolution_clock::now();
+
       mps.apply(mpo, ts.first, update_bonds);
+
+      auto stop = high_resolution_clock::now();
+      auto delta12 = duration_cast<milliseconds>(checkpoint - start);
+      auto delta23 = duration_cast<milliseconds>(stop - checkpoint);
+      auto delta13 = duration_cast<milliseconds>(stop - start);
+
+      if (utils::is_root()) {
+        std::cout << counter++ << "/" << targets.size() << " done (" << 
+          delta13.count() << " ms = " << delta12.count() << " + " << 
+          delta23.count() << " ms)" << std::endl;
+      }
     }
 
     auto norm = mps.norm();
@@ -148,18 +188,16 @@ int main(int argc, char* argv[]) {
   }
   
   // MPS mps(env, NROW * NCOL, SITE_DIM, { CHI_DIS, CHI_LOC });
-  // BCMPS mps(env, NROW * NCOL, SITE_DIM, { CHI_CYC, CHI_DIS, CHI_BLK });
-  auto mps = BCMPS::rand(env, NROW * NCOL, SITE_DIM, { CHI_CYC, CHI_DIS, CHI_BLK }, CHI_CYC * CHI_DIS * CHI_BLK);
-  mps.leftCanonicalise(mps.nSites() - 1);
-  mps.rightCanonicalise(0);
+  BCMPS mps(env, NROW * NCOL, SITE_DIM, { CHI_CYC, CHI_DIS, CHI_BLK });
+  // auto mps = BCMPS::rand(env, NROW * NCOL, SITE_DIM, { CHI_CYC, CHI_DIS, CHI_BLK }, CHI_CYC * CHI_DIS * CHI_BLK);
 
-  // std::vector<FSimPattern> patterns {
-  //   FSimPattern::A, FSimPattern::B, FSimPattern::C, FSimPattern::D, 
-  //   FSimPattern::C, FSimPattern::D, FSimPattern::A, FSimPattern::B
-  // };
   std::vector<FSimPattern> patterns {
-    FSimPattern::C, FSimPattern::D
+    FSimPattern::A, FSimPattern::B, FSimPattern::C, FSimPattern::D, 
+    FSimPattern::C, FSimPattern::D, FSimPattern::A, FSimPattern::B
   };
+  // std::vector<FSimPattern> patterns {
+  //   FSimPattern::C, FSimPattern::D
+  // };
 
   utils::barrier();
   auto start = high_resolution_clock::now();
