@@ -1,6 +1,11 @@
+#include <string>
 #ifdef DEBUG
 #include <iostream>
+#include "util/ops.hpp"
 #endif
+
+#include <iostream>
+#include "util/ops.hpp"
 
 #include "blas/routines.hpp"
 #include "blas/wrappers.hpp"
@@ -66,6 +71,386 @@ namespace qtnh {
       return { std::move(u), std::move(sc), std::move(v) };
     }
 
+    std::tuple<BlockCyclicMatrix, BlockCyclicMatrix> PZGEQRD(BlockCyclicMatrix&& m) {
+      auto dims_m = m.totDims();
+      auto chi = std::min(dims_m.first, dims_m.second);
+      auto div = (dims_m.first > dims_m.second) ? (dims_m.first / chi) : 1UL;
+
+      cvec tau(static_cast<std::size_t>(chi));
+      
+      auto one = 1;
+      int lwork = -1;
+      cvec work(1);
+      auto info = -1;
+      // std::complex<double> zero { 0.0, 0.0 };
+
+      // ! Might have to initialise with zeros. 
+      mtup r_cyc_dims { m.cycDims().first / div, m.cycDims().second };
+      cvec r_els(m.locSize() / div, 0.0);
+      BlockCyclicMatrix r(m.grid(), m.blkDims(), m.disDims(), r_cyc_dims, std::move(r_els));
+
+      #ifdef DEBUG
+        std::cout << "P " << m.grid().procIdxs() << ": M = " << m.copyEls() << "\n";
+        utils::barrier();
+
+        if (utils::is_root()) {
+          std::cout << m.cycDims() << ", " << m.disDims() << ", " << m.blkDims() << "\n";
+        }
+      #endif
+
+      if (m.grid().active()) {
+        auto desc_m = m.desc9(); auto desc_mp = const_cast<int*>(desc_m.data());
+        pzgeqrf_(&dims_m.first, &dims_m.second, 
+                 m.data(), &one, &one, desc_mp, 
+                 tau.data(), work.data(), &lwork, &info);
+                
+        lwork = static_cast<int>(work.at(0).real());
+        work.resize(lwork);
+        
+        #ifdef DEBUG
+          if (m.grid().procIdxs() == mtup { 0, 0 }) {
+            std::cout << "LWORK = " << lwork << "\n";
+          }
+        #endif
+
+        pzgeqrf_(&dims_m.first, &dims_m.second, 
+                 m.data(), &one, &one, desc_mp, 
+                 tau.data(), work.data(), &lwork, &info);
+        
+        char up = 'U';
+        auto desc_r = r.desc9(); auto desc_rp = const_cast<int*>(desc_r.data());
+        pzlacpy_(&up, &dims_m.first, &dims_m.second, 
+                 m.data(), &one, &one, desc_mp, 
+                 r.data(), &one, &one, desc_rp);
+
+        #ifdef DEBUG
+          std::cout << "P " << m.grid().procIdxs() << ": M' = " << m.copyEls() << "\n";
+        #endif
+
+        // pzlaset_(&up, &dims_m.first, &dims_m.second, &zero, &zero, 
+        //          m.data(), &one, &one, desc_mp);
+        
+        lwork = -1;
+        pzungqr_(&dims_m.first, &dims_m.second, &chi, 
+                 m.data(), &one, &one, desc_mp, 
+                 tau.data(), work.data(), &lwork, &info);
+        
+        lwork = static_cast<int>(work.at(0).real());
+        work.resize(lwork);
+
+        #ifdef DEBUG
+          if (m.grid().procIdxs() == mtup { 0, 0 }) {
+            std::cout << "LWORK = " << lwork << "\n";
+          }
+        #endif
+
+        pzungqr_(&dims_m.first, &dims_m.second, &chi, 
+                 m.data(), &one, &one, desc_mp, 
+                 tau.data(), work.data(), &lwork, &info);
+      }
+
+      cvec q_els = m.extractEls();
+      BlockCyclicMatrix q(m.grid(), m.blkDims(), m.disDims(), m.cycDims(), std::move(q_els));
+
+      #ifdef DEBUG
+        utils::barrier();
+        std::cout << "P " << m.grid().procIdxs() << ": Q = " << q.copyEls() << "\n";
+        utils::barrier();
+        std::cout << "P " << m.grid().procIdxs() << ": R = " << r.copyEls() << "\n";
+      #endif
+
+      return { std::move(q), std::move(r) };
+    }
+
+    std::tuple<BlockCyclicMatrix, BlockCyclicMatrix> PZGELQD(BlockCyclicMatrix&& m) {
+      auto dims_m = m.totDims();
+      auto chi = std::min(dims_m.first, dims_m.second);
+      auto div = (dims_m.first < dims_m.second) ? (dims_m.second / chi) : 1UL;
+
+      cvec tau(static_cast<std::size_t>(chi));
+      
+      auto one = 1;
+      int lwork = -1;
+      cvec work(1);
+      auto info = -1;
+      // std::complex<double> zero { 0.0, 0.0 };
+
+      // ! Might have to initialise with zeros. 
+      mtup l_cyc_dims { m.cycDims().first, m.cycDims().second / div };
+      cvec l_els(m.locSize() / div, 0.0);
+      BlockCyclicMatrix l(m.grid(), m.blkDims(), m.disDims(), l_cyc_dims, std::move(l_els));
+
+      #ifdef DEBUG
+        std::cout << "P " << m.grid().procIdxs() << ": M = " << m.copyEls() << "\n";
+        utils::barrier();
+
+        if (utils::is_root()) {
+          std::cout << m.cycDims() << ", " << m.disDims() << ", " << m.blkDims() << "\n";
+        }
+      #endif
+
+      if (m.grid().active()) {
+        auto desc_m = m.desc9(); auto desc_mp = const_cast<int*>(desc_m.data());
+        pzgelqf_(&dims_m.first, &dims_m.second, 
+                 m.data(), &one, &one, desc_mp, 
+                 tau.data(), work.data(), &lwork, &info);
+                
+        lwork = static_cast<int>(work.at(0).real());
+        work.resize(lwork);
+        
+        #ifdef DEBUG
+          if (m.grid().procIdxs() == mtup { 0, 0 }) {
+            std::cout << "LWORK = " << lwork << "\n";
+          }
+        #endif
+
+        pzgelqf_(&dims_m.first, &dims_m.second, 
+                 m.data(), &one, &one, desc_mp, 
+                 tau.data(), work.data(), &lwork, &info);
+        
+        char lo = 'L';
+        auto desc_l = l.desc9(); auto desc_lp = const_cast<int*>(desc_l.data());
+        pzlacpy_(&lo, &dims_m.first, &dims_m.second, 
+                 m.data(), &one, &one, desc_mp, 
+                 l.data(), &one, &one, desc_lp);
+
+        #ifdef DEBUG
+          std::cout << "P " << m.grid().procIdxs() << ": M' = " << m.copyEls() << "\n";
+        #endif
+
+        // pzlaset_(&lo, &dims_m.first, &dims_m.second, &zero, &zero, 
+        //          m.data(), &one, &one, desc_mp);
+        
+        lwork = -1;
+        pzunglq_(&dims_m.first, &dims_m.second, &chi, 
+                 m.data(), &one, &one, desc_mp, 
+                 tau.data(), work.data(), &lwork, &info);
+        
+        lwork = static_cast<int>(work.at(0).real());
+        work.resize(lwork);
+
+        #ifdef DEBUG
+          if (m.grid().procIdxs() == mtup { 0, 0 }) {
+            std::cout << "LWORK = " << lwork << "\n";
+          }
+        #endif
+
+        pzunglq_(&dims_m.first, &dims_m.second, &chi, 
+                 m.data(), &one, &one, desc_mp, 
+                 tau.data(), work.data(), &lwork, &info);
+      }
+
+      cvec q_els = m.extractEls();
+      BlockCyclicMatrix q(m.grid(), m.blkDims(), m.disDims(), m.cycDims(), std::move(q_els));
+
+      #ifdef DEBUG
+        utils::barrier();
+        std::cout << "P " << m.grid().procIdxs() << ": L = " << l.copyEls() << "\n";
+        utils::barrier();
+        std::cout << "P " << m.grid().procIdxs() << ": Q = " << q.copyEls() << "\n";
+      #endif
+
+      return { std::move(l), std::move(q) };
+    }
+
+    std::tuple<BlockCyclicMatrix, BlockCyclicMatrix, BlockCyclicMatrix> PZGEQPD(BlockCyclicMatrix&& m) {
+      auto dims_m = m.totDims();
+      auto chi = std::min(dims_m.first, dims_m.second);
+      auto div1 = (dims_m.first > dims_m.second) ? (dims_m.first / chi) : 1UL;
+      auto div2 = (dims_m.first < dims_m.second) ? (dims_m.second / chi) : 1UL;
+
+      cvec tau(static_cast<std::size_t>(chi));
+      pvec ipiv(static_cast<std::size_t>(m.locDims().second));
+      
+      auto one = 1;
+      int lwork = -1, lrwork = -1;
+      std::vector<qtnh::tel> work(1);
+      std::vector<double> rwork(1);
+      auto info = -1;
+
+      // ! Might have to initialise with zeros. 
+      mtup r_cyc_dims { m.cycDims().first / div1, m.cycDims().second };
+      cvec r_els(m.locSize() / div1, 0.0);
+      BlockCyclicMatrix r(m.grid(), m.blkDims(), m.disDims(), r_cyc_dims, std::move(r_els));
+
+      mtup q_cyc_dims { m.cycDims().first, m.cycDims().second / div2 };
+      cvec q_els(m.locSize() / div2, 0.0);
+      BlockCyclicMatrix q(m.grid(), m.blkDims(), m.disDims(), q_cyc_dims, std::move(q_els));
+
+      #ifdef DEBUG
+        std::cout << "P " << m.grid().procIdxs() << ": M = " << m.copyEls() << "\n";
+        utils::barrier();
+
+        if (utils::is_root()) {
+          std::cout << m.cycDims() << ", " << m.disDims() << ", " << m.blkDims() << "\n";
+        }
+      #endif
+
+      if (m.grid().active()) {
+        auto desc_m = m.desc9(); auto desc_mp = const_cast<int*>(desc_m.data());
+
+        // utils::barrier();
+        // if (m.grid().procIdxs() == mtup { 0, 0 }) {
+        //   std::cout << dims_m << std::endl;
+        //   std::cout << desc_m << std::endl;
+        // }
+        // utils::barrier();
+        
+        pzgeqpf_(&dims_m.first, &dims_m.second, 
+                 m.data(), &one, &one, desc_mp, 
+                 ipiv.data(), tau.data(), work.data(), &lwork, 
+                 rwork.data(), &lrwork, &info);
+
+        lwork = static_cast<int>(work.at(0).real());
+        lrwork = static_cast<int>(rwork.at(0));
+        work.resize(lwork);
+        rwork.resize(lrwork);
+        
+        // utils::barrier();
+        // if (m.grid().procIdxs() == mtup { 0, 0 }) {
+        //   std::cout << dims_m << std::endl;
+        //   std::cout << desc_m << std::endl;
+        // }
+        // utils::barrier();
+        
+        #ifdef DEBUG
+          if (m.grid().procIdxs() == mtup { 0, 0 }) {
+            std::cout << "LWORK = " << lwork << "\n";
+            std::cout << "LRWORK = " << lrwork << "\n";
+          }
+        #endif
+
+        pzgeqpf_(&dims_m.first, &dims_m.second, 
+                 m.data(), &one, &one, desc_mp, 
+                 ipiv.data(), tau.data(), work.data(), &lwork,
+                 rwork.data(), &lrwork, &info);
+
+        // utils::barrier();
+        // std::cout << "P " << m.grid().procIdxs() << ": Pivs = " << ipiv << "\n";
+        // utils::barrier();
+        
+        char up = 'U';
+        auto desc_r = r.desc9(); auto desc_rp = const_cast<int*>(desc_r.data());
+        pzlacpy_(&up, &dims_m.first, &dims_m.second, 
+                 m.data(), &one, &one, desc_mp, 
+                 r.data(), &one, &one, desc_rp);
+        
+        char lo = 'L';
+        auto desc_q = r.desc9(); auto desc_qp = const_cast<int*>(desc_q.data());
+        pzlacpy_(&lo, &dims_m.first, &dims_m.second, 
+                 m.data(), &one, &one, desc_mp, 
+                 q.data(), &one, &one, desc_qp);
+
+        #ifdef DEBUG
+          std::cout << "P " << m.grid().procIdxs() << ": Q' = " << q.copyEls() << "\n";
+        #endif
+        
+        auto dims_q = q.totDims();
+
+        lwork = -1;
+        pzungqr_(&dims_q.first, &dims_q.second, &chi, 
+                 q.data(), &one, &one, desc_qp, 
+                 tau.data(), work.data(), &lwork, &info);
+        
+        lwork = static_cast<int>(work.at(0).real());
+        work.resize(lwork);
+
+        #ifdef DEBUG
+          if (m.grid().procIdxs() == mtup { 0, 0 }) {
+            std::cout << "LWORK = " << lwork << "\n";
+          }
+        #endif
+
+        pzungqr_(&dims_q.first, &dims_q.second, &chi, 
+                 q.data(), &one, &one, desc_qp, 
+                 tau.data(), work.data(), &lwork, &info);
+      }
+
+      auto pt_blk = r.blkDims().second;
+      auto pt_cyc = r.cycDims().second;
+      mtup pt_blk_dims { pt_blk, pt_blk };
+      mtup pt_cyc_dims { pt_cyc, pt_cyc };
+
+      auto pt_loc_size = static_cast<std::size_t>(pt_blk * pt_blk * pt_cyc * pt_cyc);
+      cvec pt_els(pt_loc_size, { 0.0, 0.0 });
+
+      auto nprows = m.disDims().first;
+      auto prow = m.grid().procIdxs().first;
+      for (auto lj = 0UL; lj < ipiv.size(); ++lj) {
+        auto gi = ipiv.at(lj) - 1;
+
+        auto bi = gi % pt_blk;
+        auto di = (gi / pt_blk) % nprows;
+        auto ci = gi / (pt_blk * nprows);
+
+        // utils::barrier();
+        // std::cout << "P " << m.grid().procIdxs() << ": Gi' = " << gi << std::endl;
+        // utils::barrier();
+        // std::cout << "P " << m.grid().procIdxs() << ": Bi' = " << bi << std::endl;
+        // utils::barrier();
+        // std::cout << "P " << m.grid().procIdxs() << ": Di' = " << di << std::endl;
+        // utils::barrier();
+        // std::cout << "P " << m.grid().procIdxs() << ": Ci' = " << ci << std::endl;
+        // utils::barrier();
+
+        if (di == prow) {
+          auto li = static_cast<std::size_t>(pt_blk * ci + bi);
+          auto i = lj * static_cast<std::size_t>(pt_blk * pt_cyc) + li;
+
+
+          pt_els.at(i) = { 1.0, 0.0 };
+        }
+
+        // if (m.grid().procIdxs() == mtup { 0, 0 }) {
+        //   std::cout << "====================\n";
+        // }
+      }
+
+      BlockCyclicMatrix p(m.grid(), pt_blk_dims, m.disDims(), pt_cyc_dims, std::move(pt_els));
+      BlockCyclicMatrix pt(m.grid(), pt_blk_dims, m.disDims(), pt_cyc_dims);
+
+      // Transpose permutation matrix. 
+      pt = PZGEADD(std::move(p), std::move(pt), { 1.0, 0.0 }, { 0.0, 0.0 }, true);
+
+
+      // auto id = BlockCyclicMatrix::id(m.grid(), pt_blk_dims, m.disDims(), pt_cyc_dims);
+
+      // #ifdef DEBUG
+      //   utils::barrier();
+      //   std::cout << "P " << m.grid().procIdxs() << ": ID = " << id.copyEls() << "\n";
+      // #endif
+
+      // mtup pv_blk_dims { 1, r.blkDims().second };
+      // mtup pv_cyc_dims { 1, r.cycDims().second };
+      // BlockCyclicMatrix pv(m.grid(), pv_blk_dims, m.disDims(), pv_cyc_dims);
+
+      // utils::barrier();
+      // std::cout << "P " << m.grid().procIdxs() << ": Pivs = " << ipiv << "\n";
+      // utils::barrier();
+
+      // // ! This is most likely the wrong routine to use. 
+      // auto pt = PZLAPV2(std::move(id), pv, ipiv, 'F', 'C');
+
+      #ifdef DEBUG
+        // utils::barrier();
+        // std::cout << "P " << m.grid().procIdxs() << ": Q = " << q.copyEls() << "\n";
+        // utils::barrier();
+        // std::cout << "P " << m.grid().procIdxs() << ": R = " << r.copyEls() << "\n";
+        // utils::barrier();
+        // std::cout << "P " << m.grid().procIdxs() << ": Pt = " << pt.copyEls() << "\n";
+        utils::barrier();
+        std::cout << "P " << m.grid().procIdxs() << ": Pivs = " << ipiv << "\n";
+        utils::barrier();
+        if (utils::is_root()) {
+          std::cout << "Q: " << q.cycDims() << ", " << q.disDims() << ", " << q.blkDims() << "\n";
+          std::cout << "R: " << r.cycDims() << ", " << r.disDims() << ", " << r.blkDims() << "\n";
+          std::cout << "Pt: " << pt.cycDims() << ", " << pt.disDims() << ", " << pt.blkDims() << "\n";
+        }
+      #endif
+
+      return { std::move(q), std::move(r), std::move(pt) };
+    }
+
     BlockCyclicMatrix PZGEMM(BlockCyclicMatrix&& a, BlockCyclicMatrix&& b, bool use_at, bool use_bt) {
       auto blk_dims_a = a.blkDims(), blk_dims_b = b.blkDims();
       auto dis_dims_a = a.disDims(), dis_dims_b = b.disDims();
@@ -123,6 +508,93 @@ namespace qtnh {
       }
 
       return c;
+    }
+
+    BlockCyclicMatrix PZGEADD(BlockCyclicMatrix&& a, BlockCyclicMatrix&& c, tel alpha, tel beta, bool use_at) {
+      auto [ma, na] = a.totDims();
+      auto [mc, nc] = c.totDims();
+
+      if (use_at) {
+        std::swap(ma, na);
+      }
+
+      if ((ma != mc) || (na != nc)) {
+        throw std::invalid_argument("Incompatible matrix dimensions of A and C");
+      }
+
+      char trans = use_at ? 'T' : 'N';
+      int one = 1;
+
+      auto desc_a = a.desc9(); auto desc_ap = const_cast<int*>(desc_a.data());
+      auto desc_c = c.desc9(); auto desc_cp = const_cast<int*>(desc_c.data());
+
+      pzgeadd_(&trans, &mc, &nc, 
+               &alpha, a.data(), &one, &one, desc_ap, 
+               &beta, c.data(), &one, &one, desc_cp);
+
+      return std::move(c);
+    }
+
+    BlockCyclicMatrix PZLAPIV(BlockCyclicMatrix&& m, const BlockCyclicMatrix& pv, pvec ipiv) {
+      auto dims_m = m.totDims();
+
+      char direc = 'B';
+      char rowcol = 'C';
+      char pivroc = 'R';
+      int one = 1;
+
+      auto desc_m = m.desc9(); auto desc_mp = const_cast<int*>(desc_m.data());
+      auto desc_pv = pv.desc9(); auto desc_pvp = const_cast<int*>(desc_pv.data());
+      auto ipiv_p = const_cast<int*>(ipiv.data());
+
+      pvec iwork;
+      
+      if (m.grid().active()) {
+        pzlapiv_(&direc, &rowcol, &pivroc, &dims_m.first, &dims_m.second, 
+                  m.data(), &one, &one, desc_mp, 
+                  ipiv_p, &one, &one, desc_pvp, iwork.data());
+      }
+      
+      return std::move(m);
+    }
+
+    BlockCyclicMatrix PZLAPV2(BlockCyclicMatrix&& m, 
+                              const BlockCyclicMatrix& pv, pvec ipiv, 
+                              char direc, char rowcol) {
+      auto dims_m = m.totDims();
+      int one = 1;
+
+      auto desc_m = m.desc9(); auto desc_mp = const_cast<int*>(desc_m.data());
+      auto desc_pv = pv.desc9(); auto desc_pvp = const_cast<int*>(desc_pv.data());
+      auto ipiv_p = const_cast<int*>(ipiv.data());
+      
+      if (m.grid().active()) {
+        pzlapv2_(&direc, &rowcol, &dims_m.first, &dims_m.second, 
+                  m.data(), &one, &one, desc_mp, 
+                  ipiv_p, &one, &one, desc_pvp);
+      }
+      
+      return std::move(m);
+    }
+
+    void PZLAPRNT(const BlockCyclicMatrix& m, std::string id) {
+      auto dims_m = m.totDims();
+
+      int zero = 0;
+      int one = 1;
+      int nout = 6; // 0 - stderr, 6 - stdout. 
+
+      auto desc_m = m.desc9(); 
+      auto desc_mp = const_cast<int*>(desc_m.data());
+      auto data = const_cast<qtnh::tel*>(m.data());
+
+      // ccp cmatnm { id.data(), static_cast<int>(id.size()), 0 };
+      cvec work(desc_m.at(4));
+
+      pzlaprnt_(&dims_m.first, &dims_m.second,
+                data, &one, &one, desc_mp, 
+                &zero, &zero, id.data(), &nout, work.data(), 
+                static_cast<int>(id.size()));
     }
   }
 }

@@ -8,6 +8,7 @@
 namespace qtnh {
   namespace lalg {
     using cvec = std::vector<qtnh::tel>;
+    using pvec = std::vector<int>;
     using mtup = std::pair<int, int>;
 
     class ProcGrid {
@@ -45,6 +46,8 @@ namespace qtnh {
         BlockCyclicMatrix(const ProcGrid& grid, mtup blk_dims, mtup dis_dims, mtup cyc_dims, cvec&& loc_els_p);
         ~BlockCyclicMatrix() = default;
 
+        static BlockCyclicMatrix id(const ProcGrid& grid, mtup blk_dims, mtup dis_dims, mtup cyc_dims);
+
         // Disable copying. 
         BlockCyclicMatrix(const BlockCyclicMatrix&) = delete;
         BlockCyclicMatrix& operator=(const BlockCyclicMatrix&) = delete;
@@ -55,13 +58,18 @@ namespace qtnh {
 
         const ProcGrid& grid() const { return *pg_; }
         qtnh::tel* data() { return loc_els_.data(); }
+        const qtnh::tel* data() const { return loc_els_.data(); }
 
         constexpr mtup blkDims() const { return { mb_, nb_ }; }
         constexpr mtup disDims() const { return { md_, nd_ }; }
         constexpr mtup cycDims() const { return { mc_, nc_ }; }
+
+        constexpr mtup locDims() const { return { mb_ * mc_, nb_ * nc_ }; }
         constexpr mtup totDims() const { return { m_, n_ }; }
 
-        constexpr std::array<int, 9> const desc9() {
+        std::size_t locSize() { return loc_els_.size(); }
+
+        constexpr std::array<int, 9> desc9() const {
           return { 
             1,               // DTYPE
             pg_->context(),  // CTXT
@@ -75,7 +83,7 @@ namespace qtnh {
           };
         }
 
-        constexpr std::array<int, 11> const desc11() {
+        constexpr std::array<int, 11> desc11() const {
           return { 
             601,             // DTYPE
             pg_->context(),  // CTXT
@@ -92,11 +100,32 @@ namespace qtnh {
         }
 
         cvec&& extractEls() { return std::move(loc_els_); }
+        cvec copyEls() { return loc_els_; }
+
+        bool has(std::size_t i, std::size_t j) {
+          auto id = (i / mb_) % mc_;
+          auto jd = (j / nb_) % nc_;
+
+          auto [ip, jp] = pg_->procIdxs();
+
+          return (id == static_cast<std::size_t>(ip)) && 
+            (jd == static_cast<std::size_t>(jp));
+        }
+
+        qtnh::tel& at(std::size_t i, std::size_t j) {
+          auto ib = i % (md_ * mc_);
+          auto jb = j % (nd_ * nc_);
+          auto ic = i / (mb_ * md_);
+          auto jc = j / (nb_ * nd_);
+
+          auto idx = jb + jc * nb_ + ib * nb_ * nc_ + ic * nb_ * nc_ * mb_;
+          return loc_els_.at(idx);
+        }
 
         BlockCyclicMatrix toGrid(const ProcGrid& pg) &&;
 
       private:
-         ProcGrid const *pg_;
+        ProcGrid const *pg_;
 
         int mb_, nb_;
         int md_, nd_;

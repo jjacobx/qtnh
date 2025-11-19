@@ -57,7 +57,7 @@ namespace qtnh {
 
   // Decomposition only works when distributed and block dimensions are the same
   // for rows and columns. Cycle dimensions can vary. 
-  void Decomposer::decompose() {
+  void Decomposer::decompose(DecType type) {
     auto& env = tp_m_->bc().env();
     auto offset = tp_m_->bc().params().off;
 
@@ -97,27 +97,54 @@ namespace qtnh {
     auto [dims_cc, dims_cb] = utils::split_dims(dims_cl, params_.cyc_splits.second);
     auto block = utils::dims_to_size(dims_rb);
 
-    BlockCyclicMatrix m(pg, { int(nrows), int(ncols) }, { int(block), int(block) }, dtp->extractEls());
-
-    auto [u, s, v] = PZGESVD(std::move(m));
-
     auto dims_xc = (ncols > nrows) ? dims_rc : dims_cc;
     auto dims_xd = (ncols > nrows) ? dims_rd : dims_cd;
 
     auto loc_dims_u = utils::concat_vecs(dims_xc, dims_cb, dims_rl);
     auto loc_dims_v = utils::concat_vecs(dims_cl, dims_xc, dims_cb);
     auto loc_dims_s = utils::concat_vecs(dims_xc, dims_xd, dims_cb);
+    auto loc_dims_pt = utils::concat_vecs(dims_cl, dims_cl);
 
-    tp_u_ = DenseTensor::make(env, dis_dims, loc_dims_u, u.extractEls(), { 1, 1, offset });
-    tp_s_ = DenseTensor::make(env, {}, loc_dims_s, std::move(s), { 1, 1, offset });
-    tp_v_ = DenseTensor::make(env, dis_dims, loc_dims_v, v.extractEls(), { 1, 1, offset });
+    BlockCyclicMatrix m(pg, { int(nrows), int(ncols) }, { int(block), int(block) }, dtp->extractEls());
 
-    // Permute S to correspond to U and V. 
-    std::vector<tidx_tup_st> rel_splits_s = { dims_xc.size(), dims_xd.size(), dims_cb.size() };
-    auto tups_s = _split_tensor(tp_s_.get(), rel_splits_s);
-    IndexGroup ig_s({ "c", "d", "l" }, tups_s);
-    ig_s.reorder({ "d", "c", "l" });
-    tp_s_ = Tensor::permute(std::move(tp_s_), ig_s.ptup().toTar().tup());
+    cvec u_els, s_els, v_els;
+    if (type == DecType::SVD) {
+      auto [u, s, v] = PZGESVD(std::move(m));
+      u_els = u.extractEls();
+      s_els = std::move(s);
+      v_els = v.extractEls();
+    } else if (type == DecType::QRD) {
+      auto [q, r] = PZGEQRD(std::move(m));
+      u_els = q.extractEls();
+      s_els = cvec(utils::dims_to_size(loc_dims_s), 1.0);
+      v_els = r.extractEls();
+    } else if (type == DecType::LQD) {
+      auto [l, q] = PZGELQD(std::move(m));
+      u_els = l.extractEls();
+      s_els = cvec(utils::dims_to_size(loc_dims_s), 1.0);
+      v_els = q.extractEls();
+    } else if (type == DecType::QPD) {
+      auto [q, r, pt] = PZGEQPD(std::move(m));
+      u_els = q.extractEls();
+      s_els = pt.extractEls();
+      v_els = r.extractEls();
+    }
+
+    tp_u_ = DenseTensor::make(env, dis_dims, loc_dims_u, std::move(u_els), { 1, 1, offset });
+    tp_v_ = DenseTensor::make(env, dis_dims, loc_dims_v, std::move(v_els), { 1, 1, offset });
+
+    if (type == DecType::QPD) {
+      tp_s_ = DenseTensor::make(env, dis_dims, loc_dims_pt, std::move(s_els), { 1, 1, offset });
+    } else {
+      tp_s_ = DenseTensor::make(env, {}, loc_dims_s, std::move(s_els), { 1, 1, offset });
+
+      // Permute S to correspond to U and V. 
+      std::vector<tidx_tup_st> rel_splits_s = { dims_xc.size(), dims_xd.size(), dims_cb.size() };
+      auto tups_s = _split_tensor(tp_s_.get(), rel_splits_s);
+      IndexGroup ig_s({ "c", "d", "l" }, tups_s);
+      ig_s.reorder({ "d", "c", "l" });
+      tp_s_ = Tensor::permute(std::move(tp_s_), ig_s.ptup().toTar().tup());
+    }
     
     // Everything below is book-keeping to restore right index order. 
     // TODO: Wrap repeated parts into a function. 
@@ -191,6 +218,19 @@ namespace qtnh {
 
       tp_u_ = Tensor::permute(std::move(tp_u_), ig_u.ptup().inv().toTar().tup());
       tp_v_ = Tensor::permute(std::move(tp_v_), ig_v.ptup().inv().toTar().tup());
+
+      if (type == DecType::QPD) {
+        std::vector <qtnh::tidx_tup_st> rel_splits_pt {
+          params_v.in_dis_splits.second + params_v.in_dis_splits.second, 
+          params_v.in_loc_splits.second, params_v.in_loc_splits.second
+        };
+
+        auto tups_pt = _split_tensor(tp_s_.get(), rel_splits_pt);
+        IndexGroup ig_pt({ "d", "lr", "lc" }, tups_pt);
+        ig_pt.reorder({ "d", "lc", "lr" });
+
+        tp_s_ = Tensor::permute(std::move(tp_s_), ig_pt.ptup().inv().toTar().tup());
+      }
     }
   }
 }

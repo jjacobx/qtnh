@@ -1,6 +1,8 @@
 #ifndef QTNH_TEN_TYPE_DENSE_HPP_INCLUDE
 #define QTNH_TEN_TYPE_DENSE_HPP_INCLUDE
 
+#include <array>
+
 #include "ten/type/tensor.hpp"
 
 namespace qtnh {

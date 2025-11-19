@@ -30,6 +30,14 @@ target_compile_options(bcmps-test
   -Wall
 )
 
+add_executable(matrix-test matrix.cpp)
+add_dependencies(matrix-test qtnh)
+target_link_libraries(matrix-test qtnh)
+target_compile_options(matrix-test
+  PRIVATE
+  -Wall
+)
+
 add_executable(mps-test mps.cpp)
 add_dependencies(mps-test qtnh)
 target_link_libraries(mps-test qtnh)

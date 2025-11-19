@@ -33,7 +33,7 @@ namespace qtnh {
       constexpr std::size_t totChi() const { return cyc_chi_ * dis_chi_ * blk_chi_; }
 
       void apply(tptr_symm tp, std::vector<std::size_t> sites);
-      void apply(const MPO& mpo, std::size_t from);
+      void apply(const MPO& mpo, std::size_t from, bool update_dims = true);
 
       // TODO: Remove. 
       void apply_old(const MPO& mpo, std::size_t from);
