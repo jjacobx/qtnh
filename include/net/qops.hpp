@@ -10,6 +10,7 @@ namespace qtnh {
     tptr_symm sqrt_x(const QTNHEnv& env);
     tptr_symm sqrt_y(const QTNHEnv& env);
     tptr_symm sqrt_w(const QTNHEnv& env);
+    tptr_symm fsim_tp(const QTNHEnv& env, double phi = M_PI / 6);
     MPO ca(const QTNHEnv& env, std::size_t n, std::vector<tel> els);
 
     MPO swap(const QTNHEnv& env, std::size_t n);
