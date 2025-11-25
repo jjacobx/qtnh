@@ -46,7 +46,7 @@ namespace qtnh {
       void leftCanonicalise(std::size_t to);
       void rightCanonicalise(std::size_t to);
 
-      void swap(std::size_t n);
+      void swap(std::size_t n, bool update_dims = true);
       void permute(PTupleTar ptup);
 
       std::map<sample_t, std::size_t> sample(std::size_t from, std::size_t to, std::size_t n);

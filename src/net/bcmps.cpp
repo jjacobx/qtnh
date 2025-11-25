@@ -211,7 +211,7 @@ namespace qtnh {
         );
 
         ConParams params(
-          {{ 1, 0 }, { 3, 2 }}, 
+          {{ 1, 0 }, { 4, 2 }, { 5, 3 }}, 
           { 0, X, 3, 4, X, X }, 
           dim_repls_2
         );
@@ -655,7 +655,7 @@ namespace qtnh {
     #endif
   }
 
-  void BCMPS::swap(std::size_t k) {
+  void BCMPS::swap(std::size_t k, bool update_dims) {
     tptr tp1 = std::move(site_tensors_.at(k));
     tptr tp2 = std::move(site_tensors_.at(k + 1));
 
@@ -678,29 +678,89 @@ namespace qtnh {
     };
 
     Decomposer dec(std::move(tp12), d_par, true);
-    dec.decompose(DecType::QPD);
-    auto [tp_q, tp_pt, tp_r] = dec.extract_results();
+    auto type = update_dims ? DecType::SVD : DecType::QPD;
+    dec.decompose(type);
 
-    // Truncate. 
-    tp_q = Tensor::truncate(std::move(tp_q), 5, 1);
-    tp_r = Tensor::truncate(std::move(tp_r), 2, 1);
+    auto [tp_u, tp_s, tp_v] = dec.extract_results();
+    tptr tp_sv;
 
-    auto loc_dims_q = tp_q->locDims();
-    auto loc_dims_r = tp_r->locDims();
-    loc_dims_q.erase(loc_dims_q.begin() + 3);
-    loc_dims_r.erase(loc_dims_r.begin());
-    tp_q->reshape(tp_q->disDims(), loc_dims_q);
-    tp_r->reshape(tp_r->disDims(), loc_dims_r);
+    if (update_dims) {
+      // Truncate. 
+      tp_u = Tensor::truncate(std::move(tp_u), 5, 1);
+      tp_s = Tensor::truncate(std::move(tp_s), 1, 1);
+      tp_v = Tensor::truncate(std::move(tp_v), 2, 1);
 
-    c_par = ConParams(
+      auto loc_dims_u = tp_u->locDims();
+      auto loc_dims_v = tp_v->locDims();
+      loc_dims_u.erase(loc_dims_u.begin() + 3);
+      loc_dims_v.erase(loc_dims_v.begin());
+      tp_u->reshape(tp_u->disDims(), loc_dims_u);
+      tp_v->reshape(tp_v->disDims(), loc_dims_v);
+
+      // Calculate SV. 
+      auto&& els = tp_s->cast<DenseTensor>()->extractEls();
+      bond_dims_.at(k) = count_bond_dim(els);
+
+      tp_s = DiagTensor::make(
+        tp_s->bc().env(), 
+        {}, 
+        { dis_chi_, cyc_chi_, blk_chi_, dis_chi_, cyc_chi_, blk_chi_ }, 
+        false, 
+        std::move(els)
+      );
+
+      tp_s = SymmTensorBase::rescatterIO(std::move(tp_s), 1);
+
+      c_par = ConParams(
+        {{ 1, 0 }, { 4, 2 }, { 5, 3 }}, 
+        { 0, X, 3, 4, X, X }, 
+        { X, 1, X, X, 2, 5, 6 }
+      );
+
+      con = pcon(std::move(tp_s), std::move(tp_v), c_par);
+      tp_sv = con.contract();
+    } else {
+      // Truncate. 
+      tp_u = Tensor::truncate(std::move(tp_u), 5, 1);
+      tp_v = Tensor::truncate(std::move(tp_v), 2, 1);
+
+      auto loc_dims_u = tp_u->locDims();
+      auto loc_dims_v = tp_v->locDims();
+      loc_dims_u.erase(loc_dims_u.begin() + 3);
+      loc_dims_v.erase(loc_dims_v.begin());
+      tp_u->reshape(tp_u->disDims(), loc_dims_u);
+      tp_v->reshape(tp_v->disDims(), loc_dims_v);
+
+      c_par = ConParams(
       {{ 1, 0 }, { 4, 2 }, { 5, 3 }, { 6, 4 }}, 
       { 0, X, 3, 4, X, X, X }, 
       { X, 1, X, X, X, 2, 5, 6 }
     );
 
-    con = pcon(std::move(tp_r), std::move(tp_pt), c_par);
-    site_tensors_.at(k) = std::move(tp_q);
-    site_tensors_.at(k + 1) = con.contract();
+      con = pcon(std::move(tp_v), std::move(tp_s), c_par);
+      tp_sv = con.contract();
+    }
+
+    // // Truncate. 
+    // tp_q = Tensor::truncate(std::move(tp_q), 5, 1);
+    // tp_r = Tensor::truncate(std::move(tp_r), 2, 1);
+
+    // auto loc_dims_q = tp_q->locDims();
+    // auto loc_dims_r = tp_r->locDims();
+    // loc_dims_q.erase(loc_dims_q.begin() + 3);
+    // loc_dims_r.erase(loc_dims_r.begin());
+    // tp_q->reshape(tp_q->disDims(), loc_dims_q);
+    // tp_r->reshape(tp_r->disDims(), loc_dims_r);
+
+    // c_par = ConParams(
+    //   {{ 1, 0 }, { 4, 2 }, { 5, 3 }, { 6, 4 }}, 
+    //   { 0, X, 3, 4, X, X, X }, 
+    //   { X, 1, X, X, X, 2, 5, 6 }
+    // );
+
+    // con = pcon(std::move(tp_r), std::move(tp_pt), c_par);
+    site_tensors_.at(k) = std::move(tp_u);
+    site_tensors_.at(k + 1) = std::move(tp_sv);
     site_canons_.at(k) = SITE_CANON::left;
     site_canons_.at(k + 1) = SITE_CANON::none;
   }
