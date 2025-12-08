@@ -3,12 +3,125 @@
 #include <random>
 #include "qtnh.hpp"
 
+#include <adios2.h>
+#include <mpi.h>
+#include <string>
+
 using namespace qtnh;
 using namespace std::chrono;
 using namespace std::complex_literals;
 
 constexpr auto SITE_DIM = 2UL;
 constexpr auto N_SITES = 53UL;
+
+void save_mps(const QTNHEnv& env, const BCMPS& mps, std::string filename) {
+  utils::barrier();
+  auto start = high_resolution_clock::now();
+
+  auto n = mps.nSites();
+  adios2::ADIOS adios(MPI_COMM_WORLD);
+  auto bpIO = adios.DeclareIO("BPWriter");
+  auto bpWriter = bpIO.Open(filename, adios2::Mode::Write);
+  
+  auto info = std::vector<std::size_t> { n, mps.cycChi(), mps.disChi(), mps.blkChi() };
+  auto bpMPS = utils::is_root() ? 
+    bpIO.DefineVariable<std::size_t>("bpMPS", { 4 }, { 0 }, { 4 }, adios2::ConstantDims) : 
+    bpIO.DefineVariable<std::size_t>("bpMPS", { 4 }, { 0 }, { 0 }, adios2::ConstantDims);
+
+  bpWriter.BeginStep();
+  bpWriter.Put(bpMPS, info.data());
+  bpWriter.EndStep();
+
+  auto dims = mps.siteDims();
+  auto bpDims = utils::is_root() ? 
+    bpIO.DefineVariable<std::size_t>("bpDims", { n }, { 0 }, { n }, adios2::ConstantDims) : 
+    bpIO.DefineVariable<std::size_t>("bpDims", { n }, { 0 }, { 0 }, adios2::ConstantDims);
+  
+  bpWriter.BeginStep();
+  bpWriter.Put(bpDims, dims.data());
+  bpWriter.EndStep();
+
+  for (auto i = 0UL; i < mps.nSites(); ++i) {
+    tptr site = mps.site(i).copy();
+    auto loc_size = site->locSize();
+    auto els = site->cast<DenseTensor>()->extractEls();
+
+    auto bpSite = bpIO.DefineVariable<tel>(
+      "bpSite" + std::to_string(i), 
+      { env.num_processes * loc_size }, 
+      { env.proc_id * loc_size }, 
+      { loc_size }, 
+      adios2::ConstantDims
+    );
+
+    bpWriter.BeginStep();
+    bpWriter.Put(bpSite, els.data());
+    bpWriter.EndStep();
+  }
+
+  bpWriter.Close();
+
+  utils::barrier();
+  auto stop = high_resolution_clock::now();
+  auto delta = duration_cast<milliseconds>(stop - start);
+
+  if (utils::is_root()) {
+    std::cout << "Wrote file " << filename << " (" << delta.count() << " ms)" << std::endl;
+  }
+}
+
+BCMPS load_mps(const QTNHEnv& env, std::string filename) {
+  utils::barrier();
+  auto start = high_resolution_clock::now();
+
+  adios2::ADIOS adios(MPI_COMM_WORLD);
+  auto bpIO = adios.DeclareIO("BPReader");
+  auto bpReader = bpIO.Open(filename, adios2::Mode::Read);
+
+  std::vector<tptr> sites;
+  std::vector<std::size_t> info;
+  std::vector<std::size_t> dims;
+
+  bpReader.BeginStep();
+  auto bpMPS = bpIO.InquireVariable<std::size_t>("bpMPS");
+  bpMPS.SetSelection({{ 0 }, { 4 }});
+  bpReader.Get(bpMPS, info, adios2::Mode::Sync);
+  bpReader.EndStep();
+
+  bpReader.BeginStep();
+  auto bpDims = bpIO.InquireVariable<std::size_t>("bpDims");
+  bpDims.SetSelection({{ 0 }, { info.at(0) }});
+  bpReader.Get(bpDims, dims, adios2::Mode::Sync);
+  bpReader.EndStep();
+
+  for (auto i = 0UL; i < info.at(0); ++i) {
+    auto loc_size = dims.at(i) * info.at(1) * info.at(1) * info.at(3) * info.at(3);
+    std::vector<tel> els;
+
+    bpReader.BeginStep();
+    auto bpSite = bpIO.InquireVariable<tel>("bpSite" + std::to_string(i));
+    bpSite.SetSelection({{ env.proc_id * loc_size }, { loc_size }});
+    bpReader.Get(bpSite, els, adios2::Mode::Sync);
+    bpReader.EndStep();
+
+    tidx_tup dis_dims { info.at(2), info.at(2) };
+    tidx_tup loc_dims { dims.at(i), info.at(1), info.at(3), info.at(1), info.at(3) };
+    tptr tp_site = DenseTensor::make(env, dis_dims, loc_dims, std::move(els));
+    sites.push_back(std::move(tp_site));
+  }
+
+  bpReader.Close();
+
+  utils::barrier();
+  auto stop = high_resolution_clock::now();
+  auto delta = duration_cast<milliseconds>(stop - start);
+
+  if (utils::is_root()) {
+    std::cout << "Read file " << filename << " (" << delta.count() << " ms)" << std::endl;
+  }
+  
+  return BCMPS(std::move(sites));
+}
 
 const std::vector<std::size_t> init_sites_a {
   1, 4, 6, 9, 11, 13, 15, 17, 19, 21, 24, 26, 28, 30, 33, 35, 37, 39, 41, 43, 45, 47, 49, 51
@@ -64,7 +177,7 @@ const std::vector<std::vector<std::size_t>> pattern_mpo {
   init_sites_b
 };
 
-PTupleTar ptup_ab_cd({
+const PTupleTar ptup_ab_cd({
                16, 
             9, 17, 25, 
         4, 10, 18, 26, 34, 
@@ -122,13 +235,15 @@ void permute(BCMPS& mps, PTupleTar ptup, bool update_dims) {
   }
 }
 
-void rcs_swap(const QTNHEnv& env, BCMPS& mps, std::size_t d, bool update_dims = true) {
+void rcs_swap(const QTNHEnv& env, BCMPS& mps, std::size_t d, 
+              std::size_t init = 0UL, bool update_dims = true) {
   std::mt19937 gen(2025);
   std::uniform_int_distribution<std::size_t> dist02(0, 2);
 
-  for (auto i = 0UL; i < d; ++i) {
+  if (utils::is_root()) std::cout << std::endl;
+  for (auto i = init; i < init + d; ++i) {
     if (utils::is_root()) {
-      std::cout << "\nIteration " << i + 1 << "/" << d << std::endl;
+      std::cout << "Layer " << i + 1 << "/" << init + d << std::endl;
     }
 
     // mps.leftCanonicalise(NSITES - 1);
@@ -216,27 +331,34 @@ void rcs_swap(const QTNHEnv& env, BCMPS& mps, std::size_t d, bool update_dims = 
 
     auto norm = mps.norm();
     if (utils::is_root()) {
-      std::cout << "bonds = " << mps.bondDims() << "\n";
-      std::cout << "norm = " << norm << "\n";
+      std::cout << "bonds = " << mps.bondDims() << std::endl;
+      std::cout << "norm = " << norm << std::endl;
+      std::cout << std::endl;
     }
   }
 }
 
-void rcs_mpo(const QTNHEnv& env, BCMPS& mps, std::size_t d, bool update_dims = true) {
+void rcs_mpo(const QTNHEnv& env, BCMPS& mps, std::size_t d, 
+             std::size_t init = 0UL, bool update_dims = true) {
   std::mt19937 gen(2025);
   std::uniform_int_distribution<std::size_t> dist02(0, 2);
+  auto tup_cd_ab = ptup_ab_cd.inv().tup();
 
-  for (auto i = 0UL; i < d; ++i) {
+  if (utils::is_root()) std::cout << std::endl;
+  for (auto i = 0UL; i < init + d; ++i) {
     if (utils::is_root()) {
-      std::cout << "\nIteration " << i + 1 << "/" << d << std::endl;
+      std::cout << "Layer " << i + 1 << "/" << init + d << std::endl;
       std::cout << "Applying random gates..." << std::endl;
     }
 
     auto start = high_resolution_clock::now();
     
     for (auto j = 0UL; j < N_SITES; ++j) {
+      // Ensure consistency with swap method. 
+      auto k = (i % 8 < 2 || i % 8 > 5) ? j : tup_cd_ab.at(j);
+
       auto num = dist02(gen);
-      mps.apply(rand_gate(num)(env), { j });
+      mps.apply(rand_gate(num)(env), { k });
     }
 
     auto stop = high_resolution_clock::now();
@@ -294,8 +416,9 @@ void rcs_mpo(const QTNHEnv& env, BCMPS& mps, std::size_t d, bool update_dims = t
 
     auto norm = mps.norm();
     if (utils::is_root()) {
-      std::cout << "bonds = " << mps.bondDims() << "\n";
-      std::cout << "norm = " << norm << "\n";
+      std::cout << "bonds = " << mps.bondDims() << std::endl;
+      std::cout << "norm = " << norm << std::endl;
+      std::cout << std::endl;
     }
   }
 }
@@ -313,6 +436,10 @@ int main(int argc, char* argv[]) {
 
   enum class DecMethod { SVD, QPD };
   auto DEC_METHOD = DecMethod::SVD;
+
+  auto START_LAYER = 0UL;
+  auto FILENAME_IN = "io/temp.bp";
+  auto FILENAME_OUT = "io/temp.bp";
 
   if (argc > 1) {
     DEPTH = static_cast<unsigned int>(strtol(argv[1], nullptr, 0));
@@ -346,14 +473,20 @@ int main(int argc, char* argv[]) {
       std::cout << "Unknown decomposition method, defaulting to SVD.\n";
     }
   }
+  if (argc > 9) {
+    START_LAYER = static_cast<unsigned int>(strtol(argv[7], nullptr, 0));
+    FILENAME_IN = argv[8];
+    FILENAME_OUT = argv[9];
+  }
 
   if (utils::is_root()) {
-    std::cout << "Sycamore RCS with d = " << DEPTH << "\n";
-    std::cout << "CHI = " << CHI_CYC * CHI_DIS * CHI_BLK << "\n";
+    std::cout << "Sycamore RCS with d = " << DEPTH << std::endl;
+    std::cout << "CHI = " << CHI_CYC * CHI_DIS * CHI_BLK << std::endl;
   }
   
-  // MPS mps(env, NROW * NCOL, SITE_DIM, { CHI_DIS, CHI_LOC });
-  BCMPS mps(env, N_SITES, SITE_DIM, { CHI_CYC, CHI_DIS, CHI_BLK });
+  auto mps = (START_LAYER == 0) ? 
+    BCMPS(env, N_SITES, SITE_DIM, { CHI_CYC, CHI_DIS, CHI_BLK }) : 
+    load_mps(env, FILENAME_IN);
 
   utils::barrier();
   auto start = high_resolution_clock::now();
@@ -373,10 +506,10 @@ int main(int argc, char* argv[]) {
 
   switch (LONG_RANGE_METHOD) {
     case LongRangeMethod::SWAP:
-      rcs_swap(env, mps, DEPTH, update_dims);
+      rcs_swap(env, mps, DEPTH, START_LAYER, update_dims);
       break;
     case LongRangeMethod::MPO:
-      rcs_mpo(env, mps, DEPTH, update_dims);
+      rcs_mpo(env, mps, DEPTH, START_LAYER, update_dims);
       break;
     default:
       utils::throw_unimplemented();
@@ -385,6 +518,8 @@ int main(int argc, char* argv[]) {
 
   utils::barrier();
   auto stop = high_resolution_clock::now();
+
+  save_mps(env, mps, FILENAME_OUT);
 
   BCMPS zero_amp(env, N_SITES, SITE_DIM, { 1, 1, 1 });
   auto norm = mps.norm();
@@ -395,9 +530,10 @@ int main(int argc, char* argv[]) {
   auto delta = duration_cast<milliseconds>(stop - start);
   
   if (utils::is_root()) {
-    std::cout << "|T| = " << norm << "\n";
-    std::cout << "T[0] = " << amp0 << "\n";
-    std::cout << "Max chis = " << bonds << "\n";
-    std::cout << "Time taken: " << delta.count() << " ms\n";
+    std::cout << std::endl;
+    std::cout << "|T| = " << norm << std::endl;
+    std::cout << "T[0] = " << amp0 << std::endl;
+    std::cout << "Max chis = " << bonds << std::endl;
+    std::cout << "Time taken: " << delta.count() << " ms" << std::endl;
   }
 }
