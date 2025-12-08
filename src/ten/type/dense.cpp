@@ -124,7 +124,7 @@ namespace qtnh {
     auto [dis_idxs, loc_idxs] = utils::split_dims(tot_idxs, dis_dims_.size());
     auto target_id = utils::idxs_to_i(dis_idxs, dis_dims_);
 
-    int call_id;
+    int call_id {};
     MPI_Comm_rank(bc_.gcomm(), &call_id);
 
     if (call_id == (int)target_id) {
@@ -241,7 +241,7 @@ namespace qtnh {
     loc_dims_ = loc_dims;
 
     auto tel_fun = [fun](tel a, tel b) {
-      fun(reinterpret_cast<void*>(&b), reinterpret_cast<void*>(&a), nullptr, nullptr);
+      fun(static_cast<void*>(&b), static_cast<void*>(&a), nullptr, nullptr);
       return a;
     };
     
@@ -256,14 +256,14 @@ namespace qtnh {
       }
       
       if (dis_fold_size > 1) {
-        MPI_Comm fold_comm;
+        MPI_Comm fold_comm {};
         MPI_Comm_split(bc_.gcomm(), int(bc_.gid() / dis_fold_size), int(bc_.gid()), &fold_comm);
     
-        int rank;
+        int rank = 0;
         MPI_Comm_rank(fold_comm, &rank);
         
         // TODO: Reconsider this. 
-        MPI_Op op;
+        MPI_Op op {};
         if (loc_fold_size > 1) {
           op = MPI_SUM;
         } else {
@@ -353,12 +353,12 @@ namespace qtnh {
       auto dist_idxs = utils::i_to_idxs(target->bc().gid(), target->disDims());
       auto rank_idx = dist_idxs.at(idx1);
 
-      MPI_Datatype strided, restrided;
+      MPI_Datatype strided {}, restrided {};
       MPI_Type_vector(int(num_blocks), int(block_length), int(stride), MPI_C_DOUBLE_COMPLEX, &strided);
       MPI_Type_create_resized(strided, 0, int(block_length) * sizeof(qtnh::tel), &restrided);
       MPI_Type_commit(&restrided);
 
-      MPI_Comm swap_comm;
+      MPI_Comm swap_comm {};
       MPI_Comm_split(bc.gcomm(), bc.gid() - int(rank_idx * dist_stride), bc.gid(), &swap_comm);
 
       std::vector<qtnh::tel> new_els(loc_els_.size());
@@ -399,7 +399,7 @@ namespace qtnh {
   Broadcaster TIDense::_rebcast_internal(Tensor* target, BcParams params) {
     auto& bc = target->bc();
     Broadcaster new_bc(bc.env(), bc.base(), params);
-    std::vector<MPI_Request> send_reqs(params.str * params.cyc, MPI_REQUEST_NULL);
+    std::vector<MPI_Request> send_reqs(static_cast<int>(params.str * params.cyc), MPI_REQUEST_NULL);
 
     if (bc.isActive()) {
       std::vector<int> send_sources;
@@ -449,7 +449,7 @@ namespace qtnh {
       auto shift = qtnh::uint(utils::dims_to_size(loc_dims2));
 
       if (bc.isActive()) {
-        MPI_Comm gath_comm;
+        MPI_Comm gath_comm {};
         MPI_Comm_split(bc.gcomm(), bc.gid() / int(shift), bc.gid(), &gath_comm);
 
         std::vector<qtnh::tel> new_els(target->locSize() * shift);
@@ -606,7 +606,7 @@ namespace qtnh {
       ++i2;
     }
 
-    MPI_Datatype send_type, recv_type;
+    MPI_Datatype send_type {}, recv_type {};
     MPI_Type_create_resized(send_types.at(i1), 0, sizeof(qtnh::tel), &send_type);
     MPI_Type_create_resized(recv_types.at(i2), 0, sizeof(qtnh::tel), &recv_type);
     #ifdef DEBUG_PERMUTE
@@ -840,7 +840,7 @@ namespace qtnh {
     auto ids = utils::split_vec_rel(dis_idxs, dis_dims_3_.at(0).size(), dis_dims_3_.at(1).size());
     auto ils = utils::split_vec_rel(loc_idxs, dis_dims_3_.at(0).size(), loc_dims_3_.at(1).size());
 
-    std::array<std::size_t, 3> is;
+    std::array<std::size_t, 3> is {};
     for (auto k = 0UL; k < 3UL; ++k) {
       is.at(k) = utils::idxs_to_i(
         utils::concat_vecs(ids.at(k), ils.at(k)), 

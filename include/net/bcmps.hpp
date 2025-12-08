@@ -16,7 +16,6 @@ namespace qtnh {
 
       BCMPS(qtnh::tptr tp, chi_triple chis, SITE_CANON norm = SITE_CANON::left);
       BCMPS(std::vector<qtnh::tptr>&& sites);
-      ~BCMPS() = default;
 
       static BCMPS rand(const QTNHEnv& env, std::size_t n_sites, qtnh::tidx site_dim, chi_triple chis, std::size_t bond_dim);
       BCMPS copy();

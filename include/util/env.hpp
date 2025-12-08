@@ -19,6 +19,12 @@ namespace qtnh {
       /// Initialises MPI and populates struct members accordingly. 
       QTNHEnv();
 
+      QTNHEnv(const QTNHEnv&) = delete;
+      QTNHEnv& operator=(const QTNHEnv&) = delete;
+
+      QTNHEnv(QTNHEnv&&) = delete;
+      QTNHEnv& operator=(QTNHEnv&&) = delete;
+
       /// Default destructor. 
       /// Finalises MPI. 
       ~QTNHEnv();

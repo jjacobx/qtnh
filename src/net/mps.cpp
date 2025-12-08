@@ -35,7 +35,10 @@ namespace qtnh {
     }
   }
 
-  MPS::MPS(qtnh::tptr, chi_pair, SITE_CANON) {
+  MPS::MPS(qtnh::tptr, chi_pair chis, SITE_CANON)
+  : dis_chi_(chis.first)
+  , loc_chi_(chis.second)
+  {
     utils::throw_unimplemented();
   }
   

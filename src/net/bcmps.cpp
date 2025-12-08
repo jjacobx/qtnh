@@ -1,5 +1,4 @@
 #include <algorithm>
-#include <functional>
 #include <iostream>
 #include <random>
 
@@ -38,7 +37,11 @@ namespace qtnh {
   }
 
 
-  BCMPS::BCMPS(qtnh::tptr, chi_triple, SITE_CANON) {
+  BCMPS::BCMPS(qtnh::tptr, chi_triple chis, SITE_CANON)
+  : cyc_chi_(chis.at(0))
+  , dis_chi_(chis.at(1))
+  , blk_chi_(chis.at(2))
+  {
     utils::throw_unimplemented();
   }
   

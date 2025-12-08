@@ -31,7 +31,6 @@ namespace qtnh {
       MPS(const QTNHEnv& env, std::size_t n_sites, qtnh::tidx_tup site_dims, chi_pair chis);
       MPS(qtnh::tptr tp, chi_pair chis, SITE_CANON norm = SITE_CANON::left);
       MPS(std::vector<qtnh::tptr>&& sites);
-      ~MPS() = default;
 
       static MPS rand(const QTNHEnv& env, std::size_t n_sites, qtnh::tidx site_dim, chi_pair chis, std::size_t bond_dim);
       MPS copy();
@@ -78,7 +77,6 @@ namespace qtnh {
     public:
       MPO() = delete;
       MPO(std::vector<qtnh::tptr>&& site_ops);
-      ~MPO() = default;
 
       const Tensor& at(std::size_t k) const { return *site_ops_.at(k); }
       qtnh::tptr extract(std::size_t k) { return std::move(site_ops_.at(k)); }

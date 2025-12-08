@@ -18,6 +18,12 @@ namespace qtnh {
         ProcGrid(int nprows, int npcols, int offset);
         ~ProcGrid();
 
+        ProcGrid(const ProcGrid&) = delete;
+        ProcGrid& operator=(const ProcGrid&) = delete;
+
+        ProcGrid(ProcGrid&&) = default;
+        ProcGrid& operator=(ProcGrid&&) = default;
+
         constexpr mtup procDims() const { return { nprows_, npcols_ }; }
         constexpr mtup procIdxs() const { return { row_, col_ }; }
         constexpr bool active() const { return active_; }
@@ -113,10 +119,10 @@ namespace qtnh {
         }
 
         qtnh::tel& at(std::size_t i, std::size_t j) {
-          auto ib = i % (md_ * mc_);
-          auto jb = j % (nd_ * nc_);
-          auto ic = i / (mb_ * md_);
-          auto jc = j / (nb_ * nd_);
+          auto ib = i % static_cast<std::size_t>(md_ * mc_);
+          auto jb = j % static_cast<std::size_t>(nd_ * nc_);
+          auto ic = i / static_cast<std::size_t>(mb_ * md_);
+          auto jc = j / static_cast<std::size_t>(nb_ * nd_);
 
           auto idx = jb + jc * nb_ + ib * nb_ * nc_ + ic * nb_ * nc_ * mb_;
           return loc_els_.at(idx);

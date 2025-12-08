@@ -29,7 +29,6 @@ namespace qtnh {
       Decomposer() = delete;
       Decomposer(qtnh::tptr tp, DecParams params, bool skip_permute = false);
       Decomposer(qtnh::tptr tp, DecParams params, PTupleSrc init_ptup);
-      ~Decomposer() = default;
 
       void decompose(DecType type = DecType::SVD);
 

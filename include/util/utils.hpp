@@ -95,8 +95,8 @@ namespace qtnh {
 
     template<typename Op>
     void to_mpi_fun(void* a, void* b, int*, MPI_Datatype*) {
-      auto at = reinterpret_cast<tel*>(a);
-      auto bt = reinterpret_cast<tel*>(b);
+      auto at = static_cast<tel*>(a);
+      auto bt = static_cast<tel*>(b);
 
       *bt = Op(*at, *bt);
     };

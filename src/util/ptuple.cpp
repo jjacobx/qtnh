@@ -32,20 +32,20 @@ namespace qtnh {
     return tupi;
   }
 
-  PTuple::shifter::shifter(std::vector<qtnh::tidx_tup_st>& tup, std::size_t pos)
+  PTuple::shifter::shifter(tup_t* tup, std::size_t pos)
   : shifter(tup, pos, pos + 1)
   {}
 
-  PTuple::shifter::shifter(std::vector<qtnh::tidx_tup_st>& tup, std::size_t from, std::size_t to)
+  PTuple::shifter::shifter(tup_t* tup, std::size_t from, std::size_t to)
   : tup_(tup)
   , from_(from)
   , to_(to)
   {}
   
   void PTuple::shifter::operator>>(int n) {
-    std::vector<qtnh::tidx_tup_st> sub_tup(tup_.begin() + from_, tup_.begin() + to_);
-    tup_.erase(tup_.begin() + from_, tup_.begin() + to_);
-    tup_.insert(tup_.begin() + from_ + n, sub_tup.begin(), sub_tup.end());
+    std::vector<qtnh::tidx_tup_st> sub_tup((*tup_).begin() + from_, (*tup_).begin() + to_);
+    (*tup_).erase((*tup_).begin() + from_, (*tup_).begin() + to_);
+    (*tup_).insert((*tup_).begin() + from_ + n, sub_tup.begin(), sub_tup.end());
   }
 
   void PTuple::shifter::operator<<(int n) {
@@ -53,11 +53,11 @@ namespace qtnh {
   }
 
   PTuple::shifter PTuple::at(std::size_t pos) {
-    return shifter(tup_, pos);
+    return shifter(&tup_, pos);
   }
 
   PTuple::shifter PTuple::at(std::size_t from, std::size_t to) {
-    return shifter(tup_, from, to);
+    return shifter(&tup_, from, to);
   }
 
   PTupleTar PTupleTar::toTar() const {
