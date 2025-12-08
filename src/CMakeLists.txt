@@ -121,6 +121,14 @@ if (ScaLAPACK_FOUND)
   )
 endif()
 
+if (ADIOS2_FOUND)
+  message(STATUS "Linking ADIOS2.")
+  target_link_libraries(qtnh
+    PUBLIC
+    adios2::cxx_mpi
+  )
+endif()
+
 install(
   TARGETS qtnh
   EXPORT qtnh
