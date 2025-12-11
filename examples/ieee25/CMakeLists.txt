@@ -13,7 +13,3 @@ target_link_libraries(qftsv qtnh)
 add_executable(rcsmps rcsmps.cpp)
 add_dependencies(rcsmps qtnh)
 target_link_libraries(rcsmps qtnh)
-
-add_executable(sycamore sycamore.cpp)
-add_dependencies(sycamore qtnh)
-target_link_libraries(sycamore qtnh)

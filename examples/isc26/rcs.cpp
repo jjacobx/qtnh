@@ -531,7 +531,7 @@ int main(int argc, char* argv[]) {
   
   if (utils::is_root()) {
     std::cout << std::endl;
-    std::cout << "|T| = " << norm << std::endl;
+    std::cout << "|T| = " << norm.real() << std::endl;
     std::cout << "T[0] = " << amp0 << std::endl;
     std::cout << "Max chis = " << bonds << std::endl;
     std::cout << "Time taken: " << delta.count() << " ms" << std::endl;
