@@ -118,7 +118,7 @@ int main(int, char* argv[]) {
   auto mps1 = load_mps(env, FILENAME_IN_1);
   auto mps2 = load_mps(env, FILENAME_IN_2);
 
-  permute(mps2, ptup_ab_cd, false);
+  // permute(mps2, ptup_ab_cd, false);
 
   auto norm1 = mps1.norm();
   auto norm2 = mps2.norm();
@@ -128,10 +128,12 @@ int main(int, char* argv[]) {
 
   auto overlap = mps1.overlap(mps2);
   auto sim = std::sqrt(std::abs(overlap));
+  auto fid = std::pow(std::abs(overlap), 2.0);
   if (utils::is_root()) {
     std::cout << "|MPS1| = " << norm1 << std::endl;
     std::cout << "|MPS2| = " << norm2 << std::endl;
     std::cout << "Overlap(MPS1, MPS2) = " << overlap << std::endl;
     std::cout << "Sim(MPS1, MPS2) = " << sim << std::endl;
+    std::cout << "F(MPS1, MPS2) = " << fid << std::endl;
   }
 }
