@@ -6,6 +6,7 @@
 #include "ten/con/pair-defs.hpp"
 #include "ten/dec/base.hpp"
 #include "util/ops.hpp"
+#include "util/indexing.hpp"
 #include "util/vector.hpp"
 
 namespace qtnh {
@@ -59,7 +60,13 @@ namespace qtnh {
     }
   }
 
-  BCMPS BCMPS::rand(const QTNHEnv& env, std::size_t n_sites, qtnh::tidx site_dim, chi_triple chis, std::size_t bond_dim) {
+  BCMPS BCMPS::rand(
+    const QTNHEnv& env, 
+    std::size_t n_sites, 
+    qtnh::tidx site_dim, 
+    chi_triple chis, 
+    std::size_t chi_in
+  ) {
     std::mt19937 gen(2025);
     std::uniform_real_distribution<> dis(-1.0, 1.0);
 
@@ -68,38 +75,26 @@ namespace qtnh {
 
     for (auto i = 0UL; i < n_sites; ++i) {
       auto tp = Tensor::cast<DenseTensor>(std::move(mps.site_tensors_.at(i)));
-      auto loc_size = std::min(bond_dim, chis.at(0) * chis.at(2));
-      auto dis_size = bond_dim / loc_size;
 
-      // Global site-wise element calculation to ensure repeatability. 
-      std::vector<tel> els(site_dim * bond_dim * bond_dim);
-      for (auto j = 0UL; j < els.size(); ++j) {
-        auto rel = dis(gen), img = dis(gen);
-        els.at(j) = tel { rel, img };
-      }
+      // ? Is flag priority correct? 
+      std::vector<TIFlag> ifls { 
+        { "r", 1 }, { "c", 1 }, 
+        { "p", 0 }, { "r", 0 }, { "r" , 2 }, { "c", 0 }, { "c" , 2 }
+      };
 
-      for (auto j = 0UL; j < loc_size; ++j) {
-        if (i == 0UL && j > 0UL) break;
+      TIndexing ti(tp->totDims(), ifls);
 
-        for (auto k = 0UL; k < loc_size; ++k) {
-          if (i + 1 == n_sites && k > 0UL) break;
+      for (auto j = 0UL; j < site_dim; ++j) {
+        auto count_row = 0UL;
+        for (auto idx : ti.tup("r", { 0, 0, j, 0, 0, 0, 0 })) {
+          if (count_row++ >= chi_in) break;
 
-          auto p = env.proc_id / chis.at(1);
-          auto q = env.proc_id % chis.at(1);
+          auto count_col = 0UL;
+          for (auto idx : ti.tup("c", idx)) {
+            if (count_col++ >= chi_in) break;
 
-          if (p < dis_size && q < dis_size) {
-            for (auto l = 0UL; l < site_dim; ++l) {
-              auto pos = l * bond_dim * bond_dim + 
-                (p * chis.at(1) + j) * bond_dim + 
-                q * chis.at(1) + k;
-              
-              auto c1 = j / chis.at(2);
-              auto c2 = k / chis.at(2);
-              auto b1 = j % chis.at(2);
-              auto b2 = k % chis.at(2);
-
-              tp->at({ p, q, l, c1, b1, c2, b2 }) = els.at(pos);
-            }
+            auto rel = dis(gen), img = dis(gen);
+            if (tp->has(idx)) tp->at(idx) = { rel, img };
           }
         }
       }
@@ -111,7 +106,7 @@ namespace qtnh {
     mps.rightCanonicalise(0);
     mps.renormalise();
 
-    return mps.copy();
+    return mps;
   }
 
   BCMPS BCMPS::copy() {
