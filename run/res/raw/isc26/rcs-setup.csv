@@ -1,0 +1,97 @@
+SLURM_JOB_ID,SLURM_JOB_NAME,SLURM_JOB_NUM_NODES,SLURM_NTASKS,MPI_IMPL,EXPERIMENT,EXECUTABLE,ARG1,ARG2,ARG3,ARG4,ARG5,OUTPUT
+11879671,qtnh,2,256,UCX,experiment,rcs,4,8,16,16,0,"|T| = 0.311551
+T[0] = (1.49129e-07,2.04678e-07)
+Time taken: 9203842 ms"
+11879672,qtnh,2,256,UCX,experiment,rcs,4,1,16,8,0,"|T| = 0.0293839
+T[0] = (-9.01575e-08,-5.81752e-08)
+Time taken: 36013 ms"
+11879673,qtnh,2,256,UCX,experiment,rcs,4,8,16,16,0,"|T| = 0.295431
+T[0] = (1.49413e-07,6.35249e-08)
+Time taken: 852603 ms"
+11879674,qtnh,2,256,UCX,experiment,rcs,4,1,16,8,0,"|T| = 0.0218732
+T[0] = (-2.1433e-07,-1.6771e-07)
+Time taken: 25508 ms"
+11879675,qtnh,2,256,UCX,experiment,rcs,4,8,16,16,0,"|T| = 0.796036
+T[0] = (1.70942e-07,-6.80743e-08)
+Time taken: 5661234 ms"
+11879676,qtnh,2,256,UCX,experiment,rcs,4,1,16,8,0,"|T| = 0.203114
+T[0] = (2.73884e-07,-2.53956e-07)
+Time taken: 48220 ms"
+11879677,qtnh,2,256,UCX,experiment,rcs,4,8,16,16,0,"|T| = 0.807374
+T[0] = (1.85283e-07,-7.50812e-08)
+Time taken: 865557 ms"
+11879678,qtnh,2,256,UCX,experiment,rcs,4,1,16,8,0,"|T| = 0.182963
+T[0] = (4.67932e-07,-3.02562e-07)
+Time taken: 33131 ms"
+11879679,qtnh,2,256,UCX,experiment,rcs,4,4,16,16,0,"|T| = 0.200922
+T[0] = (1.2573e-07,-2.16257e-08)
+Time taken: 897302 ms"
+11879680,qtnh,2,256,UCX,experiment,rcs,4,1,16,4,0,"|T| = 0.0123617
+T[0] = (-2.21822e-07,-2.25267e-07)
+Time taken: 21168 ms"
+11879681,qtnh,2,256,UCX,experiment,rcs,4,4,16,16,0,"|T| = 0.181744
+T[0] = (1.3971e-07,5.00318e-08)
+Time taken: 211650 ms"
+11879682,qtnh,2,256,UCX,experiment,rcs,4,1,16,4,0,"|T| = 0.010804
+T[0] = (-2.45833e-07,-2.15645e-07)
+Time taken: 16640 ms"
+11879683,qtnh,2,256,UCX,experiment,rcs,4,4,16,16,0,"|T| = 0.617102
+T[0] = (2.11456e-07,-5.76681e-08)
+Time taken: 650081 ms"
+11879684,qtnh,2,256,UCX,experiment,rcs,4,1,16,4,0,"|T| = 0.11638
+T[0] = (2.41747e-07,-1.00954e-07)
+Time taken: 31042 ms"
+11879685,qtnh,2,256,UCX,experiment,rcs,4,4,16,16,0,"|T| = 0.618556
+T[0] = (2.62185e-07,-7.74672e-08)
+Time taken: 248755 ms"
+11879686,qtnh,2,256,UCX,experiment,rcs,4,1,16,4,0,"|T| = 0.101769
+T[0] = (5.21145e-07,-2.88988e-07)
+Time taken: 23628 ms"
+11879687,qtnh,2,256,UCX,experiment,rcs,4,2,16,16,0,"|T| = 0.116243
+T[0] = (1.4213e-07,-6.57789e-08)
+Time taken: 194594 ms"
+11879688,qtnh,2,256,UCX,experiment,rcs,4,1,16,2,0,"|T| = 0.00433831
+T[0] = (-1.81326e-07,-7.51152e-07)
+Time taken: 16254 ms"
+11879689,qtnh,2,256,UCX,experiment,rcs,4,2,16,16,0,"|T| = 0.0971671
+T[0] = (5.85731e-08,-2.7854e-07)
+Time taken: 76278 ms"
+11879690,qtnh,2,256,UCX,experiment,rcs,4,1,16,2,0,"|T| = 0.0038054
+T[0] = (-7.41759e-08,-5.71644e-07)
+Time taken: 13922 ms"
+11879691,qtnh,2,256,UCX,experiment,rcs,4,2,16,16,0,"|T| = 0.457983
+T[0] = (2.41865e-07,-1.00479e-07)
+Time taken: 231257 ms"
+11879692,qtnh,2,256,UCX,experiment,rcs,4,1,16,2,0,"|T| = 0.0564065
+T[0] = (3.63713e-07,-1.5604e-07)
+Time taken: 15658 ms"
+11879693,qtnh,2,256,UCX,experiment,rcs,4,2,16,16,0,"|T| = 0.450168
+T[0] = (2.29277e-07,-1.13365e-07)
+Time taken: 99423 ms"
+11879694,qtnh,2,256,UCX,experiment,rcs,4,1,16,2,0,"|T| = 0.0534462
+T[0] = (5.43196e-07,-2.32745e-07)
+Time taken: 12830 ms"
+11879695,qtnh,2,256,UCX,experiment,rcs,4,1,16,16,0,"|T| = 0.0617923
+T[0] = (1.86057e-08,-3.44765e-07)
+Time taken: 77422 ms"
+11879696,qtnh,2,256,UCX,experiment,rcs,4,1,16,1,0,"|T| = 0.0013474
+T[0] = (-8.02546e-07,-1.49106e-06)
+Time taken: 13999 ms"
+11879697,qtnh,2,256,UCX,experiment,rcs,4,1,16,16,0,"|T| = 0.0492007
+T[0] = (4.14512e-08,-1.47928e-07)
+Time taken: 34415 ms"
+11879698,qtnh,2,256,UCX,experiment,rcs,4,1,16,1,0,"|T| = 0.00123127
+T[0] = (5.44492e-07,-9.32223e-07)
+Time taken: 8898 ms"
+11879699,qtnh,2,256,UCX,experiment,rcs,4,1,16,16,0,"|T| = 0.318078
+T[0] = (2.18678e-07,-1.7863e-07)
+Time taken: 91643 ms"
+11879700,qtnh,2,256,UCX,experiment,rcs,4,1,16,1,0,"|T| = 0.0269076
+T[0] = (2.33018e-07,-2.84832e-07)
+Time taken: 14067 ms"
+11879701,qtnh,2,256,UCX,experiment,rcs,4,1,16,16,0,"|T| = 0.307007
+T[0] = (2.45471e-07,-1.50326e-07)
+Time taken: 52746 ms"
+11879702,qtnh,2,256,UCX,experiment,rcs,4,1,16,1,0,"|T| = 0.0210336
+T[0] = (3.56648e-07,-4.59685e-07)
+Time taken: 14215 ms"
