@@ -241,6 +241,12 @@ void rcs_swap(const QTNHEnv& env, BCMPS& mps, std::size_t d,
   std::uniform_int_distribution<std::size_t> dist02(0, 2);
 
   if (utils::is_root()) std::cout << std::endl;
+
+  // Move random seed forward to layer init. 
+  for (auto i = 0UL; i < N_SITES * init; ++i) {
+    dist02(gen);
+  }
+
   for (auto i = init; i < init + d; ++i) {
     if (utils::is_root()) {
       std::cout << "Layer " << i + 1 << "/" << init + d << std::endl;
@@ -519,7 +525,9 @@ int main(int argc, char* argv[]) {
   utils::barrier();
   auto stop = high_resolution_clock::now();
 
-  save_mps(env, mps, FILENAME_OUT);
+  if (std::string(FILENAME_OUT) != "x") {
+    save_mps(env, mps, FILENAME_OUT);
+  }
 
   BCMPS zero_amp(env, N_SITES, SITE_DIM, { 1, 1, 1 });
   auto norm = mps.norm();
