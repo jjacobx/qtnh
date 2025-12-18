@@ -1,37 +1,37 @@
-SLURM_JOB_ID,SLURM_JOB_NAME,SLURM_JOB_NUM_NODES,SLURM_NTASKS,MPI_IMPL,EXPERIMENT,EXECUTABLE,ARG1,ARG2,ARG3,ARG4,ARG5,OUTPUT
-11898408,qtnh,1,1,UCX,experiment,rcs,20,2,1,16,0,"|T| = 7.27862e-13
+SLURM_JOB_ID,SLURM_JOB_NAME,SLURM_JOB_NUM_NODES,SLURM_NTASKS,MPI_IMPL,EXPERIMENT,EXECUTABLE,ARG1,ARG2,ARG3,ARG4,ARG5,ARG6,ARG7,ARG8,ARG9,ARG10,OUTPUT
+11898408,qtnh,1,1,UCX,experiment,rcs,20,2,1,16,SWAP,QPD,0,x,x,,"|T| = 7.27862e-13
 T[0] = (1.03412e-08,-6.73777e-09)
 Time taken: 18034 ms"
-11898409,qtnh,1,4,UCX,experiment,rcs,20,2,2,16,0,"|T| = 1.12969e-12
+11898409,qtnh,1,4,UCX,experiment,rcs,20,2,2,16,SWAP,QPD,0,x,x,,"|T| = 1.12969e-12
 T[0] = (2.82854e-09,-3.08416e-09)
 Time taken: 48894 ms"
-11898410,qtnh,1,16,UCX,experiment,rcs,20,2,4,16,0,"|T| = 3.31468e-12
+11898410,qtnh,1,16,UCX,experiment,rcs,20,2,4,16,SWAP,QPD,0,x,x,,"|T| = 3.31468e-12
 T[0] = (-2.19746e-08,-7.885e-09)
 Time taken: 84632 ms"
-11898411,qtnh,1,64,UCX,experiment,rcs,20,2,8,16,0,"|T| = 3.03751e-11
+11898411,qtnh,1,64,UCX,experiment,rcs,20,2,8,16,SWAP,QPD,0,x,x,,"|T| = 3.03751e-11
 T[0] = (3.66365e-08,1.61447e-08)
 Time taken: 170574 ms"
-11898412,qtnh,2,256,UCX,experiment,rcs,20,2,16,16,0,"|T| = 8.51407e-11
+11898412,qtnh,2,256,UCX,experiment,rcs,20,2,16,16,SWAP,QPD,0,x,x,,"|T| = 8.51407e-11
 T[0] = (2.99016e-09,7.59491e-10)
 Time taken: 495752 ms"
-11898413,qtnh,8,1024,UCX,experiment,rcs,20,2,32,16,0,"|T| = 2.10398e-10
+11898413,qtnh,8,1024,UCX,experiment,rcs,20,2,32,16,SWAP,QPD,0,x,x,,"|T| = 2.10398e-10
 T[0] = (1.62626e-09,5.47736e-09)
 Time taken: 1430573 ms"
-11898436,qtnh,1,1,UCX,experiment,rcs,20,4,1,16,0,"|T| = 1.79389e-12
+11898436,qtnh,1,1,UCX,experiment,rcs,20,4,1,16,SWAP,QPD,0,x,x,,"|T| = 1.79389e-12
 T[0] = (5.30797e-10,-2.29697e-10)
 Time taken: 63072 ms"
-11898437,qtnh,1,4,UCX,experiment,rcs,20,4,2,16,0,"|T| = 4.53312e-12
+11898437,qtnh,1,4,UCX,experiment,rcs,20,4,2,16,SWAP,QPD,0,x,x,,"|T| = 4.53312e-12
 T[0] = (-1.94061e-09,-4.1951e-10)
 Time taken: 120012 ms"
-11898438,qtnh,1,16,UCX,experiment,rcs,20,4,4,16,0,"|T| = 2.30081e-11
+11898438,qtnh,1,16,UCX,experiment,rcs,20,4,4,16,SWAP,QPD,0,x,x,,"|T| = 2.30081e-11
 T[0] = (2.18659e-08,1.12743e-08)
 Time taken: 203059 ms"
-11898439,qtnh,1,64,UCX,experiment,rcs,20,4,8,16,0,"|T| = 8.47503e-11
+11898439,qtnh,1,64,UCX,experiment,rcs,20,4,8,16,SWAP,QPD,0,x,x,,"|T| = 8.47503e-11
 T[0] = (1.20211e-09,-7.38411e-09)
 Time taken: 440438 ms"
-11898440,qtnh,2,256,UCX,experiment,rcs,20,4,16,16,0,"|T| = 2.016e-10
+11898440,qtnh,2,256,UCX,experiment,rcs,20,4,16,16,SWAP,QPD,0,x,x,,"|T| = 2.016e-10
 T[0] = (-5.37674e-09,9.98762e-10)
 Time taken: 1268850 ms"
-11898441,qtnh,8,1024,UCX,experiment,rcs,20,4,32,16,0,"|T| = 5.56847e-10
+11898441,qtnh,8,1024,UCX,experiment,rcs,20,4,32,16,SWAP,QPD,0,x,x,,"|T| = 5.56847e-10
 T[0] = (7.48566e-10,1.38344e-10)
 Time taken: 3262639 ms"

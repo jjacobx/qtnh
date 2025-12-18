@@ -62,8 +62,7 @@ for (file in files_out) {
 
   # Extract executable arguments
   exe_args <- str_split_1(lines[[line_exe]], ":? ")
-  exe_args <- str_extract(exe_args, "^[0-9]+$")
-  exe_args <- as.numeric(na.omit(exe_args))
+  exe_args <- exe_args[3:length(exe_args)]
   exe_names <- paste0("ARG", seq_along(exe_args))
 
   exe_data <- as.list(exe_args)
