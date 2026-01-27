@@ -8,7 +8,7 @@ OUT=out/isc26/${EXP}/%j.out
 PROG=examples/isc26/rcs
 
 DEPTH=20
-CYC=4
+CYC=8
 BLK=16
 DIS_MAX=32
 

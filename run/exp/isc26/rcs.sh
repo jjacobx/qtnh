@@ -2,14 +2,14 @@
 
 BUILD_DIR=build-release
 MPI_IMPL=UCX
-TIME=24:00:0
+TIME=5:00:0
 EXP=rcs
 OUT=out/isc26/${EXP}/%j.out
 PROG=examples/isc26/rcs
 
 DEPTH=20
-CYC=16
-DIS=32
+CYC=4
+DIS=64
 BLK=16
 
 TASKS=$(($DIS * $DIS))
@@ -21,7 +21,8 @@ if [ $NODES -eq 0 ]; then
   TPN=$TASKS
 fi
 
-FILE_OUT=io/isc26/rcs20-qpd8k.bp
+#FILE_OUT=io/isc26/rcs20-qpd8k.bp
+FILE_OUT=x
 ARGS="$DEPTH $CYC $DIS $BLK SWAP QPD 0 x ${FILE_OUT}"
 sbatch -D $QTNH_DIR/run -N $NODES --ntasks-per-node=$TPN --time=$TIME -o $OUT \
   --export=BUILD_DIR=$BUILD_DIR,PROG=$PROG,ARGS="$ARGS",MPI_IMPL=$MPI_IMPL \

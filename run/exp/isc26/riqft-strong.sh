@@ -2,7 +2,7 @@
 
 BUILD_DIR=build-release
 MPI_IMPL=UCX
-TIME=24:00:0
+TIME=2:00:0
 EXP=riqft-strong
 OUT=out/isc26/${EXP}/%j.out
 PROG=examples/isc26/riqft
@@ -55,3 +55,43 @@ for dis in $DIS_VALS; do
     --export=BUILD_DIR=$BUILD_DIR,PROG=$PROG,EXP=$EXP,ARGS="$ARGS",MPI_IMPL=$MPI_IMPL \
     $QTNH_DIR/run/run.slurm
 done
+
+# ARGS="$SITES 64 1 $BLK $SAT QPD"
+# sbatch -D $QTNH_DIR/run -N 1 --ntasks-per-node=1 --time=$TIME -o $OUT \
+#   --export=BUILD_DIR=$BUILD_DIR,PROG=$PROG,EXP=$EXP,ARGS="$ARGS",MPI_IMPL=$MPI_IMPL \
+#   $QTNH_DIR/run/run.slurm
+
+# ARGS="$SITES 128 1 $BLK $SAT QPD"
+# sbatch -D $QTNH_DIR/run -N 1 --ntasks-per-node=1 --time=$TIME -o $OUT \
+#   --export=BUILD_DIR=$BUILD_DIR,PROG=$PROG,EXP=$EXP,ARGS="$ARGS",MPI_IMPL=$MPI_IMPL \
+#   $QTNH_DIR/run/run.slurm
+
+# ARGS="$SITES 64 2 $BLK $SAT QPD"
+# sbatch -D $QTNH_DIR/run -N 1 --ntasks-per-node=4 --time=$TIME -o $OUT \
+#   --export=BUILD_DIR=$BUILD_DIR,PROG=$PROG,EXP=$EXP,ARGS="$ARGS",MPI_IMPL=$MPI_IMPL \
+#   $QTNH_DIR/run/run.slurm
+
+# ARGS="$SITES 32 4 $BLK $SAT QPD"
+# sbatch -D $QTNH_DIR/run -N 1 --ntasks-per-node=16 --time=$TIME -o $OUT \
+#   --export=BUILD_DIR=$BUILD_DIR,PROG=$PROG,EXP=$EXP,ARGS="$ARGS",MPI_IMPL=$MPI_IMPL \
+#   $QTNH_DIR/run/run.slurm
+
+# ARGS="$SITES 256 1 $BLK $SAT QPD"
+# sbatch -D $QTNH_DIR/run -N 1 --ntasks-per-node=1 --time=$TIME -o $OUT \
+#   --export=BUILD_DIR=$BUILD_DIR,PROG=$PROG,EXP=$EXP,ARGS="$ARGS",MPI_IMPL=$MPI_IMPL \
+#   $QTNH_DIR/run/run.slurm
+
+# ARGS="$SITES 128 2 $BLK $SAT QPD"
+# sbatch -D $QTNH_DIR/run -N 1 --ntasks-per-node=4 --time=$TIME -o $OUT \
+#   --export=BUILD_DIR=$BUILD_DIR,PROG=$PROG,EXP=$EXP,ARGS="$ARGS",MPI_IMPL=$MPI_IMPL \
+#   $QTNH_DIR/run/run.slurm
+
+# ARGS="$SITES 64 4 $BLK $SAT QPD"
+# sbatch -D $QTNH_DIR/run -N 1 --ntasks-per-node=16 --time=$TIME -o $OUT \
+#   --export=BUILD_DIR=$BUILD_DIR,PROG=$PROG,EXP=$EXP,ARGS="$ARGS",MPI_IMPL=$MPI_IMPL \
+#   $QTNH_DIR/run/run.slurm
+
+# ARGS="$SITES 32 8 $BLK $SAT QPD"
+# sbatch -D $QTNH_DIR/run -N 1 --ntasks-per-node=64 --time=$TIME -o $OUT \
+#   --export=BUILD_DIR=$BUILD_DIR,PROG=$PROG,EXP=$EXP,ARGS="$ARGS",MPI_IMPL=$MPI_IMPL \
+#   $QTNH_DIR/run/run.slurm
