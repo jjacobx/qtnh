@@ -16,8 +16,6 @@ namespace qtnh {
   class TensorNetwork {
     public:
       TensorNetwork();
-      TensorNetwork(const TensorNetwork&) = delete;
-      ~TensorNetwork() = default;
 
       /// Used for storage of wires for tensor contraction, together with their two target tensors. 
       struct Bond {
@@ -28,9 +26,6 @@ namespace qtnh {
         /// @param tids Pair of IDs of target tensors. 
         /// @param ws Vector of wires for contraction. 
         Bond(std::pair<qtnh::uint, qtnh::uint> tids, std::vector<qtnh::wire> ws);
-
-        /// Default destructor. 
-        ~Bond() = default;
       };
 
       /// @brief Get tensor with ID. 

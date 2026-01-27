@@ -4,9 +4,6 @@
 #include "util/ops.hpp"
 #endif
 
-#include <iostream>
-#include "util/ops.hpp"
-
 #include "blas/routines.hpp"
 #include "blas/wrappers.hpp"
 

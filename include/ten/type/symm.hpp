@@ -13,8 +13,13 @@ namespace qtnh {
   class SymmTensorBase : public DenseTensorBase {
     public: 
       SymmTensorBase() = delete;
-      SymmTensorBase(const SymmTensorBase&) = delete;
       virtual ~SymmTensorBase() = default;
+      
+      SymmTensorBase(const SymmTensorBase&) = delete;
+      SymmTensorBase& operator=(const SymmTensorBase&) = delete;
+
+      SymmTensorBase(SymmTensorBase&&) = default;
+      SymmTensorBase& operator=(SymmTensorBase&&) = default;
 
       virtual TT type() const noexcept override { return TT::symmTensorBase; }
 
@@ -95,8 +100,13 @@ namespace qtnh {
       friend class SymmTensorBase;
 
       SymmTensor() = delete;
-      SymmTensor(const SymmTensor&) = delete;
       ~SymmTensor() = default;
+
+      SymmTensor(const SymmTensor&) = delete;
+      SymmTensor& operator=(const SymmTensor&) = delete;
+
+      SymmTensor(SymmTensor&&) = default;
+      SymmTensor& operator=(SymmTensor&&) = default;
 
       /// @brief Construct symmetric tensor with default distribution parameters and transfer its ownership. 
       /// @param env Environment to use for construction. 
@@ -230,8 +240,13 @@ namespace qtnh {
   class SwapTensor : public SymmTensorBase {
     public:
       SwapTensor() = delete;
-      SwapTensor(const SymmTensor&) = delete;
       ~SwapTensor() = default;
+
+      SwapTensor(const SwapTensor&) = delete;
+      SwapTensor& operator=(const SwapTensor&) = delete;
+
+      SwapTensor(SwapTensor&&) = default;
+      SwapTensor& operator=(SwapTensor&&) = default;
 
       /// @brief Construct swap tensor with default distribution parameters and transfer its ownership. 
       /// @param env Environment to use for construction. 

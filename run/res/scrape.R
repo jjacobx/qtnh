@@ -23,7 +23,7 @@ files_out <- list.files(data_dir, "*.out")
 data_table <- tibble()
 
 rm_patterns = character(0)
-if (length(length(cmd_args)) > 1) {
+if (length(cmd_args) > 1) {
   rm_patterns <- cmd_args[2:length(cmd_args)]
 }
 
@@ -35,6 +35,10 @@ for (file in files_out) {
   line_exe <- str_which(lines, "^Running.*:")
   line_start <- line_exe + 1
   line_end <- str_which(lines, "^Finished running") - 1
+
+  if (length(line_end) == 0) {
+    line_end <- length(lines)
+  }
 
   # Match metadata in the form FIELD=value
   meta_lines <- str_extract(lines[1:(line_exe - 1)], "^[A-Z_0-9]+=.*")
@@ -58,8 +62,7 @@ for (file in files_out) {
 
   # Extract executable arguments
   exe_args <- str_split_1(lines[[line_exe]], ":? ")
-  exe_args <- str_extract(exe_args, "^[0-9]+$")
-  exe_args <- as.numeric(na.omit(exe_args))
+  exe_args <- exe_args[3:length(exe_args)]
   exe_names <- paste0("ARG", seq_along(exe_args))
 
   exe_data <- as.list(exe_args)

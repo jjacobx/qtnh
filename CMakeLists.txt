@@ -14,6 +14,7 @@ endif()
 
 option(BUILD_SHARED_LIBS "Build shared library" ON)
 option(SKIP_ARCHER2_LIBS "Skips libraries that don't require linking on ARCHER2" OFF)
+option(INCLUDE_ADIOS2 "Include ADIOS2 library for IO support" OFF)
 
 ## Dependencies
 
@@ -27,6 +28,11 @@ find_package(MPI COMPONENTS C CXX REQUIRED)
 # NOTE: now requires C/MPI_C support 
 if (NOT SKIP_ARCHER2_LIBS)
   find_package(ScaLAPACK REQUIRED)
+endif()
+
+# ADIOS2
+if (INCLUDE_ADIOS2)
+  find_package(ADIOS2 REQUIRED)
 endif()
 
 ## QTNH

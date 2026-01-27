@@ -131,7 +131,7 @@ namespace qtnh {
     tp2_ = Tensor::cast<DenseTensor>(Tensor::permute(std::move(tp2_), ptup2.toTar().tup()));
 
     // Calculate matrix parameters. 
-    std::array<int, 4> sizes1, sizes2;
+    std::array<int, 4> sizes1 {}, sizes2 {};
     auto to_size = [](auto dims) { return int(utils::dims_to_size(dims)); };
     std::transform(dims1.begin(), dims1.end(), sizes1.begin(), to_size);
     std::transform(dims2.begin(), dims2.end(), sizes2.begin(), to_size);
@@ -220,7 +220,7 @@ namespace qtnh {
     auto ndis_cons = 0u;
     for (auto w : ws) {
       if (w.first < ndis1) {
-        if (w.first < ndis1) ptup1.at(w.first) = ndis1 - ndis_cons - 1;
+        ptup1.at(w.first) = ndis1 - ndis_cons - 1;
         for (auto i = w.first + 1; i < ndis1; ++i) {
           if (ptup1.at(i) < ndis1 - ndis_cons) --ptup1.at(i);
         }
@@ -341,7 +341,7 @@ namespace qtnh {
 
         // ! Expect MPI memory limit issues. 
         // ! Can be performed multiple times with offset for larger arrays. 
-        MPI_Comm allr_comm;
+        MPI_Comm allr_comm {};
         MPI_Comm_split(t3.bc().gcomm(), colour, t3.bc().gid(), &allr_comm);
         MPI_Allreduce(MPI_IN_PLACE, t3.loc_els_.data(), int(loc_size), 
                       MPI_C_DOUBLE_COMPLEX, MPI_SUM, allr_comm);
@@ -505,7 +505,7 @@ namespace qtnh {
     std::size_t ndis_cons = 0;
     for (auto w : ws) {
       if (w.first < ndis1) {
-        if (w.first < ndis1) ptup1.at(w.first) = ndis1 - ndis_cons - 1;
+        ptup1.at(w.first) = ndis1 - ndis_cons - 1;
         for (qtnh::tidx_tup_st i = w.first + 1; i < ndis1; ++i) {
           if (ptup1.at(i) < ndis1 - ndis_cons) --ptup1.at(i);
         }

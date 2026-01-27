@@ -45,6 +45,14 @@ target_compile_options(mps-test
   PRIVATE
   -Wall
 )
+  
+add_executable(overlap-test overlap.cpp)
+add_dependencies(overlap-test qtnh)
+target_link_libraries(overlap-test qtnh)
+target_compile_options(overlap-test
+  PRIVATE
+  -Wall
+)
 
 add_executable(serial-test serial.cpp)
 add_dependencies(serial-test qtnh)

@@ -12,7 +12,7 @@ namespace qtnh {
     }
 
     bool is_root() {
-      int proc_id;
+      int proc_id {};
       MPI_Comm_rank(MPI_COMM_WORLD, &proc_id);
       return (proc_id == 0);
     }
@@ -89,8 +89,8 @@ namespace qtnh {
 
     namespace binops {
       void add_sq(void* a, void* b, int*, MPI_Datatype*) {
-        auto& at = *reinterpret_cast<tel*>(a);
-        auto& bt = *reinterpret_cast<tel*>(b);
+        auto& at = *static_cast<tel*>(a);
+        auto& bt = *static_cast<tel*>(b);
 
         bt = bt + at * std::conj(at);
       }

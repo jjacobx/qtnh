@@ -59,6 +59,12 @@ extract_time <- \(x)
   str_split_1(" ") |> 
   _[[3]] |> 
   as.numeric()
+
+extract_time_per_iteration <- \(x)
+  str_extract(x, "Time per iteration: [0-9]+.[0-9]+ ms") |> 
+  str_split_1(" ") |> 
+  _[[4]] |> 
+  as.double()
   
 extract_norm <- \(x)
   str_extract(x, "\\|T\\| = (.*)") |> 
@@ -88,6 +94,8 @@ raw_qftn <- read_delim("raw/ieee25/qftn.csv", delim = ',')
 raw_qftzmps <- read_delim("raw/ieee25/qftmps.csv", delim = ',')
 raw_qftrmps <- read_delim("raw/ieee25/qftrmps.csv", delim = ',')
 raw_rcsmps <- read_delim("raw/ieee25/rcsmps.csv", delim = ',')
+
+raw_permute <- read_delim("raw/bench/permute.csv", delim = ',')
 ```
 
 ```{r qftsv-scaling}
@@ -488,4 +496,77 @@ if (SAVE) {
   ggsave(glue("plt/ieee25/rcsmps-accscaling.svg"), width = 5, height = 5,
          units = "in", scale = 1.00)
 }
+```
+
+```{r}
+ref_permute <- rename(raw_permute, NQ = "ARG1", DQ = "ARG2")
+ref_permute <- mutate(
+  ref_permute, 
+  LQ = factor(NQ - DQ), 
+  TIME = map_dbl(OUTPUT, extract_time_per_iteration)
+)
+ref_permute <- group_by(ref_permute, LQ, MPI_IMPL)
+ref_permute
+# quadratic = \(a, b) predict(lm(y ~ I(x^2) + 0, data = list(x = a, y = b)), 
+#                             tibble(x = a))
+# 
+# ref_qftsv <- mutate(
+#   ref_qftsv, 
+#   FIT = quadratic(NQ, TIME), 
+#   # FIT2 = FIT - FIT[[1]] + TIME[[1]]
+#   FIT2 = (TIME[[1]] / NQ[[1]] ^ 2) * NQ ^ 2
+# )
+# 
+# summarise(
+#   ref_qftsv, 
+#   init_slope = log(TIME[2] / TIME[1]) / log(NQ[2] / NQ[1]), 
+#   avg_slope = log(TIME[8] / TIME[1]) / log(NQ[8] / NQ[1]), 
+#   end_slope = log(TIME[8] / TIME[7]) / log(NQ[8] / NQ[7])
+# )
+# 
+
+to_plt <- filter(ref_permute, LQ == 20)
+ggplot(to_plt) +
+  geom_point(aes(x = NQ, y = TIME, colour = MPI_IMPL), 
+             size = 2, stroke = 1, shape = 1) + 
+  geom_line(aes(x = NQ, y = TIME, colour = MPI_IMPL)) + 
+  # facet_wrap(~ LQ) + 
+  scale_x_continuous(breaks = 10:17 * 2) + 
+  # scale_x_log10(breaks = 20:31, minor_breaks = c()) +
+  # scale_y_log10(breaks = c(2, 4, 8, 20, 40, 80, 200),
+  #               minor_breaks = c(2 * 1:10, 20 * 1:10)) +
+  # scale_colour_manual(values = palettes[[MODE]], name = "Local qubits") +
+  xlab("Number of dim-2 indices") +
+  ylab("Time per permutation [ms]") +
+  default_theme
+
+to_plt <- filter(ref_permute, LQ == 22)
+ggplot(to_plt) +
+  geom_point(aes(x = NQ, y = TIME, colour = MPI_IMPL), 
+             size = 2, stroke = 1, shape = 1) + 
+  geom_line(aes(x = NQ, y = TIME, colour = MPI_IMPL)) + 
+  # facet_wrap(~ LQ) + 
+  scale_x_continuous(breaks = 10:17 * 2) + 
+  # scale_x_log10(breaks = 20:31, minor_breaks = c()) +
+  # scale_y_log10(breaks = c(2, 4, 8, 20, 40, 80, 200),
+  #               minor_breaks = c(2 * 1:10, 20 * 1:10)) +
+  # scale_colour_manual(values = palettes[[MODE]], name = "Local qubits") +
+  xlab("Number of dim-2 indices") +
+  ylab("Time per permutation [ms]") +
+  default_theme
+
+to_plt <- filter(ref_permute, LQ == 24)
+ggplot(to_plt) +
+  geom_point(aes(x = NQ, y = TIME, colour = MPI_IMPL), 
+             size = 2, stroke = 1, shape = 1) + 
+  geom_line(aes(x = NQ, y = TIME, colour = MPI_IMPL)) + 
+  # facet_wrap(~ LQ) + 
+  scale_x_continuous(breaks = 10:17 * 2) + 
+  # scale_x_log10(breaks = 20:31, minor_breaks = c()) +
+  # scale_y_log10(breaks = c(2, 4, 8, 20, 40, 80, 200),
+  #               minor_breaks = c(2 * 1:10, 20 * 1:10)) +
+  # scale_colour_manual(values = palettes[[MODE]], name = "Local qubits") +
+  xlab("Number of dim-2 indices") +
+  ylab("Time per permutation [ms]") +
+  default_theme
 ```

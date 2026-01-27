@@ -1,5 +1,4 @@
 #include <algorithm>
-#include <functional>
 #include <iostream>
 #include <random>
 
@@ -7,6 +6,7 @@
 #include "ten/con/pair-defs.hpp"
 #include "ten/dec/base.hpp"
 #include "util/ops.hpp"
+#include "util/indexing.hpp"
 #include "util/vector.hpp"
 
 namespace qtnh {
@@ -38,7 +38,11 @@ namespace qtnh {
   }
 
 
-  BCMPS::BCMPS(qtnh::tptr, chi_triple, SITE_CANON) {
+  BCMPS::BCMPS(qtnh::tptr, chi_triple chis, SITE_CANON)
+  : cyc_chi_(chis.at(0))
+  , dis_chi_(chis.at(1))
+  , blk_chi_(chis.at(2))
+  {
     utils::throw_unimplemented();
   }
   
@@ -56,7 +60,13 @@ namespace qtnh {
     }
   }
 
-  BCMPS BCMPS::rand(const QTNHEnv& env, std::size_t n_sites, qtnh::tidx site_dim, chi_triple chis, std::size_t bond_dim) {
+  BCMPS BCMPS::rand(
+    const QTNHEnv& env, 
+    std::size_t n_sites, 
+    qtnh::tidx site_dim, 
+    chi_triple chis, 
+    std::size_t chi_in
+  ) {
     std::mt19937 gen(2025);
     std::uniform_real_distribution<> dis(-1.0, 1.0);
 
@@ -65,38 +75,26 @@ namespace qtnh {
 
     for (auto i = 0UL; i < n_sites; ++i) {
       auto tp = Tensor::cast<DenseTensor>(std::move(mps.site_tensors_.at(i)));
-      auto loc_size = std::min(bond_dim, chis.at(0) * chis.at(2));
-      auto dis_size = bond_dim / loc_size;
 
-      // Global site-wise element calculation to ensure repeatability. 
-      std::vector<tel> els(site_dim * bond_dim * bond_dim);
-      for (auto j = 0UL; j < els.size(); ++j) {
-        auto rel = dis(gen), img = dis(gen);
-        els.at(j) = tel { rel, img };
-      }
+      // ? Is flag priority correct? 
+      std::vector<TIFlag> ifls { 
+        { "r", 1 }, { "c", 1 }, 
+        { "p", 0 }, { "r", 0 }, { "r" , 2 }, { "c", 0 }, { "c" , 2 }
+      };
 
-      for (auto j = 0UL; j < loc_size; ++j) {
-        if (i == 0UL && j > 0UL) break;
+      TIndexing ti(tp->totDims(), ifls);
 
-        for (auto k = 0UL; k < loc_size; ++k) {
-          if (i + 1 == n_sites && k > 0UL) break;
+      for (auto j = 0UL; j < site_dim; ++j) {
+        auto count_row = 0UL;
+        for (auto idx : ti.tup("r", { 0, 0, j, 0, 0, 0, 0 })) {
+          if (count_row++ >= chi_in) break;
 
-          auto p = env.proc_id / chis.at(1);
-          auto q = env.proc_id % chis.at(1);
+          auto count_col = 0UL;
+          for (auto idx : ti.tup("c", idx)) {
+            if (count_col++ >= chi_in) break;
 
-          if (p < dis_size && q < dis_size) {
-            for (auto l = 0UL; l < site_dim; ++l) {
-              auto pos = l * bond_dim * bond_dim + 
-                (p * chis.at(1) + j) * bond_dim + 
-                q * chis.at(1) + k;
-              
-              auto c1 = j / chis.at(2);
-              auto c2 = k / chis.at(2);
-              auto b1 = j % chis.at(2);
-              auto b2 = k % chis.at(2);
-
-              tp->at({ p, q, l, c1, b1, c2, b2 }) = els.at(pos);
-            }
+            auto rel = dis(gen), img = dis(gen);
+            if (tp->has(idx)) tp->at(idx) = { rel, img };
           }
         }
       }
@@ -108,7 +106,7 @@ namespace qtnh {
     mps.rightCanonicalise(0);
     mps.renormalise();
 
-    return mps.copy();
+    return mps;
   }
 
   BCMPS BCMPS::copy() {
@@ -120,7 +118,7 @@ namespace qtnh {
     return BCMPS(std::move(sites));
   }
 
-  void BCMPS::apply(tptr_symm tp, std::vector<std::size_t> sites) {
+  void BCMPS::apply(tptr_symm tp, std::vector<std::size_t> sites, bool update_dims) {
     #ifdef DEBUG
       utils::barrier();
       if (utils::is_root()) {
@@ -161,62 +159,154 @@ namespace qtnh {
 
       DecParams dp {
         { 1, 1 }, 
-        { 2, loc_size - 2 }, 
+        { 3, loc_size - 3 }, 
         { 2, loc_size - 4 }, 
         { 1, 1 }, 
         { 1, 1 }
       };
 
       Decomposer dec(std::move(tp_res), dp, true);
-      dec.decompose();
+      auto type = update_dims ? DecType::SVD : DecType::QPD;
+      dec.decompose(type);
 
       auto [tp_u, tp_s, tp_v] = dec.extract_results();
+      tptr tp_sv;
 
-      // Truncate. 
-      auto fmul = std::multiplies<tidx>();
-      auto loc_dims_u = utils::combine_part(tp_u->locDims(), 3, 5, tidx(1.0), fmul);
-      auto loc_dims_s = utils::combine_part(tp_s->locDims(), 1, 3, tidx(1.0), fmul);
-      auto loc_dims_v = utils::combine_part(tp_v->locDims(), 0, 2, tidx(1.0), fmul);
+      if (update_dims) {
+        // Truncate. 
+        tp_u = Tensor::truncate(std::move(tp_u), 5, 1);
+        tp_s = Tensor::truncate(std::move(tp_s), 1, 1);
+        tp_v = Tensor::truncate(std::move(tp_v), 2, 1);
 
-      tp_u->reshape(tp_u->disDims(), loc_dims_u);
-      tp_s->reshape(tp_s->disDims(), loc_dims_s);
-      tp_v->reshape(tp_v->disDims(), loc_dims_v);
+        auto loc_dims_u = tp_u->locDims();
+        auto loc_dims_v = tp_v->locDims();
+        loc_dims_u.erase(loc_dims_u.begin() + 3);
+        loc_dims_v.erase(loc_dims_v.begin());
+        tp_u->reshape(tp_u->disDims(), loc_dims_u);
+        tp_v->reshape(tp_v->disDims(), loc_dims_v);
 
-      tp_u = Tensor::truncate(std::move(tp_u), 5, locChi());
-      tp_s = Tensor::truncate(std::move(tp_s), 1, locChi());
-      tp_v = Tensor::truncate(std::move(tp_v), 2, locChi());
+        // tp_u->print_serial("U");
+        // tp_s->print_serial("S");
+        // tp_v->print_serial("V");
 
-      // Calculate SV. 
-      auto&& els = tp_s->cast<DenseTensor>()->extractEls();
-      bond_dims_.at(i) = count_bond_dim(els);
+        // Calculate SV. 
+        auto&& els = tp_s->cast<DenseTensor>()->extractEls();
+        bond_dims_.at(i) = count_bond_dim(els);
 
-      tp_s = DiagTensor::make(
-        tp_s->bc().env(), 
-        {}, 
-        { dis_chi_, cyc_chi_, blk_chi_, dis_chi_, cyc_chi_, blk_chi_ }, 
-        false, 
-        std::move(els)
-      );
+        tp_s = DiagTensor::make(
+          tp_s->bc().env(), 
+          {}, 
+          { dis_chi_, cyc_chi_, blk_chi_, dis_chi_, cyc_chi_, blk_chi_ }, 
+          false, 
+          std::move(els)
+        );
 
-      tp_s = SymmTensorBase::rescatterIO(std::move(tp_s), 1);
+        tp_s = SymmTensorBase::rescatterIO(std::move(tp_s), 1);
 
-      auto dim_repls_2 = utils::concat_vecs(
-        repl_vec { X, 1, X, X, 2 }, 
-        utils::vec_incr(5UL, loc_size)
-      );
+        auto dim_repls_2 = utils::concat_vecs(
+          repl_vec { X, 1, X, X, 2 }, 
+          utils::vec_incr(5UL, loc_size)
+        );
 
-      ConParams params(
-        {{ 1, 0 }, { 3, 2 }}, 
-        { 0, X, 3, 4, X, X }, 
-        dim_repls_2
-      );
-      
-      pcon con(std::move(tp_s), std::move(tp_v), params);
-      tptr tp_sv = con.contract();
+        ConParams params(
+          {{ 1, 0 }, { 4, 2 }, { 5, 3 }}, 
+          { 0, X, 3, 4, X, X }, 
+          dim_repls_2
+        );
+        
+        pcon con(std::move(tp_s), std::move(tp_v), params);
+        tp_sv = con.contract();
+      } else {
+        // Truncate. 
+        tp_u = Tensor::truncate(std::move(tp_u), 5, 1);
+        tp_v = Tensor::truncate(std::move(tp_v), 2, 1);
+
+        auto loc_dims_u = tp_u->locDims();
+        auto loc_dims_v = tp_v->locDims();
+        loc_dims_u.erase(loc_dims_u.begin() + 3);
+        loc_dims_v.erase(loc_dims_v.begin());
+        tp_u->reshape(tp_u->disDims(), loc_dims_u);
+        tp_v->reshape(tp_v->disDims(), loc_dims_v);
+
+        // tp_u->print_serial("Q");
+        // tp_v->print_serial("R");
+        // tp_s->print_serial("Pt");
+
+        std::vector<wire> wires(max_site - i + 3);
+        wires.at(0) = { 1, 0 };
+        for (auto i = 1UL; i < wires.size(); ++i) {
+          wires.at(i) = { i + 3, i + 1 };
+        }
+
+        auto repl1 = utils::concat_vecs(
+          repl_vec { 0, X, 3, 4 }, 
+          repl_vec(max_site - i + 2, X)
+        );
+
+        // ! This is very likely to fail... 
+        auto repl2 = utils::concat_vecs(
+          repl_vec { X, 1 }, 
+          repl_vec(max_site - i + 2, X), 
+          repl_vec { 2 }, 
+          utils::vec_incr(5UL, max_site - i + 5)
+        );
+
+        ConParams params(wires, repl1, repl2);
+        con = pcon(std::move(tp_v), std::move(tp_s), params);
+        tp_sv = con.contract();
+
+        // tp_sv->print_serial("SV");
+      }
 
       site_canons_.at(i) = SITE_CANON::left;
       site_tensors_.at(i) = std::move(tp_u);
       tp_res = std::move(tp_sv);
+
+      // Truncate. 
+      // auto fmul = std::multiplies<tidx>();
+      // auto loc_dims_u = utils::combine_part(tp_u->locDims(), 3, 5, tidx(1.0), fmul);
+      // auto loc_dims_s = utils::combine_part(tp_s->locDims(), 1, 3, tidx(1.0), fmul);
+      // auto loc_dims_v = utils::combine_part(tp_v->locDims(), 0, 2, tidx(1.0), fmul);
+
+      // tp_u->reshape(tp_u->disDims(), loc_dims_u);
+      // tp_s->reshape(tp_s->disDims(), loc_dims_s);
+      // tp_v->reshape(tp_v->disDims(), loc_dims_v);
+
+      // tp_u = Tensor::truncate(std::move(tp_u), 5, locChi());
+      // tp_s = Tensor::truncate(std::move(tp_s), 1, locChi());
+      // tp_v = Tensor::truncate(std::move(tp_v), 2, locChi());
+
+      // // Calculate SV. 
+      // auto&& els = tp_s->cast<DenseTensor>()->extractEls();
+      // bond_dims_.at(i) = count_bond_dim(els);
+
+      // tp_s = DiagTensor::make(
+      //   tp_s->bc().env(), 
+      //   {}, 
+      //   { dis_chi_, cyc_chi_, blk_chi_, dis_chi_, cyc_chi_, blk_chi_ }, 
+      //   false, 
+      //   std::move(els)
+      // );
+
+      // tp_s = SymmTensorBase::rescatterIO(std::move(tp_s), 1);
+
+      // auto dim_repls_2 = utils::concat_vecs(
+      //   repl_vec { X, 1, X, X, 2 }, 
+      //   utils::vec_incr(5UL, loc_size)
+      // );
+
+      // ConParams params(
+      //   {{ 1, 0 }, { 3, 2 }}, 
+      //   { 0, X, 3, 4, X, X }, 
+      //   dim_repls_2
+      // );
+      
+      // pcon con(std::move(tp_s), std::move(tp_v), params);
+      // tptr tp_sv = con.contract();
+
+      // site_canons_.at(i) = SITE_CANON::left;
+      // site_tensors_.at(i) = std::move(tp_u);
+      // tp_res = std::move(tp_sv);
     }
 
     site_canons_.at(max_site) = SITE_CANON::none;
@@ -561,6 +651,137 @@ namespace qtnh {
         std::cout << "\nFinished: Right-canonicalise\n";
       }
     #endif
+  }
+
+  void BCMPS::swap(std::size_t k, bool update_dims) {
+    tptr tp1 = std::move(site_tensors_.at(k));
+    tptr tp2 = std::move(site_tensors_.at(k + 1));
+
+    // Swap physical indices via index replacement. 
+    ConParams c_par(
+      {{ 1, 0 }, { 5, 3 }, { 6, 4 }}, 
+      { 0, X, 5, 3, 4, X, X }, 
+      { X, 1, 2, X, X, 6, 7 }
+    );
+
+    auto con = pcon(std::move(tp1), std::move(tp2), c_par);
+    tptr tp12 = con.contract();
+
+    DecParams d_par {
+      { 1, 1 }, 
+      { 3, 3 }, 
+      { 2, 2 }, 
+      { 1, 1 }, 
+      { 1, 1 }
+    };
+
+    Decomposer dec(std::move(tp12), d_par, true);
+    auto type = update_dims ? DecType::SVD : DecType::QPD;
+    dec.decompose(type);
+
+    auto [tp_u, tp_s, tp_v] = dec.extract_results();
+    tptr tp_sv;
+
+    if (update_dims) {
+      // Truncate. 
+      tp_u = Tensor::truncate(std::move(tp_u), 5, 1);
+      tp_s = Tensor::truncate(std::move(tp_s), 1, 1);
+      tp_v = Tensor::truncate(std::move(tp_v), 2, 1);
+
+      auto loc_dims_u = tp_u->locDims();
+      auto loc_dims_v = tp_v->locDims();
+      loc_dims_u.erase(loc_dims_u.begin() + 3);
+      loc_dims_v.erase(loc_dims_v.begin());
+      tp_u->reshape(tp_u->disDims(), loc_dims_u);
+      tp_v->reshape(tp_v->disDims(), loc_dims_v);
+
+      // Calculate SV. 
+      auto&& els = tp_s->cast<DenseTensor>()->extractEls();
+      bond_dims_.at(k) = count_bond_dim(els);
+
+      tp_s = DiagTensor::make(
+        tp_s->bc().env(), 
+        {}, 
+        { dis_chi_, cyc_chi_, blk_chi_, dis_chi_, cyc_chi_, blk_chi_ }, 
+        false, 
+        std::move(els)
+      );
+
+      tp_s = SymmTensorBase::rescatterIO(std::move(tp_s), 1);
+
+      c_par = ConParams(
+        {{ 1, 0 }, { 4, 2 }, { 5, 3 }}, 
+        { 0, X, 3, 4, X, X }, 
+        { X, 1, X, X, 2, 5, 6 }
+      );
+
+      con = pcon(std::move(tp_s), std::move(tp_v), c_par);
+      tp_sv = con.contract();
+    } else {
+      // Truncate. 
+      tp_u = Tensor::truncate(std::move(tp_u), 5, 1);
+      tp_v = Tensor::truncate(std::move(tp_v), 2, 1);
+
+      auto loc_dims_u = tp_u->locDims();
+      auto loc_dims_v = tp_v->locDims();
+      loc_dims_u.erase(loc_dims_u.begin() + 3);
+      loc_dims_v.erase(loc_dims_v.begin());
+      tp_u->reshape(tp_u->disDims(), loc_dims_u);
+      tp_v->reshape(tp_v->disDims(), loc_dims_v);
+
+      c_par = ConParams(
+      {{ 1, 0 }, { 4, 2 }, { 5, 3 }, { 6, 4 }}, 
+      { 0, X, 3, 4, X, X, X }, 
+      { X, 1, X, X, X, 2, 5, 6 }
+    );
+
+      con = pcon(std::move(tp_v), std::move(tp_s), c_par);
+      tp_sv = con.contract();
+    }
+
+    // // Truncate. 
+    // tp_q = Tensor::truncate(std::move(tp_q), 5, 1);
+    // tp_r = Tensor::truncate(std::move(tp_r), 2, 1);
+
+    // auto loc_dims_q = tp_q->locDims();
+    // auto loc_dims_r = tp_r->locDims();
+    // loc_dims_q.erase(loc_dims_q.begin() + 3);
+    // loc_dims_r.erase(loc_dims_r.begin());
+    // tp_q->reshape(tp_q->disDims(), loc_dims_q);
+    // tp_r->reshape(tp_r->disDims(), loc_dims_r);
+
+    // c_par = ConParams(
+    //   {{ 1, 0 }, { 4, 2 }, { 5, 3 }, { 6, 4 }}, 
+    //   { 0, X, 3, 4, X, X, X }, 
+    //   { X, 1, X, X, X, 2, 5, 6 }
+    // );
+
+    // con = pcon(std::move(tp_r), std::move(tp_pt), c_par);
+    site_tensors_.at(k) = std::move(tp_u);
+    site_tensors_.at(k + 1) = std::move(tp_sv);
+    site_canons_.at(k) = SITE_CANON::left;
+    site_canons_.at(k + 1) = SITE_CANON::none;
+  }
+
+  void BCMPS::permute(PTupleTar ptup) {
+    auto tup = ptup.tup();
+    while (true) {
+      auto sorted = true;
+      for (auto i = 0UL; i < tup.size() - 1; ++i) {
+        if (tup.at(i) > tup.at(i + 1)) {
+          sorted = false;
+          
+          // ? Is this necessary? 
+          leftCanonicalise(i + 1);
+          rightCanonicalise(i);
+
+          swap(i);
+          std::swap(tup.at(i), tup.at(i + 1));
+        }
+      }
+
+      if (sorted) return;
+    }
   }
 
   std::map<BCMPS::sample_t, std::size_t> BCMPS::sample(std::size_t from, std::size_t to, std::size_t n) {

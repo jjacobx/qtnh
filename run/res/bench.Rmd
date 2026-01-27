@@ -1,0 +1,89 @@
+---
+title: "QTNH Benchmarking"
+author: "Jakub Adamski"
+date: '`r Sys.Date()`'
+knit: (\(inputFile, encoding) {
+        out_dir <- "rmd";
+        inputFile |> rmarkdown::render(
+          encoding = encoding, 
+          output_dir= file.path(dirname(inputFile), out_dir)
+        )
+      })
+output:
+  html_document: 
+    theme:
+      base_font:
+        google: Prompt
+      heading_font:
+        google: Proza Libre
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+QTNH_DIR <- Sys.getenv("QTNH_DIR")
+if (QTNH_DIR == "") QTNH_DIR <- "~/Documents/phd/repos/qtnh"
+setwd(R.utils::filePath(QTNH_DIR, "run/res"))
+
+library(glue)
+library(latex2exp)
+library(patchwork)
+library(tidyverse)
+
+palettes <- list(
+  presentation = RColorBrewer::brewer.pal(4, "Set1"), 
+  poster = c("#B60061", "#B68D00", "#005435", "#008AB6"), 
+  paper = c("#B60061", "#B68D00", "#005435", "#008AB6", "#A18877")
+)
+bkgs <- list(
+  presentation = "#A9D3CD", 
+  poster = "#C9DC87", 
+  paper = "#C9DC87"
+)
+
+MODE <- "paper"
+SAVE <- TRUE
+```
+
+```{r setup-plotting, include=FALSE}
+default_theme <- theme_gray() + 
+  theme(rect = element_rect(fill = "transparent", linewidth = 0), 
+        panel.background = element_rect(fill = bkgs[[MODE]], linewidth = 0), 
+        legend.key = element_rect(fill = bkgs[[MODE]]), 
+        legend.position = "top")
+```
+
+```{r str-helpers, include = FALSE}
+extract_time_per_iteration <- \(x)
+  str_extract(x, "Time per iteration: [0-9]+.[0-9]+ ms") |> 
+  str_split_1(" ") |> 
+  _[[4]] |> 
+  as.double()
+```
+
+```{r read-data}
+raw_permute <- read_delim("raw/bench/permute.csv", delim = ',')
+```
+
+```{r}
+ref_permute <- rename(raw_permute, NQ = "ARG1", DQ = "ARG2")
+ref_permute <- mutate(
+  ref_permute, 
+  LQ = factor(NQ - DQ), 
+  TIME = map_dbl(OUTPUT, extract_time_per_iteration)
+)
+ref_permute <- group_by(ref_permute, LQ, MPI_IMPL)
+
+ggplot(ref_permute) + 
+  geom_point(aes(x = NQ, y = TIME, colour = LQ, shape = MPI_IMPL), 
+             size = 1, stroke = 1) + 
+  geom_line(aes(x = NQ, y = TIME, colour = LQ, linetype = MPI_IMPL)) + 
+  scale_x_continuous(breaks = 10:17 * 2) + 
+  scale_y_log10(breaks = 62.5 * 2 ^ (0:6)) + 
+  scale_colour_manual(values = palettes[[MODE]], name = "Local indices") + 
+  scale_linetype_manual(values = c(1, 2), name = "MPI protocol") + 
+  scale_shape_manual(values = c(1, 2), name = "MPI protocol") + 
+  xlab("Number of dim-2 indices") + 
+  ylab("Avg. time per permutation [ms]") + 
+  default_theme
+```

@@ -15,8 +15,13 @@ namespace qtnh {
   class DiagTensorBase : public SymmTensorBase {
     public: 
       DiagTensorBase() = delete;
-      DiagTensorBase(const DiagTensorBase&) = delete;
       virtual ~DiagTensorBase() = default;
+
+      DiagTensorBase(const DiagTensorBase&) = delete;
+      DiagTensorBase& operator=(const DiagTensorBase&) = delete;
+
+      DiagTensorBase(DiagTensorBase&&) = default;
+      DiagTensorBase& operator=(DiagTensorBase&&) = default;
 
       virtual TT type() const noexcept override { return TT::diagTensorBase; }
 
@@ -84,8 +89,13 @@ namespace qtnh {
       friend class DiagTensorBase; 
 
       DiagTensor() = delete;
-      DiagTensor(const DiagTensor&) = delete;
       ~DiagTensor() = default;
+
+      DiagTensor(const DiagTensor&) = delete;
+      DiagTensor& operator=(const DiagTensor&) = delete;
+
+      DiagTensor(DiagTensor&&) = default;
+      DiagTensor& operator=(DiagTensor&&) = default;
 
       /// @brief Construct diagonal tensor with default distribution parameters and transfer its ownership. 
       /// @param env Environment to use for construction. 
@@ -218,8 +228,13 @@ namespace qtnh {
   class IdenTensor : public DiagTensorBase {
     public:
       IdenTensor() = delete;
-      IdenTensor(const IdenTensor&) = delete;
       ~IdenTensor() = default;
+
+      IdenTensor(const IdenTensor&) = delete;
+      IdenTensor& operator=(const IdenTensor&) = delete;
+
+      IdenTensor(IdenTensor&&) = default;
+      IdenTensor& operator=(IdenTensor&&) = default;
 
       /// @brief Construct identity tensor with default distribution parameters and transfer its ownership. 
       /// @param env Environment to use for construction. 

@@ -51,6 +51,17 @@ namespace qtnh {
       return SymmTensor::make(env, {}, { 2, 2 }, std::move(els));
     }
 
+    tptr_symm fsim_tp(const QTNHEnv& env, double phi) {
+      std::vector<tel> els {
+        1, 0,             0,             0, 
+        0, 0,             tel { 0, -1 }, 0, 
+        0, tel { 0, -1 }, 0,             0, 
+        0, 0,             0,             std::exp(tel { 0, -phi })
+      };
+
+      return SymmTensor::make(env, {}, { 2, 2, 2, 2 }, std::move(els));
+    }
+
     MPO ca(const QTNHEnv& env, std::size_t n, std::vector<tel> els) {
       std::vector<tel> c_op { 1, 0, 0, 0, 0, 0, 0, 1 };
       std::vector<tel> i_op { 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1 };

@@ -2,6 +2,7 @@
 #define QTNH_NET_BCMPS_HPP_INCLUDE
 
 #include "net/mps.hpp"
+#include "util/ptuple.hpp"
 
 namespace qtnh {
   class BCMPS {
@@ -15,7 +16,6 @@ namespace qtnh {
 
       BCMPS(qtnh::tptr tp, chi_triple chis, SITE_CANON norm = SITE_CANON::left);
       BCMPS(std::vector<qtnh::tptr>&& sites);
-      ~BCMPS() = default;
 
       static BCMPS rand(const QTNHEnv& env, std::size_t n_sites, qtnh::tidx site_dim, chi_triple chis, std::size_t bond_dim);
       BCMPS copy();
@@ -32,7 +32,7 @@ namespace qtnh {
       constexpr std::size_t locChi() const { return cyc_chi_ * blk_chi_; }
       constexpr std::size_t totChi() const { return cyc_chi_ * dis_chi_ * blk_chi_; }
 
-      void apply(tptr_symm tp, std::vector<std::size_t> sites);
+      void apply(tptr_symm tp, std::vector<std::size_t> sites, bool update_dims = true);
       void apply(const MPO& mpo, std::size_t from, bool update_dims = true);
 
       // TODO: Remove. 
@@ -40,10 +40,13 @@ namespace qtnh {
       
       qtnh::tel overlap(BCMPS& mps);
       qtnh::tel norm();
-      
+
       void renormalise();
       void leftCanonicalise(std::size_t to);
       void rightCanonicalise(std::size_t to);
+
+      void swap(std::size_t n, bool update_dims = true);
+      void permute(PTupleTar ptup);
 
       std::map<sample_t, std::size_t> sample(std::size_t from, std::size_t to, std::size_t n);
       std::unique_ptr<DenseTensor> toDense() &&;

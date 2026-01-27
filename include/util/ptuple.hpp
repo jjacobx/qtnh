@@ -16,22 +16,27 @@ namespace qtnh {
       PTuple() = delete;
       PTuple(std::size_t len);
       PTuple(tup_t tup);
-      ~PTuple() = default;
+      virtual ~PTuple() = default;
+
+      PTuple(const PTuple&) = default;
+      PTuple& operator=(const PTuple&) = default;
+
+      PTuple(PTuple&&) = delete;
+      PTuple& operator=(PTuple&&) = delete;
 
       const auto& tup() const noexcept { return tup_; }
 
       class shifter {
         public:
           shifter() = delete;
-          shifter(tup_t& tup, std::size_t pos);
-          shifter(tup_t& tup, std::size_t from, std::size_t to);
-          ~shifter() = default;
+          shifter(tup_t* tup, std::size_t pos);
+          shifter(tup_t* tup, std::size_t from, std::size_t to);
 
           void operator>>(int n);
           void operator<<(int n);
         
         private:
-          tup_t& tup_;
+          tup_t* tup_;
           std::size_t from_;
           std::size_t to_;
       };
@@ -49,7 +54,6 @@ namespace qtnh {
   class PTupleTar : public PTuple {
     public:
       using PTuple::PTuple;
-      ~PTupleTar() = default;
 
       virtual PTupleTar toTar() const override;
       virtual PTupleSrc toSrc() const override;
@@ -70,8 +74,7 @@ namespace qtnh {
 
   class PTupleSrc : public PTuple {
     public:
-    using PTuple::PTuple;
-      ~PTupleSrc() = default;
+      using PTuple::PTuple;
 
       virtual PTupleTar toTar() const override;
       virtual PTupleSrc toSrc() const override;
@@ -94,7 +97,6 @@ namespace qtnh {
     public:
       IndexGroup() = delete;
       IndexGroup(std::vector<std::string> labels, std::vector<tup_t> groups);
-      ~IndexGroup() = default;
 
       const std::vector<std::string>& labels() const noexcept { return labels_; }
       PTupleSrc ptup() const;

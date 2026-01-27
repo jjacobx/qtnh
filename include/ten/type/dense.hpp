@@ -16,9 +16,14 @@ namespace qtnh {
   class TIDense {
     public: 
       TIDense() = delete;
-      TIDense(const TIDense&) = delete;
       TIDense(std::vector<qtnh::tel>&& els) : loc_els_(std::move(els)) {}
       virtual ~TIDense() = default;
+
+      TIDense(const TIDense&) = delete;
+      TIDense& operator=(const TIDense&) = delete;
+
+      TIDense(TIDense&&) = default;
+      TIDense& operator=(TIDense&&) = default;
 
     protected:
       Broadcaster _swap_internal(Tensor* target, qtnh::tidx_tup_st idx1, qtnh::tidx_tup_st idx2);
@@ -35,8 +40,13 @@ namespace qtnh {
   class DenseTensorBase : public Tensor {
     public:
       DenseTensorBase() = delete;
-      DenseTensorBase(const DenseTensorBase&) = delete;
       virtual ~DenseTensorBase() = default;
+
+      DenseTensorBase(const DenseTensorBase&) = delete;
+      DenseTensorBase& operator=(const DenseTensorBase&) = delete;
+
+      DenseTensorBase(DenseTensorBase&&) = default;
+      DenseTensorBase& operator=(DenseTensorBase&&) = default;
 
       virtual TT type() const noexcept override { return TT::denseTensorBase; }
     
@@ -97,8 +107,13 @@ namespace qtnh {
       friend class PairContractor<DenseTensor, DenseTensor>;
 
       DenseTensor() = delete;
-      DenseTensor(const DenseTensor&) = delete;
       ~DenseTensor() = default;
+
+      DenseTensor(const DenseTensor&) = delete;
+      DenseTensor& operator=(const DenseTensor&) = delete;
+
+      DenseTensor(DenseTensor&&) = default;
+      DenseTensor& operator=(DenseTensor&&) = default;
 
       /// @brief Construct dense tensor with default distribution parameters and transfer its ownership. 
       /// @param env Environment to use for construction. 
@@ -238,8 +253,13 @@ namespace qtnh {
   class RescTensor : public DenseTensorBase {
     public:
       RescTensor() = delete;
-      RescTensor(const RescTensor&) = delete;
       ~RescTensor() = default;
+
+      RescTensor(const RescTensor&) = delete;
+      RescTensor& operator=(const RescTensor&) = delete;
+
+      RescTensor(RescTensor&&) = default;
+      RescTensor& operator=(RescTensor&&) = default;
 
       /// @brief Construct rescatter tensor with default distribution parameters and transfer its ownership. 
       /// @param env Environment to use for construction. 
@@ -312,8 +332,13 @@ namespace qtnh {
   class CopyTensor : public DenseTensorBase {
     public:
       CopyTensor() = delete;
-      CopyTensor(const CopyTensor&) = delete;
       ~CopyTensor() = default;
+
+      CopyTensor(const CopyTensor&) = delete;
+      CopyTensor& operator=(const CopyTensor&) = delete;
+
+      CopyTensor(CopyTensor&&) = default;
+      CopyTensor& operator=(CopyTensor&&) = default;
 
       /// @brief Construct copy tensor with default distribution parameters and transfer its ownership. 
       /// @param env Environment to use for construction. 

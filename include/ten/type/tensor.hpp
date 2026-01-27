@@ -45,7 +45,6 @@ namespace qtnh {
         wires(wires), useDefRepls(true), dimRepls1(0), dimRepls2(0) {}
       ConParams(std::vector<qtnh::wire> wires, std::vector<qtnh::tidx_tup_st> dim_repls1, std::vector<qtnh::tidx_tup_st> dim_repls2) :
         wires(wires), useDefRepls(false), dimRepls1(dim_repls1), dimRepls2(dim_repls2) {}
-      ~ConParams() = default;
 
       std::vector<qtnh::wire> wires;
 
@@ -93,6 +92,7 @@ namespace qtnh {
       void deleteComm();  ///< Free group communicator. 
 
     private:
+      // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
       const QTNHEnv& env_;  ///< Environment to use MPI/OpenMP in. 
       qtnh::uint base_;     ///< Base distributed size of the tensor. 
 
@@ -112,8 +112,13 @@ namespace qtnh {
   class Tensor {
     public:
       Tensor() = delete;
-      Tensor(const Tensor&) = delete;
       virtual ~Tensor() = default;
+
+      Tensor(const Tensor&) = delete;
+      Tensor& operator=(const Tensor&) = delete;
+
+      Tensor(Tensor&&) = default;
+      Tensor& operator=(Tensor&&) = default;
 
       // This can be made constexpr in C++ 20
       virtual TT type() const noexcept { return TT::tensor; }

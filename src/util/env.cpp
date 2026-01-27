@@ -5,7 +5,8 @@
 
 namespace qtnh {
   QTNHEnv::QTNHEnv() {
-    int _proc_id, _num_processes;
+    int _proc_id {};
+    int _num_processes {};
 
     MPI_Init(0, 0);
     MPI_Comm_rank(MPI_COMM_WORLD, &_proc_id);
