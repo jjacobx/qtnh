@@ -70,6 +70,7 @@ docs/
 **/map*/*.html
 **/map*/*.json
 **/map*/*.zip
+**/map*/*.txt
 
 # Core dumps except library directories
 **/core
