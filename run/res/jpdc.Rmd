@@ -1,0 +1,639 @@
+---
+title: "Tensor-Parallel Emulation of Quantum Circuits 
+        with Block-Cyclic Distributed Matrix Product States"
+author: "Jakub Adamski"
+date: '`r Sys.Date()`'
+knit: (\(inputFile, encoding) {
+        out_dir <- "rmd";
+        inputFile |> rmarkdown::render(
+          encoding = encoding, 
+          output_dir= file.path(dirname(inputFile), out_dir)
+        )
+      })
+output:
+  html_document: 
+    theme:
+      base_font:
+        google: Prompt
+      heading_font:
+        google: Proza Libre
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+QTNH_DIR <- Sys.getenv("QTNH_DIR")
+if (QTNH_DIR == "") QTNH_DIR <- "~/Documents/phd/repos/qtnh"
+setwd(R.utils::filePath(QTNH_DIR, "run/res"))
+
+library(fillpattern)
+library(glue)
+library(latex2exp)
+library(patchwork)
+library(tidyverse)
+
+palettes <- list(
+  presentation = RColorBrewer::brewer.pal(4, "Set1"), 
+  poster = c("#B60061", "#B68D00", "#005435", "#008AB6", "#A18877"), 
+  paper = c("#B60061", "#B68D00", "#005435", "#008AB6", "#A18877")
+)
+bkgs <- list(
+  presentation = "#A9D3CD", 
+  poster = "#C9DC87", 
+  paper = "#A9D3CD", 
+  panel = "#81992D"
+  # panel = "#A49C41"
+)
+
+MODE <- "poster"
+SAVE <- TRUE
+
+default_theme <- theme_gray() + 
+  theme(rect = element_rect(fill = "transparent", linewidth = 0), 
+        panel.background = element_rect(fill = fill_alpha(bkgs[[MODE]], 0.7), 
+                                        linewidth = 0),
+        legend.key = element_rect(fill = fill_alpha(bkgs[[MODE]], 0.7)), 
+        legend.position = "top",
+        legend.justification = "center", 
+        legend.frame = element_blank(), 
+        # legend.key = element_blank(), 
+        # panel.background = element_rect(fill = bkgs[[MODE]], colour = bkgs[["panel"]], linewidth = 1),
+        strip.background = element_rect(fill = bkgs[["panel"]]))
+```
+
+```{r helpers, include = FALSE}
+extract_time <- \(x)
+  str_extract(x, "Time taken: [0-9]+ ms") |> 
+  str_split_1(" ") |> 
+  _[[3]] |> 
+  as.numeric()
+  
+extract_norm <- \(x)
+  str_extract(x, "\\|T\\| = .*") |> 
+  str_split_1(" ") |> 
+  _[[3]] |> 
+  as.double()
+```
+
+```{r read}
+raw <- list()
+exps <- str_sub(list.files("raw/isc26"), end = -5)
+for (exp in exps) {
+  path = glue("raw/isc26/{exp}.csv")
+  raw[[exp]] <- read_delim(path, delim = ',')
+}
+```
+
+```{r fig07}
+data <- raw[["fidelity-overlaps"]]
+data <- mutate(data, Dec = str_replace(Dec, "QPD", "pQR"))
+data <- mutate(data, Dec = as.factor(Dec))
+data <- mutate(data, Res = (Norm - Overlap), Rel = Res / Overlap)
+
+plt1 <- ggplot(data) +
+  geom_point(aes(x = Overlap, y = Norm, colour = Dec, shape = Dec), 
+             size = 2, stroke = 1) + 
+  geom_abline(intercept = 0, colour = palettes[[MODE]][5]) + 
+  scale_colour_manual(values = palettes[[MODE]], 
+                      name = "Dec. method: ") +
+  scale_shape_manual(values = c(1, 4, 5, 6, 0), 
+                     name = "Dec. method: ") + 
+  xlim(c(0, 1)) + 
+  ylim(c(0, 1)) + 
+  xlab(TeX(r'(Overlap fidelity ($F$))')) +
+  ylab(TeX(r'(Norm fidelity ($\bar{F}$))')) +
+  default_theme
+
+plt2 <- ggplot(data) +
+  geom_point(aes(x = Overlap, y = Res, colour = Dec, shape = Dec), 
+             size = 2, stroke = 1) + 
+  scale_colour_manual(values = palettes[[MODE]], 
+                      name = "Dec. method: ") +
+  scale_shape_manual(values = c(1, 4, 5, 6, 0), 
+                     name = "Dec. method: ") + 
+  scale_x_log10(breaks = c(0.02, 0.05, 0.10, 0.20, 0.50, 1.00), 
+                limits = c(0.02, 1.00)) + 
+  ylim(c(-5e-3, 5e-3)) + 
+  xlab(TeX(r'(Overlap fidelity ($F$))')) +
+  ylab(TeX(r'(Residual ($\bar{F} - F$))')) +
+  default_theme
+
+plt1 + plt2 + plot_layout(guides = "collect") & 
+  theme(legend.position = "top")
+
+if (SAVE) {
+  ggsave(glue("plt/jpdc/fidelity-overlap.pdf"), width = 6, height = 3,
+         units = "in", scale = 1.25, device = cairo_pdf)
+  ggsave(glue("plt/jpdc/num/fig07.pdf"), width = 6, height = 3,
+         units = "in", scale = 1.25, device = cairo_pdf)
+}
+```
+
+```{r fig08}
+ref_rcs_setup <- raw[["rcs-setup"]]
+ref_rcs_setup <- mutate(ref_rcs_setup, ARG6 = str_replace(ARG6, "QPD", "pQR"))
+ref_rcs_setup <- mutate(
+  ref_rcs_setup,
+  DEPTH = as.numeric(ARG1),
+  CYC_CHI = as.numeric(ARG2),
+  DIS_CHI = as.numeric(ARG3), 
+  BLK_CHI = as.numeric(ARG4), 
+  INTER = as.factor(ARG5), 
+  DEC = as.factor(ARG6)
+)
+
+ref_rcs_setup <- mutate(
+  ref_rcs_setup,
+  TIME = map_int(OUTPUT, extract_time) / 1000, 
+  FIDELITY = map_dbl(OUTPUT, extract_norm) ^ 2
+)
+
+ggplot(ref_rcs_setup) +
+  geom_point(aes(x = TIME, y = FIDELITY, colour = INTER, shape = DEC),
+             size = 2, stroke = 1) +
+  scale_x_log10() + 
+  scale_y_log10() + 
+  scale_colour_manual(values = palettes[[MODE]], 
+                      name = "LR inter.: ") +
+  scale_shape_manual(values = c(1, 4, 5, 6, 0), 
+                     name = "Dec. method: ") + 
+  xlab("Emulation runtime [s]") +
+  ylab(TeX(r'(Output fidelity ($\bar{F}$))')) +
+  default_theme
+
+if (SAVE) {
+  ggsave(glue("plt/jpdc/rcs-setup.pdf"), width = 5, height = 3,
+         units = "in", scale = 1.1, device = cairo_pdf)
+  ggsave(glue("plt/jpdc/num/fig08.pdf"), width = 5, height = 3,
+         units = "in", scale = 1.1, device = cairo_pdf)
+}
+```
+
+```{r fig09}
+data1 <- raw[["rcs-block"]]
+data1 <- transmute(
+  data1,
+  DEPTH = as.numeric(ARG1), 
+  CYC_CHI = as.numeric(ARG2), 
+  DIS_CHI = as.numeric(ARG3), 
+  BLK_CHI = as.numeric(ARG4), 
+  DEC = as.factor(ARG6), 
+  CIRC = "RCS", 
+  OUTPUT = OUTPUT
+)
+
+data2 <- raw[["riqft-block"]]
+data2 <- transmute(
+  data2,
+  DEPTH = as.numeric(ARG1), 
+  CYC_CHI = as.numeric(ARG2), 
+  DIS_CHI = as.numeric(ARG3), 
+  BLK_CHI = as.numeric(ARG4), 
+  DEC = as.factor(ARG5), 
+  CIRC = "IQFT", 
+  OUTPUT = OUTPUT
+)
+
+data <- bind_rows(data1, data2)
+
+data <- mutate(
+  data,
+  LOC_CHI = as.factor(CYC_CHI * BLK_CHI), 
+  DIS_CHI = as.factor(DIS_CHI), 
+  TIME = map_int(OUTPUT, extract_time) / 1000
+)
+
+data <- group_by(data, CIRC, LOC_CHI, DIS_CHI)
+data <- mutate(data, REL = TIME / max(TIME))
+
+ggplot(data) +
+  geom_line(aes(x = BLK_CHI, y = REL, colour = DIS_CHI, linetype = LOC_CHI), 
+            linewidth = 1) + 
+  geom_point(aes(x = BLK_CHI, y = REL, colour = DIS_CHI, shape = LOC_CHI),
+             size = 2, stroke = 1) + 
+  facet_wrap(~CIRC) + 
+  scale_x_log10(breaks = c(1, 4, 16, 64, 256)) + 
+  scale_colour_manual(values = palettes[[MODE]], 
+                      name = TeX(r'(Dis. bond ($\chi_d$): )')) +
+  scale_shape_manual(values = c(1, 4, 5, 6, 0), 
+                     name = TeX(r'(Loc. bond ($\chi_c \cdot \chi_b$): )')) + 
+  scale_linetype_manual(values = c(1, 4, 5, 6, 0), 
+                     name = TeX(r'(Loc. bond ($\chi_c \cdot \chi_b$): )')) + 
+  xlab(TeX(r'(Block size ($\chi_b$))')) +
+  ylab(TeX(r'(Relative runtime ($t/t_{(\chi_b=1)}$))')) +
+  default_theme
+
+if (SAVE) {
+  ggsave(glue("plt/jpdc/block-size.pdf"), width = 5, height = 3,
+         units = "in", scale = 1.25, device = cairo_pdf)
+  ggsave(glue("plt/jpdc/num/fig09.pdf"), width = 6, height = 3,
+         units = "in", scale = 1.25, device = cairo_pdf)
+}
+```
+
+```{r fig10}
+op_percents <- tribble(
+  ~chi, ~type, ~op,              ~percent, 
+  2048, "CPU", "scalar",         1.6, 
+  2048, "CPU", "vector",         13.0, 
+  2048, "CPU", "memory",         11.6, 
+  2048, "MPI", "collective",     17.1, 
+  2048, "MPI", "point-to-point", 56.7, 
+  4096, "CPU", "scalar",         2.1, 
+  4096, "CPU", "vector",         22.6, 
+  4096, "CPU", "memory",         23.6, 
+  4096, "MPI", "collective",     14.6, 
+  4096, "MPI", "point-to-point", 37.1, 
+  8192, "CPU", "scalar",         0.5, 
+  8192, "CPU", "vector",         30.8, 
+  8192, "CPU", "memory",         45.9, 
+  8192, "MPI", "collective",     7.8, 
+  8192, "MPI", "point-to-point", 15.0
+)
+
+call_levels = c(
+  "CPU (scalar)", 
+  "CPU (vector)", 
+  "CPU (memory)", 
+  "MPI (collective)", 
+  "MPI (point-to-point)"
+)
+
+op_percents <- mutate(op_percents, chi = factor(chi)) |> 
+  mutate(call = paste0(type, " (", op, ")")) |> 
+  mutate(call = factor(call, levels = call_levels)) |> 
+  mutate(type = factor(type)) |>
+  group_by(chi)
+
+fill_palette <- c("#604A00", "#B68D00", "#FFC706", "#005435", "#009F65")
+fill_patterns <- c("brick", "shingle", "rshingle", "saw", "wave")
+ggplot(op_percents, aes(x = "", y = percent)) +
+  geom_bar(aes(fill = call), stat = "identity", colour = "white") + 
+  geom_label(aes(x = 1.4, label = paste0(percent, "%"), group = call), 
+             position = position_stack(vjust = 0.5, reverse = FALSE), 
+             alpha = 0.7) +
+  coord_polar("y", direction = -1) +
+  facet_wrap(~paste0("χ: ", chi), labeller = label_parsed) +
+  scale_fill_pattern(fill_patterns, bg = fill_palette) + 
+  default_theme +
+  theme(plot.title = element_blank(), 
+        axis.title = element_blank(),
+        axis.line = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.title = element_text(size = rel(1.2)), 
+        legend.text = element_text(size = rel(1.2)), 
+        strip.text.x = element_text(size = rel(1.4)), 
+        panel.grid  = element_blank(), 
+        plot.margin = margin_auto(1, unit = "mm")) + 
+  guides(fill = guide_legend(title = "Call type: ", nrow = 2, byrow = TRUE))
+
+if (SAVE) {
+  ggsave(glue("plt/jpdc/profiling-op.pdf"), width = 6, height = 3,
+         units = "in", scale = 1.1, device = cairo_pdf)
+  ggsave(glue("plt/jpdc/num/fig10a.pdf"), width = 6, height = 3,
+         units = "in", scale = 1.1, device = cairo_pdf)
+}
+
+la_percents <- tribble(
+  ~chi, ~routine, ~percent, 
+  2048, "QR/LQ",  79.8, 
+  2048, "GEMM",   15.2, 
+  2048, "Other",   5.0, 
+  4096, "QR/LQ",  74.2, 
+  4096, "GEMM",   21.0, 
+  4096, "Other",   4.8, 
+  8192, "QR/LQ",  82.8, 
+  8192, "GEMM",   15.7, 
+  8192, "Other",   1.5
+)
+
+routine_levels = c("QR/LQ", "GEMM", "Other")
+
+la_percents <- mutate(la_percents, chi = factor(chi)) |>
+  mutate(routine = factor(routine, levels = routine_levels)) |>
+  group_by(chi)
+
+ggplot(la_percents, aes(x = "", y = percent)) +
+  geom_bar(aes(fill = routine), stat = "identity", colour = "white") + 
+  geom_label(aes(x = 1.4, label = paste0(percent, "%"), group = routine), 
+             position = position_stack(vjust = 0.5, reverse = FALSE), 
+             alpha = 0.7) +
+  coord_polar("y", direction = -1) +
+  facet_wrap(~paste0("chi: ", chi), labeller = label_parsed) +
+  scale_fill_pattern(bg = palettes[[MODE]]) + 
+  default_theme + 
+  theme(plot.title = element_blank(), 
+        axis.title = element_blank(),
+        axis.line = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        legend.title = element_text(size = rel(1.2)), 
+        legend.text = element_text(size = rel(1.2)), 
+        strip.text.x = element_text(size = rel(1.4)), 
+        panel.grid  = element_blank(), 
+        plot.margin = margin_auto(1, unit = "mm")) + 
+  guides(fill = guide_legend(title = "Routine: ", nrow = 1, byrow = TRUE))
+
+if (SAVE) {
+  ggsave(glue("plt/jpdc/profiling-la.pdf"), width = 6, height = 2.75,
+         units = "in", scale = 1.1, device = cairo_pdf)
+  ggsave(glue("plt/jpdc/num/fig10b.pdf"), width = 6, height = 3,
+         units = "in", scale = 1.1, device = cairo_pdf)
+}
+```
+
+```{r fig11}
+sota <- tribble(
+  ~chi, ~quimb, ~ITensor, ~`QTNH (SVD)`, ~`QTNH (pQR)`, 
+  128,  161,    158,      169,           141, 
+  256,  637,    684,      421,           274, 
+  512,  2359,   3456,     1926,          704, 
+  1024, 18360,  22743,    10682,         2672, 
+  2048, 136145, 169728,   215221,        15116
+)
+
+
+sota <- pivot_longer(sota, !chi, names_to = "library", values_to = "time")
+
+sota_levels<- c("quimb", "ITensor", "QTNH (SVD)", "QTNH (pQR)")
+sota <- mutate(sota, library = factor(library, sota_levels), 
+               time = time / 60)
+
+ggplot(sota) +
+  geom_line(aes(x = chi, y = time, colour = library, linetype = library), 
+            linewidth = 1) + 
+  geom_point(aes(x = chi, y = time, colour = library, shape = library),
+             size = 2, stroke = 1) +
+  scale_x_log10(breaks = 2 ^ (7:11), minor_breaks = c()) +
+  scale_y_log10(breaks = c(2, 4, 8, 16, 32, 75, 150, 300, 600, 1200, 2400)) + 
+  scale_colour_manual(values = palettes[[MODE]], name = "Library:") + 
+  scale_shape_manual(values = c(0, 1, 2, 6), name = "Library:") + 
+  scale_linetype_manual(values = c(1, 1, 2, 4), name = "Library:") + 
+  xlab(TeX(r'(Effective total bond ($\chi$))')) + 
+  ylab("Runtime (min)") + 
+  default_theme
+
+if (SAVE) {
+  ggsave(glue("plt/jpdc/rcs-sota.pdf"), width = 5, height = 4,
+         units = "in", scale = 1.25, device = cairo_pdf)
+  ggsave(glue("plt/jpdc/num/fig11.pdf"), width = 5, height = 4,
+         units = "in", scale = 1.25, device = cairo_pdf)
+}
+```
+
+```{r fig12}
+data <- raw[["riqft-fidelity"]]
+data <- mutate(
+  data,
+  SITES = as.factor(ARG1), 
+  CYC_CHI = as.numeric(ARG2), 
+  DIS_CHI = as.numeric(ARG3), 
+  BLK_CHI = as.numeric(ARG4), 
+  SAT = as.double(ARG5), 
+  DEC = as.factor(ARG6)
+)
+
+data <- mutate(
+  data,
+  TOT_CHI = as.factor(CYC_CHI * DIS_CHI * BLK_CHI), 
+  FIDELITY = map_dbl(OUTPUT, extract_norm) ^ 2
+)
+
+data <- filter(data, TOT_CHI == 512)
+
+ggplot(data) +
+  geom_line(aes(x = SAT, y = FIDELITY, colour = SITES),
+            linewidth = 1) +
+  geom_point(aes(x = SAT, y = FIDELITY, colour = SITES),
+             size = 2, stroke = 1) +
+  scale_x_log10(breaks = c(0.1, 0.25, .5, 1.0)) +
+  scale_y_log10() +
+  scale_colour_manual(values = palettes[[MODE]],
+                      name = "Qubit count: ") +
+  xlab(TeX(r'(Input saturation ($\sigma = \chi_i/\chi$))')) +
+  ylab(TeX(r'(Output fidelity ($\bar{F}$))')) +
+  default_theme
+
+if (SAVE) {
+  ggsave(glue("plt/jpdc/riqft-fidelity.pdf"), width = 5, height = 3,
+         units = "in", scale = 1.1, device = cairo_pdf)
+  ggsave(glue("plt/jpdc/num/fig12.pdf"), width = 5, height = 3,
+         units = "in", scale = 1.1, device = cairo_pdf)
+}
+```
+
+```{r fig13}
+data <- raw[["riqft-strong"]]
+data <- mutate(
+  data,
+  SITES = as.factor(ARG1), 
+  CYC_CHI = as.numeric(ARG2), 
+  DIS_CHI = as.numeric(ARG3), 
+  BLK_CHI = as.numeric(ARG4), 
+  SAT = as.double(ARG5), 
+  DEC = as.factor(ARG6), 
+  STATUS = "NO"
+)
+
+data <- drop_na(data, OUTPUT)
+
+data <- mutate(
+  data, 
+  TIME = map_int(OUTPUT, extract_time) / 1000
+)
+
+data_est <- tribble(
+  ~CYC_CHI, ~DIS_CHI, ~BLK_CHI, ~TIME,  ~STATUS, 
+  32,       4,        16,       200427, "NO", 
+  32,       8,        16,       400000, "YES"
+)
+
+data <- bind_rows(data, data_est)
+
+data <- mutate(
+  data, 
+  TOT_CHI = as.factor(CYC_CHI * DIS_CHI * BLK_CHI)
+)
+
+data <- arrange(data, TOT_CHI, DIS_CHI)
+data <- group_by(data, TOT_CHI)
+
+data <- mutate(
+  data, 
+  PE = first(TIME * DIS_CHI ^ 2) / (TIME * DIS_CHI ^ 2), 
+  STATUS2 = first(STATUS)
+)
+
+plt1 <- ggplot(data) +
+  geom_line(aes(x = DIS_CHI, y = TIME, colour = TOT_CHI),
+            linewidth = 1) +
+  geom_point(aes(x = DIS_CHI, y = TIME, colour = TOT_CHI, shape = STATUS),
+             size = 2, stroke = 1) +
+  scale_x_log10(breaks = 2 ^ (0:5), minor_breaks = c()) +
+  scale_y_log10() +
+  scale_colour_manual(values = palettes[[MODE]], 
+                      name = TeX(r'(Total bond ($\chi$): )')) + 
+  scale_shape_manual(values = c(16, 1), name = "Estimated: ") +
+  guides(colour = FALSE, shape = FALSE) + 
+  xlab(TeX(r'(Distributed bond ($\chi_d$))')) +
+  ylab("Runtime [s]") +
+  default_theme
+
+plt2 <- ggplot(data) +
+  geom_line(aes(x = DIS_CHI, y = PE, colour = TOT_CHI, linetype = TOT_CHI),
+            linewidth = 1) +
+  geom_point(aes(x = DIS_CHI, y = PE, colour = TOT_CHI, shape = STATUS2),
+             size = 2, stroke = 1) +
+  scale_x_log10(breaks = 2 ^ (0:5), minor_breaks = c()) +
+  scale_y_log10(breaks = c(0.01, 0.02, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5)) + 
+  scale_colour_manual(values = palettes[[MODE]], 
+                      name = TeX(r'(Total bond ($\chi$): )')) + 
+  scale_linetype_manual(values = c(1, 1, 1, 1, 2), 
+                        name = TeX(r'(Total bond ($\chi$): )')) + 
+  scale_shape_manual(values = c(16, 1), name = "Estimated: ") +
+  guides(shape = FALSE, linetype = FALSE) + 
+  xlab(TeX(r'(Distributed bond ($\chi_d$))')) +
+  ylab("Parallel efficiency") +
+  default_theme
+
+plt1 + plt2 + plot_layout(guides = "collect") & 
+  theme(legend.position = "top")
+
+if (SAVE) {
+  ggsave(glue("plt/jpdc/riqft-strong.pdf"), width = 6, height = 3,
+         units = "in", scale = 1.25, device = cairo_pdf)
+  ggsave(glue("plt/jpdc/num/fig13.pdf"), width = 6, height = 3,
+         units = "in", scale = 1.25, device = cairo_pdf)
+}
+```
+
+```{r fig14}
+data <- raw[["rcs-weak"]]
+data <- mutate(
+  data,
+  DEPTH = as.numeric(ARG1), 
+  CYC_CHI = as.numeric(ARG2), 
+  DIS_CHI = as.numeric(ARG3), 
+  BLK_CHI = as.numeric(ARG4), 
+  INTER = as.factor(ARG5), 
+  DEC = as.factor(ARG6), 
+  ESTIMATED = FALSE
+)
+
+data_est <- tribble(
+  ~CYC_CHI, ~DIS_CHI, ~BLK_CHI, ~TIME,  ~ESTIMATED, 
+  8,        64,       16,       575,    FALSE
+)
+
+data <- mutate(
+  data, 
+  TIME = map_int(OUTPUT, extract_time) / 60000, 
+  FIDELITY = map_dbl(OUTPUT, extract_norm) ^ 2
+)
+
+data <- bind_rows(data, data_est)
+data <- mutate(data, LOC_CHI = as.factor(CYC_CHI * BLK_CHI))
+
+get_params <- \(tb, chi) {
+  tb <- filter(tb, LOC_CHI == chi) |> arrange(DIS_CHI)
+  m <- lm(log(tb$TIME) ~ log(tb$DIS_CHI))
+  coeffs <- m$coefficients
+  
+  tibble(
+    LOC_CHI = chi, 
+    intercept = coeffs[[1]], 
+    slope = coeffs[[2]], 
+    slope_label = sprintf("a = %.3f", slope), 
+    x = tb$DIS_CHI[[4]], 
+    y = tb$TIME[[4]]
+  )
+}
+
+slopes <- tibble()
+loc_chis <- c(32, 64, 128, 256)
+for (chi in loc_chis) {
+  slopes <- bind_rows(slopes, get_params(data, chi))
+}
+
+slopes <- mutate(slopes, LOC_CHI = factor(LOC_CHI, levels = loc_chis))
+
+ggplot(data) +
+  geom_smooth(aes(x = DIS_CHI, y = TIME, colour = LOC_CHI),
+            fill = "gray97", level = 0, linewidth = 1, 
+            method = "lm", , formula = y ~ x) +
+  geom_point(aes(x = DIS_CHI, y = TIME, colour = LOC_CHI, shape = ESTIMATED),
+             size = 2, stroke = 1) +
+  geom_label(data = slopes, 
+             mapping = aes(x = x, y = y, label = slope_label, colour = LOC_CHI), 
+             alpha = 0.7, show.legend = FALSE, vjust = 0.0, angle = 20, 
+             size = 3.0) + 
+  scale_x_log10(breaks = 2 ^ (0:6), minor_breaks = c()) +
+  scale_y_log10(breaks = c(.5, 1, 2, 4, 8, 16, 32, 75, 
+                           150, 300, 600, 1200, 2400)) +
+  scale_colour_manual(values = palettes[[MODE]],
+                      name = TeX(r'(Local bond ($\chi_c \cdot \chi_b$): )')) + 
+  scale_shape_manual(values = c(16, 1)) +
+  guides(shape = FALSE) + 
+  xlab(TeX(r'(Distributed bond ($\chi_d$))')) +
+  ylab("Runtime [min]") +
+  default_theme
+
+if (SAVE) {
+  ggsave(glue("plt/jpdc/rcs-weak.pdf"), width = 5, height = 4,
+         units = "in", scale = 1.1, device = cairo_pdf)
+  ggsave(glue("plt/jpdc/num/fig14.pdf"), width = 5, height = 4,
+         units = "in", scale = 1.1, device = cairo_pdf)
+}
+```
+```{r fig15}
+data <- raw[["rcs-weak"]]
+data <- mutate(
+  data,
+  DEPTH = as.numeric(ARG1), 
+  CYC_CHI = as.numeric(ARG2), 
+  DIS_CHI = as.numeric(ARG3), 
+  BLK_CHI = as.numeric(ARG4), 
+  INTER = as.factor(ARG5), 
+  DEC = as.factor(ARG6), 
+  ESTIMATED = FALSE
+)
+
+data_est <- tribble(
+  ~CYC_CHI, ~DIS_CHI, ~BLK_CHI, ~TIME,  ~ESTIMATED, 
+  8,        64,       16,       575,    FALSE
+)
+
+data <- mutate(
+  data, 
+  TIME = map_int(OUTPUT, extract_time) / 60000, 
+  FIDELITY = map_dbl(OUTPUT, extract_norm) ^ 2
+)
+
+data <- bind_rows(data, data_est)
+data <- mutate(data, LOC_CHI = as.factor(CYC_CHI * BLK_CHI))
+
+dataf <- mutate(data, TOT_CHI = CYC_CHI * DIS_CHI * BLK_CHI) |>
+  group_by(TOT_CHI) |>
+  summarise(FIDELITY = max(FIDELITY, na.rm = TRUE))
+
+ggplot(dataf) +
+  geom_smooth(aes(x = TOT_CHI, y = FIDELITY), colour = palettes[[MODE]][[5]],
+            fill = "gray97", level = 0, linewidth = 1,
+            method = "lm", formula = y ~ x) +
+  geom_point(aes(x = TOT_CHI, y = FIDELITY),
+             colour = palettes[[MODE]][[5]], size = 2, stroke = 1) +
+  scale_x_log10(breaks = 2 ^ (5:14), minor_breaks = c()) +
+  scale_y_log10(breaks = 10 ^ (-24:-16)) +
+  xlab(TeX(r'(Total bond ($\chi$))')) +
+  ylab(TeX(r'(Circuit fidelity ($\bar{F}$))')) +
+  default_theme +
+  theme(axis.text.x = element_text(angle = 45, vjust = .8, hjust = .5))
+
+if (SAVE) {
+  ggsave(glue("plt/jpdc/rcs-fidelity.pdf"), width = 5, height = 3,
+         units = "in", scale = 1.1, device = cairo_pdf)
+  ggsave(glue("plt/jpdc/num/fig15.pdf"), width = 5, height = 3,
+         units = "in", scale = 1.1, device = cairo_pdf)
+}
+```
