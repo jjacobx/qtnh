@@ -22,7 +22,8 @@ fi
 export LSAN_OPTIONS=suppressions=lsan.supp,print_suppressions=0
 
 # Set the number of threads to 1
-export OMP_NUM_THREADS=1
+: ${BLAS_THREADS=1}
+export OMP_NUM_THREADS=$BLAS_THREADS
 
 # Propagate the cpus-per-task setting from script to srun commands
 export SRUN_CPUS_PER_TASK=$SLURM_CPUS_PER_TASK
@@ -34,6 +35,7 @@ echo "SLURM_JOB_NAME=${SLURM_JOB_NAME}"
 echo "SLURM_JOB_NUM_NODES=${SLURM_JOB_NUM_NODES}"
 echo "SLURM_NTASKS=${SLURM_NTASKS}"
 echo "MPI_IMPL=${MPI_IMPL}"
+echo "OMP_NUM_THREADS=${OMP_NUM_THREADS}"
 echo
 
 # Print git info
