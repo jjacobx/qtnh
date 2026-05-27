@@ -71,8 +71,10 @@ done
 #   --export=BUILD_DIR=$BUILD_DIR,PROG=$PROG,EXP=$EXP,ARGS="$ARGS",MPI_IMPL=$MPI_IMPL \
 #   $QTNH_DIR/run/run.slurm
 
+# QOS=long
+# TIME=96:00:0
 # ARGS="$SITES 32 4 $BLK $SAT QPD"
-# sbatch -D $QTNH_DIR/run -N 1 --ntasks-per-node=16 --time=$TIME -o $OUT \
+# sbatch -D $QTNH_DIR/run -N 1 --ntasks-per-node=16 --time=$TIME -o $OUT --qos=$QOS \
 #   --export=BUILD_DIR=$BUILD_DIR,PROG=$PROG,EXP=$EXP,ARGS="$ARGS",MPI_IMPL=$MPI_IMPL \
 #   $QTNH_DIR/run/run.slurm
 
@@ -91,7 +93,9 @@ done
 #   --export=BUILD_DIR=$BUILD_DIR,PROG=$PROG,EXP=$EXP,ARGS="$ARGS",MPI_IMPL=$MPI_IMPL \
 #   $QTNH_DIR/run/run.slurm
 
+# QOS=long
+# TIME=96:00:0
 # ARGS="$SITES 32 8 $BLK $SAT QPD"
-# sbatch -D $QTNH_DIR/run -N 1 --ntasks-per-node=64 --time=$TIME -o $OUT \
+# sbatch -D $QTNH_DIR/run -N 1 --ntasks-per-node=64 --time=$TIME -o $OUT --qos=$QOS \
 #   --export=BUILD_DIR=$BUILD_DIR,PROG=$PROG,EXP=$EXP,ARGS="$ARGS",MPI_IMPL=$MPI_IMPL \
 #   $QTNH_DIR/run/run.slurm

@@ -44,3 +44,43 @@ for dis in $DIS_VALS; do
     --export=BUILD_DIR=$BUILD_DIR,PROG=$PROG,ARGS="$ARGS",MPI_IMPL=$MPI_IMPL \
     $QTNH_DIR/run/run.slurm
 done
+
+# TIME=14:00:0
+
+# dis=64
+# TASKS=$(($dis * $dis))
+# TPN=128
+
+# NODES=$(($TASKS / $TPN))
+# if [ $NODES -eq 0 ]; then
+#   NODES=1
+#   TPN=$TASKS
+# fi
+
+# ARGS="$DEPTH $CYC $dis $BLK SWAP QPD 0 x x"
+# sbatch -D $QTNH_DIR/run -N $NODES --ntasks-per-node=$TPN --time=$TIME -o $OUT \
+#   --export=BUILD_DIR=$BUILD_DIR,PROG=$PROG,ARGS="$ARGS",MPI_IMPL=$MPI_IMPL \
+#   $QTNH_DIR/run/run.slurm
+
+# QOS=standard
+# TIME=2:00:0
+# EXP=rcs-bonus
+# OUT=out/isc26/${EXP}/%j.out
+
+# CYC=16
+# BLK=16
+
+# DIS=1
+# TASKS=$(($DIS * $DIS))
+# TPN=128
+
+# NODES=$(($TASKS / $TPN))
+# if [ $NODES -eq 0 ]; then
+#   NODES=1
+#   TPN=$TASKS
+# fi
+
+# ARGS="$DEPTH $CYC $DIS $BLK SWAP QPD 0 x x"
+# sbatch -D $QTNH_DIR/run -N $NODES --ntasks-per-node=$TPN --time=$TIME -o $OUT --qos=$QOS \
+#   --export=BUILD_DIR=$BUILD_DIR,PROG=$PROG,ARGS="$ARGS",MPI_IMPL=$MPI_IMPL,BLAS_THREADS=16 \
+#   $QTNH_DIR/run/run.slurm
