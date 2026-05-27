@@ -32,25 +32,33 @@ library(tidyverse)
 
 palettes <- list(
   presentation = RColorBrewer::brewer.pal(4, "Set1"), 
-  poster = c("#B60061", "#B68D00", "#005435", "#008AB6"), 
+  poster = c("#B60061", "#B68D00", "#005435", "#008AB6", "#A18877"), 
   paper = c("#B60061", "#B68D00", "#005435", "#008AB6", "#A18877")
 )
 bkgs <- list(
   presentation = "#A9D3CD", 
   poster = "#C9DC87", 
-  paper = "#C9DC87"
+  paper = "#A9D3CD", 
+  panel = "#81992D"
+  # panel = "#A49C41"
 )
 
-MODE <- "paper"
+MODE <- "poster"
 SAVE <- TRUE
 ```
 
 ```{r setup-plotting, include=FALSE}
 default_theme <- theme_gray() + 
   theme(rect = element_rect(fill = "transparent", linewidth = 0), 
-        panel.background = element_rect(fill = bkgs[[MODE]], linewidth = 0), 
-        legend.key = element_rect(fill = bkgs[[MODE]]), 
-        legend.position = "top")
+        panel.background = element_rect(fill = fill_alpha(bkgs[[MODE]], 0.7), 
+                                        linewidth = 0),
+        legend.key = element_rect(fill = fill_alpha(bkgs[[MODE]], 0.7)), 
+        legend.position = "top",
+        legend.justification = "center", 
+        legend.frame = element_blank(), 
+        # legend.key = element_blank(), 
+        # panel.background = element_rect(fill = bkgs[[MODE]], colour = bkgs[["panel"]], linewidth = 1),
+        strip.background = element_rect(fill = bkgs[["panel"]]))
 ```
 
 ```{r str-helpers, include = FALSE}
@@ -78,6 +86,7 @@ for (exp in exps) {
 
 ```{r fidelity-overlaps}
 data <- raw[["fidelity-overlaps"]]
+data <- mutate(data, Dec = str_replace(Dec, "QPD", "pQR"))
 data <- mutate(data, Dec = as.factor(Dec))
 data <- mutate(data, Res = (Norm - Overlap), Rel = Res / Overlap)
 
@@ -91,8 +100,8 @@ plt1 <- ggplot(data) +
                      name = "Dec. method: ") + 
   xlim(c(0, 1)) + 
   ylim(c(0, 1)) + 
-  xlab("Overlap fidelity") +
-  ylab("Norm fidelity") +
+  xlab(TeX(r'(Overlap fidelity ($F$))')) +
+  ylab(TeX(r'(Norm fidelity ($\bar{F}$))')) +
   default_theme
 
 plt2 <- ggplot(data) +
@@ -109,8 +118,8 @@ plt2 <- ggplot(data) +
   scale_x_log10(breaks = c(0.02, 0.05, 0.10, 0.20, 0.50, 1.00), 
                 limits = c(0.02, 1.00)) + 
   ylim(c(-5e-3, 5e-3)) + 
-  xlab("Overlap fidelity") +
-  ylab("Residual") +
+  xlab(TeX(r'(Overlap fidelity ($F$))')) +
+  ylab(TeX(r'(Residual ($\bar{F} - F$))')) +
   default_theme
 
 plt1 + plt2 + plot_layout(guides = "collect") & 
@@ -118,14 +127,18 @@ plt1 + plt2 + plot_layout(guides = "collect") &
 
 if (SAVE) {
   ggsave(glue("plt/isc26/fidelity-overlap.pdf"), width = 5, height = 3,
-         units = "in", scale = 1.25)
+         units = "in", scale = 1.25, device = cairo_pdf)
   ggsave(glue("plt/isc26/fidelity-overlap.svg"), width = 5, height = 3,
          units = "in", scale = 1.25)
+  
+  ggsave(glue("plt/jpdc/fig07.pdf"), width = 6, height = 3,
+         units = "in", scale = 1.25, device = cairo_pdf)
 }
 ```
 
 ```{r rcs_setup}
 ref_rcs_setup <- raw[["rcs-setup"]]
+ref_rcs_setup <- mutate(ref_rcs_setup, ARG6 = str_replace(ARG6, "QPD", "pQR"))
 ref_rcs_setup <- mutate(
   ref_rcs_setup,
   DEPTH = as.numeric(ARG1),
@@ -151,20 +164,28 @@ ggplot(ref_rcs_setup) +
                       name = "LR interactions: ") +
   scale_shape_manual(values = c(1, 4, 5, 6, 0), 
                      name = "Dec. method: ") + 
-  xlab("MPS evolution time [s]") +
-  ylab("Output fidelity") +
+  xlab("Emulation runtime [s]") +
+  ylab(TeX(r'(Output fidelity ($\bar{F}$))')) +
   default_theme
 
 if (SAVE) {
   ggsave(glue("plt/isc26/rcs-setup.pdf"), width = 5, height = 3,
-         units = "in", scale = 1.25)
+         units = "in", scale = 1.25, device = cairo_pdf)
   ggsave(glue("plt/isc26/rcs-setup.svg"), width = 5, height = 3,
          units = "in", scale = 1.25)
+  
+  ggsave(glue("plt/jpdc/fig08.pdf"), width = 6, height = 3,
+         units = "in", scale = 1.25, device = cairo_pdf)
 }
 ```
 
 ```{r riqft_setup}
 ref_riqft_setup <- raw[["riqft-setup"]]
+ref_riqft_setup <- mutate(
+  ref_riqft_setup, 
+  ARG6 = str_replace(ARG6, "QPD", "pQR")
+)
+
 ref_riqft_setup <- mutate(
   ref_riqft_setup,
   DEPTH = as.numeric(ARG1),
@@ -242,20 +263,23 @@ ggplot(data) +
   scale_x_log10(breaks = c(1, 4, 16, 64, 256)) + 
   # scale_y_log10() + 
   scale_colour_manual(values = palettes[[MODE]], 
-                      name = "Dis. bond: ") +
+                      name = TeX(r'(Dis. bond ($\chi_d$): )')) +
   scale_shape_manual(values = c(1, 4, 5, 6, 0), 
-                     name = "Loc. bond: ") + 
+                     name = TeX(r'(Loc. bond ($\chi_c \cdot \chi_b$): )')) + 
   scale_linetype_manual(values = c(1, 4, 5, 6, 0), 
-                     name = "Loc. bond: ") + 
-  xlab("Block size") +
-  ylab("Relative MPS evolution time") +
+                     name = TeX(r'(Loc. bond ($\chi_c \cdot \chi_b$): )')) + 
+  xlab(TeX(r'(Block size ($\chi_b$))')) +
+  ylab(TeX(r'(Relative runtime ($t/t_{(\chi_b=1)}$))')) +
   default_theme
 
 if (SAVE) {
   ggsave(glue("plt/isc26/block-size.pdf"), width = 5, height = 3,
-         units = "in", scale = 1.25)
+         units = "in", scale = 1.25, device = cairo_pdf)
   ggsave(glue("plt/isc26/block-size.svg"), width = 5, height = 3,
          units = "in", scale = 1.25)
+  
+  ggsave(glue("plt/jpdc/fig09.pdf"), width = 6, height = 3,
+         units = "in", scale = 1.25, device = cairo_pdf)
 }
 ```
 
@@ -334,20 +358,23 @@ ggplot(data) +
   scale_x_log10(breaks = c(0.1, 0.25, .5, 1.0)) +
   scale_y_log10() +
   scale_colour_manual(values = palettes[[MODE]],
-                      name = "Number of sites: ") +
+                      name = "Qubit count: ") +
   # scale_shape_manual(values = c(1, 4, 5, 6, 0), 
   #                    name = "Loc. bond: ") + 
   # scale_linetype_manual(values = c(1, 4, 5, 6, 0), 
   #                    name = "Loc. bond: ") + 
-  xlab("Input saturation") +
-  ylab("Output fidelity") +
+  xlab(TeX(r'(Input saturation ($\sigma = \chi_i/\chi$))')) +
+  ylab(TeX(r'(Output fidelity ($\bar{F}$))')) +
   default_theme
 
 if (SAVE) {
   ggsave(glue("plt/isc26/riqft-fidelity.pdf"), width = 5, height = 3,
-         units = "in", scale = 1.25)
+         units = "in", scale = 1.25, device = cairo_pdf)
   ggsave(glue("plt/isc26/riqft-fidelity.svg"), width = 5, height = 3,
          units = "in", scale = 1.25)
+  
+  ggsave(glue("plt/jpdc/fig12.pdf"), width = 6, height = 3,
+         units = "in", scale = 1.25, device = cairo_pdf)
 }
 ```
 
@@ -373,7 +400,7 @@ data <- mutate(
 
 data_est <- tribble(
   ~CYC_CHI, ~DIS_CHI, ~BLK_CHI, ~TIME,  ~STATUS, 
-  32,       4,        16,       200000, "YES", 
+  32,       4,        16,       200427, "NO", 
   32,       8,        16,       400000, "YES"
 )
 
@@ -389,7 +416,8 @@ data <- group_by(data, TOT_CHI)
 
 data <- mutate(
   data, 
-  PE = first(TIME * DIS_CHI ^ 2) / (TIME * DIS_CHI ^ 2)
+  PE = first(TIME * DIS_CHI ^ 2) / (TIME * DIS_CHI ^ 2), 
+  STATUS2 = first(STATUS)
 )
 
 plt1 <- ggplot(data) +
@@ -401,30 +429,32 @@ plt1 <- ggplot(data) +
              size = 2, stroke = 1) +
   scale_x_log10(breaks = 2 ^ (0:5), minor_breaks = c()) +
   scale_y_log10() +
-  scale_colour_manual(values = palettes[[MODE]],
-                      name = "Total bond: ") + 
-  scale_shape_manual(values = c(16, 1),
-                     name = "Estimated: ") + 
-  guides(shape = FALSE) + 
-  xlab("Distributed bond") +
+  scale_colour_manual(values = palettes[[MODE]], 
+                      name = TeX(r'(Total bond ($\chi$): )')) + 
+  # scale_linetype_manual(values = linetypes, 
+  #                       name = TeX(r'(Total bond ($\chi$): )')) + 
+  scale_shape_manual(values = c(16, 1), name = "Estimated: ") +
+  guides(colour = FALSE, shape = FALSE) + 
+  xlab(TeX(r'(Distributed bond ($\chi_d$))')) +
   ylab("Runtime [s]") +
   default_theme
 
 plt2 <- ggplot(data) +
   # geom_smooth(aes(x = DIS_CHI, y = TIME, colour = TOT_CHI),
   #           fill = "gray97", level = 0, linewidth = 1, method = "loess") +
-  geom_line(aes(x = DIS_CHI, y = PE, colour = TOT_CHI),
+  geom_line(aes(x = DIS_CHI, y = PE, colour = TOT_CHI, linetype = TOT_CHI),
             linewidth = 1) +
-  geom_point(aes(x = DIS_CHI, y = PE, colour = TOT_CHI, shape = STATUS),
+  geom_point(aes(x = DIS_CHI, y = PE, colour = TOT_CHI, shape = STATUS2),
              size = 2, stroke = 1) +
   scale_x_log10(breaks = 2 ^ (0:5), minor_breaks = c()) +
-  scale_y_log10(breaks = c(0.05, 0.1, 0.25, 0.5, 1.0, 2.5)) + 
-  scale_colour_manual(values = palettes[[MODE]],
-                      name = "Total bond: ") + 
-  scale_shape_manual(values = c(16, 1),
-                    name = "Estimated: ") +
-  guides(shape = FALSE) + 
-  xlab("Distributed bond") +
+  scale_y_log10(breaks = c(0.01, 0.02, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5)) + 
+  scale_colour_manual(values = palettes[[MODE]], 
+                      name = TeX(r'(Total bond ($\chi$): )')) + 
+  scale_linetype_manual(values = c(1, 1, 1, 1, 2), 
+                        name = TeX(r'(Total bond ($\chi$): )')) + 
+  scale_shape_manual(values = c(16, 1), name = "Estimated: ") +
+  guides(shape = FALSE, linetype = FALSE) + 
+  xlab(TeX(r'(Distributed bond ($\chi_d$))')) +
   ylab("Parallel efficiency") +
   default_theme
 
@@ -433,9 +463,12 @@ plt1 + plt2 + plot_layout(guides = "collect") &
 
 if (SAVE) {
   ggsave(glue("plt/isc26/riqft-strong.pdf"), width = 5, height = 3,
-         units = "in", scale = 1.25)
+         units = "in", scale = 1.25, device = cairo_pdf)
   ggsave(glue("plt/isc26/riqft-strong.svg"), width = 5, height = 3,
          units = "in", scale = 1.25)
+  
+  ggsave(glue("plt/jpdc/fig13.pdf"), width = 6, height = 3,
+         units = "in", scale = 1.25, device = cairo_pdf)
 }
 ```
 
@@ -454,7 +487,8 @@ data <- mutate(
 
 data_est <- tribble(
   ~CYC_CHI, ~DIS_CHI, ~BLK_CHI, ~TIME,  ~ESTIMATED, 
-  8,        64,       16,       530,    TRUE
+  # 8,        64,       16,       530,    TRUE
+  8,        64,       16,       575,    FALSE
 )
 
 data <- mutate(
@@ -466,6 +500,29 @@ data <- mutate(
 data <- bind_rows(data, data_est)
 data <- mutate(data, LOC_CHI = as.factor(CYC_CHI * BLK_CHI))
 
+get_params <- \(tb, chi) {
+  tb <- filter(tb, LOC_CHI == chi) |> arrange(DIS_CHI)
+  m <- lm(log(tb$TIME) ~ log(tb$DIS_CHI))
+  coeffs <- m$coefficients
+  
+  tibble(
+    LOC_CHI = chi, 
+    intercept = coeffs[[1]], 
+    slope = coeffs[[2]], 
+    slope_label = sprintf("a = %.3f", slope), 
+    x = tb$DIS_CHI[[4]], 
+    y = tb$TIME[[4]]
+  )
+}
+
+slopes <- tibble()
+loc_chis <- c(32, 64, 128, 256)
+for (chi in loc_chis) {
+  slopes <- bind_rows(slopes, get_params(data, chi))
+}
+
+slopes <- mutate(slopes, LOC_CHI = factor(LOC_CHI, levels = loc_chis))
+
 plt1 <- ggplot(data) +
   geom_smooth(aes(x = DIS_CHI, y = TIME, colour = LOC_CHI),
             fill = "gray97", level = 0, linewidth = 1, 
@@ -474,13 +531,17 @@ plt1 <- ggplot(data) +
   #           linewidth = 1) +
   geom_point(aes(x = DIS_CHI, y = TIME, colour = LOC_CHI, shape = ESTIMATED),
              size = 2, stroke = 1) +
+  geom_label(data = slopes, 
+             mapping = aes(x = x, y = y, label = slope_label, colour = LOC_CHI), 
+             alpha = 0.7, show.legend = FALSE, vjust = 0.0, angle = 30, 
+             size = 3.0) + 
   scale_x_log10(breaks = 2 ^ (0:6), minor_breaks = c()) +
   scale_y_log10(breaks = c(1, 2, 4, 8, 16, 32, 75, 150, 300, 600, 1200, 2400)) +
   scale_colour_manual(values = palettes[[MODE]],
-                      name = "Local bond: ") + 
+                      name = TeX(r'(Local bond ($\chi_c \cdot \chi_b$): )')) + 
   scale_shape_manual(values = c(16, 1)) +
   guides(shape = FALSE) + 
-  xlab("Distributed bond") +
+  xlab(TeX(r'(Distributed bond ($\chi_d$))')) +
   ylab("Runtime [min]") +
   default_theme
 
@@ -496,8 +557,8 @@ plt2 <- ggplot(dataf) +
              colour = palettes[[MODE]][[5]], size = 2, stroke = 1) +
   scale_x_log10(breaks = 2 ^ (5:14), minor_breaks = c()) +
   scale_y_log10(breaks = 10 ^ (-24:-16)) +
-  xlab("Total bond") +
-  ylab("Circuit fidelity") +
+  xlab(TeX(r'(Total bond ($\chi$))')) +
+  ylab(TeX(r'(Circuit fidelity ($\bar{F}$))')) +
   default_theme + 
   theme(axis.text.x = element_text(angle = 45, vjust = .8, hjust = .5))
 
@@ -505,11 +566,38 @@ plt1 + plt2
 
 if (SAVE) {
   ggsave(glue("plt/isc26/rcs-weak.pdf"), width = 5, height = 3,
-         units = "in", scale = 1.25)
+         units = "in", scale = 1.25, device = cairo_pdf)
   ggsave(glue("plt/isc26/rcs-weak.svg"), width = 5, height = 3,
          units = "in", scale = 1.25)
+  
+  ggsave(glue("plt/jpdc/fig14.pdf"), width = 6, height = 3,
+         units = "in", scale = 1.25, device = cairo_pdf)
 }
 ```
+
+```{r}
+get_params <- \(tb, chi) {
+  tb <- filter(tb, LOC_CHI == chi) |> arrange(DIS_CHI)
+  m <- lm(log(tb$TIME) ~ log(tb$DIS_CHI))
+  coeffs <- m$coefficients
+  
+  tibble(
+    LOC_CHI = chi, 
+    intercept = coeffs[[1]], 
+    slope = coeffs[[2]], 
+    x = tb$DIS_CHI[[4]], 
+    y = tb$TIME[[4]]
+  )
+}
+
+
+loc_chis <- c(32, 64, 128, 256)
+slopes <- tibble()
+for (chi in loc_chis) {
+  slopes <- bind_rows(proc, get_params(data, chi))
+}
+```
+
 ```{r}
 r1 <- 81.7811333 / 23.8428833
 r2 <- 202.1322667 / 54.3773167
@@ -882,4 +970,278 @@ ggplot(to_plt) +
   xlab("Number of dim-2 indices") +
   ylab("Time per permutation [ms]") +
   default_theme
+```
+
+```{r profiling}
+library(fillpattern)
+
+la_percents <- tribble(
+  ~chi, ~routine, ~percent, 
+  2048, "QR/LQ",  79.8, 
+  2048, "GEMM",   15.2, 
+  2048, "Other",   5.0, 
+  4096, "QR/LQ",  74.2, 
+  4096, "GEMM",   21.0, 
+  4096, "Other",   4.8, 
+  8192, "QR/LQ",  82.8, 
+  8192, "GEMM",   15.7, 
+  8192, "Other",   1.5
+)
+
+routine_levels = c("QR/LQ", "GEMM", "Other")
+
+la_percents <- mutate(la_percents, chi = factor(chi)) |>
+  mutate(routine = factor(routine, levels = routine_levels)) |>
+  group_by(chi)
+
+ggplot(la_percents, aes(x = "", y = percent)) +
+  geom_bar(aes(fill = routine), stat = "identity", colour = "white") + 
+  geom_label(aes(x = 1.4, label = paste0(percent, "%"), group = routine), 
+             position = position_stack(vjust = 0.5, reverse = FALSE), 
+             alpha = 0.7) +
+  coord_polar("y", direction = -1) +
+  facet_wrap(~paste0("chi: ", chi), labeller = label_parsed) +
+  scale_fill_pattern(bg = palettes[[MODE]]) + 
+  default_theme + 
+  # theme_gray() +
+  theme(plot.title = element_blank(), 
+        axis.title = element_blank(),
+        axis.line = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        panel.grid  = element_blank(), 
+        # legend.position = "top",
+        # legend.justification = "center", 
+        # legend.frame = element_blank(), 
+        # legend.key = element_blank(), 
+        # panel.background = element_rect(colour = bkgs[["panel"]]),
+        # strip.background = element_rect(fill = bkgs[["panel"]]), 
+        plot.margin = margin_auto(1, unit = "mm")) + 
+  guides(fill = guide_legend(title = "Routine: ", nrow = 1, byrow = TRUE))
+
+if (SAVE) {
+  ggsave(glue("plt/isc26/la-profiles.pdf"), width = 6, height = 2.75,
+         units = "in", scale = 1.25, device = cairo_pdf)
+  ggsave(glue("plt/isc26/la-profiles.svg"), width = 6, height = 2.75,
+         units = "in", scale = 1.25)
+  
+  ggsave(glue("plt/jpdc/fig10b.pdf"), width = 6, height = 3,
+         units = "in", scale = 1.25, device = cairo_pdf)
+}
+
+op_percents <- tribble(
+  ~chi, ~type, ~op,              ~percent, 
+  2048, "CPU", "scalar",         1.6, 
+  2048, "CPU", "vector",         13.0, 
+  2048, "CPU", "memory",         11.6, 
+  2048, "MPI", "collective",     17.1, 
+  2048, "MPI", "point-to-point", 56.7, 
+  4096, "CPU", "scalar",         2.1, 
+  4096, "CPU", "vector",         22.6, 
+  4096, "CPU", "memory",         23.6, 
+  4096, "MPI", "collective",     14.6, 
+  4096, "MPI", "point-to-point", 37.1, 
+  8192, "CPU", "scalar",         0.5, 
+  8192, "CPU", "vector",         30.8, 
+  8192, "CPU", "memory",         45.9, 
+  8192, "MPI", "collective",     7.8, 
+  8192, "MPI", "point-to-point", 15.0
+)
+
+
+call_levels = c(
+  "CPU (scalar)", 
+  "CPU (vector)", 
+  "CPU (memory)", 
+  "MPI (collective)", 
+  "MPI (point-to-point)"
+)
+
+op_percents <- mutate(op_percents, chi = factor(chi)) |> 
+  mutate(call = paste0(type, " (", op, ")")) |> 
+  mutate(call = factor(call, levels = call_levels)) |> 
+  mutate(type = factor(type)) |>
+  group_by(chi)
+
+fill_palette <- c("#604A00", "#B68D00", "#FFC706", "#005435", "#009F65")
+fill_patterns <- c("brick", "shingle", "rshingle", "saw", "wave")
+ggplot(op_percents, aes(x = "", y = percent)) +
+  geom_bar(aes(fill = call), stat = "identity", colour = "white") + 
+  geom_label(aes(x = 1.4, label = paste0(percent, "%"), group = call), 
+             position = position_stack(vjust = 0.5, reverse = FALSE), 
+             alpha = 0.7) +
+  coord_polar("y", direction = -1) +
+  facet_wrap(~paste0("χ: ", chi), labeller = label_parsed) +
+  scale_fill_pattern(fill_patterns, bg = fill_palette) + 
+  default_theme +
+  # theme_gray() +
+  theme(plot.title = element_blank(), 
+        axis.title = element_blank(),
+        axis.line = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        panel.grid  = element_blank(), 
+        # aspect.ratio = 1.25, 
+        # legend.position = "top",
+        # legend.justification = "center", 
+        # legend.frame = element_blank(), 
+        # legend.key = element_blank(), 
+        # panel.background = element_rect(colour = bkgs[["panel"]]),
+        # strip.background = element_rect(fill = bkgs[["panel"]]), 
+        plot.margin = margin_auto(1, unit = "mm")) + 
+  guides(fill = guide_legend(title = "Call type: ", nrow = 2, byrow = TRUE))
+
+if (SAVE) {
+  ggsave(glue("plt/isc26/op-profiles.pdf"), width = 6, height = 3,
+         units = "in", scale = 1.25, device = cairo_pdf)
+  ggsave(glue("plt/isc26/op-profiles.svg"), width = 6, height = 3,
+         units = "in", scale = 1.25)
+  
+  ggsave(glue("plt/jpdc/fig10a.pdf"), width = 6, height = 3,
+         units = "in", scale = 1.25, device = cairo_pdf)
+}
+```
+
+```{r profiling2}
+library(fillpattern)
+
+la_percents_svd <- tribble(
+  ~chi, ~routine, ~percent, 
+  2048, "SVD",    90.5,
+  2048, "QR/LQ",   5.4, 
+  2048, "GEMM",    2.8, 
+  2048, "Other",   1.3, 
+  4096, "SVD",    93.5, 
+  4096, "QR/LQ",   3.5, 
+  4096, "GEMM",    2.3, 
+  4096, "Other",   0.7, 
+)
+
+la_levels_svd = c("SVD", "QR/LQ", "GEMM", "Other")
+
+la_percents_svd <- mutate(la_percents_svd, chi = factor(chi)) |>
+  mutate(routine = factor(routine, levels = la_levels_svd)) |>
+  group_by(chi)
+
+la_percents_pqr <- tribble(
+  ~chi, ~routine, ~percent, 
+  2048, "pQR",    51.5,
+  2048, "QR/LQ",  28.3, 
+  2048, "GEMM",   15.2, 
+  2048, "Other",   5.0, 
+  4096, "pQR",    44.7, 
+  4096, "QR/LQ",  29.5, 
+  4096, "GEMM",   21.0, 
+  4096, "Other",   4.8, 
+)
+
+la_levels_pqr = c("pQR", "QR/LQ", "GEMM", "Other")
+
+la_percents_pqr <- mutate(la_percents_pqr, chi = factor(chi)) |>
+  mutate(routine = factor(routine, levels = la_levels_pqr)) |>
+  group_by(chi)
+
+ggplot(la_percents_svd, aes(x = "", y = percent)) +
+  geom_bar(aes(fill = routine), stat = "identity", colour = "white") + 
+  geom_label(aes(x = 1.4, label = paste0(percent, "%"), group = routine), 
+             position = position_stack(vjust = 0.5, reverse = FALSE), 
+             alpha = 0.7) +
+  coord_polar("y", direction = -1) +
+  facet_wrap(~paste0("chi: ", chi), labeller = label_parsed) +
+  scale_fill_pattern(bg = palettes[[MODE]]) + 
+  default_theme + 
+  # theme_gray() +
+  theme(plot.title = element_blank(), 
+        axis.title = element_blank(),
+        axis.line = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        panel.grid  = element_blank(), 
+        # legend.position = "top",
+        # legend.justification = "center", 
+        # legend.frame = element_blank(), 
+        # legend.key = element_blank(), 
+        # panel.background = element_rect(colour = bkgs[["panel"]]),
+        # strip.background = element_rect(fill = bkgs[["panel"]]), 
+        plot.margin = margin_auto(1, unit = "mm")) + 
+  guides(fill = guide_legend(title = "Routine: ", nrow = 1, byrow = TRUE))
+
+if (SAVE) {
+  ggsave(glue("plt/isc26/op-profiles-svd.svg"), width = 6, height = 3,
+         units = "in", scale = 1.25)
+}
+
+ggplot(la_percents_pqr, aes(x = "", y = percent)) +
+  geom_bar(aes(fill = routine), stat = "identity", colour = "white") + 
+  geom_label(aes(x = 1.4, label = paste0(percent, "%"), group = routine), 
+             position = position_stack(vjust = 0.5, reverse = FALSE), 
+             alpha = 0.7) +
+  coord_polar("y", direction = -1) +
+  facet_wrap(~paste0("chi: ", chi), labeller = label_parsed) +
+  scale_fill_pattern(bg = palettes[[MODE]]) + 
+  default_theme + 
+  # theme_gray() +
+  theme(plot.title = element_blank(), 
+        axis.title = element_blank(),
+        axis.line = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        panel.grid  = element_blank(), 
+        # legend.position = "top",
+        # legend.justification = "center", 
+        # legend.frame = element_blank(), 
+        # legend.key = element_blank(), 
+        # panel.background = element_rect(colour = bkgs[["panel"]]),
+        # strip.background = element_rect(fill = bkgs[["panel"]]), 
+        plot.margin = margin_auto(1, unit = "mm")) + 
+  guides(fill = guide_legend(title = "Routine: ", nrow = 1, byrow = TRUE))
+
+if (SAVE) {
+  ggsave(glue("plt/isc26/op-profiles-pqr.svg"), width = 6, height = 3,
+         units = "in", scale = 1.25)
+}
+```
+
+```{r}
+sota <- tribble(
+  ~chi, ~quimb, ~ITensor, ~`QTNH (SVD)`, ~`QTNH (pQR)`, 
+  128,  161,    158,      169,           141, 
+  256,  637,    684,      421,           274, 
+  512,  2359,   3456,     1926,          704, 
+  1024, 18360,  22743,    10682,         2672, 
+  2048, 136145, 169728,   215221,        15116
+)
+
+
+sota <- pivot_longer(sota, !chi, names_to = "library", values_to = "time")
+
+sota_levels<- c("quimb", "ITensor", "QTNH (SVD)", "QTNH (pQR)")
+sota <- mutate(sota, library = factor(library, sota_levels), 
+               time = time / 60)
+
+ggplot(sota) +
+  geom_line(aes(x = chi, y = time, colour = library, linetype = library), 
+            linewidth = 1) + 
+  geom_point(aes(x = chi, y = time, colour = library, shape = library),
+             size = 2, stroke = 1) +
+  scale_x_log10(breaks = 2 ^ (7:11), minor_breaks = c()) +
+  scale_y_log10(breaks = c(2, 4, 8, 16, 32, 75, 150, 300, 600, 1200, 2400)) + 
+  scale_colour_manual(values = palettes[[MODE]], name = "Library:") + 
+  scale_shape_manual(values = c(0, 1, 2, 6), name = "Library:") + 
+  scale_linetype_manual(values = c(1, 1, 2, 4), name = "Library:") + 
+  # scale_shape_manual(values = c(16, 1), name = "Estimated: ") +
+  # guides(shape = FALSE, linetype = FALSE) + 
+  xlab(TeX(r'(Effective total bond ($\chi$))')) + 
+  ylab("Runtime (min)") + 
+  default_theme
+
+if (SAVE) {
+  ggsave(glue("plt/isc26/rcs-sota.pdf"), width = 4, height = 4,
+         units = "in", scale = 1.25, device = cairo_pdf)
+  ggsave(glue("plt/isc26/rcs-sota.svg"), width = 4, height = 4,
+         units = "in", scale = 1.25)
+  
+  ggsave(glue("plt/jpdc/fig11.pdf"), width = 4, height = 4,
+         units = "in", scale = 1.25, device = cairo_pdf)
+}
 ```
