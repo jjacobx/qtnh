@@ -77,9 +77,9 @@ extract_norm <- \(x)
 
 ```{r read}
 raw <- list()
-exps <- str_sub(list.files("raw/isc26"), end = -5)
+exps <- str_sub(list.files("raw/jpdc26"), end = -5)
 for (exp in exps) {
-  path = glue("raw/isc26/{exp}.csv")
+  path = glue("raw/jpdc26/{exp}.csv")
   raw[[exp]] <- read_delim(path, delim = ',')
 }
 ```
